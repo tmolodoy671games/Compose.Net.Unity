@@ -8,20 +8,15 @@ namespace UnityCompose.Samples.Behaviors.Content
     internal partial class VerticalPagerSample : ComposeUI
     {
         [Composable]
-        protected override void Content()
-        {
-            Layout();
-        }
+        protected override void Content() => Layout();
 
         [Composable]
-        protected override void Preview()
-        {
-            Layout();
-        }
+        protected override void Preview() => Layout();
 
         [Composable]
         private static void Layout()
         {
+            Debug.Log("BRUH");
             Row(
                 modifier: Modifier.FillMaxSize(),
                 content: () =>

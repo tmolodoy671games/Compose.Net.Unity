@@ -8,11 +8,11 @@ namespace UnityCompose;
 
 public static partial class VisualElementExtensions
 {
-    public static IMutableStableDictionary<object?, object?> UserData(this VisualElement visualElement)
+    public static IMutableStableMap<object?, object?> UserData(this VisualElement visualElement)
     {
-        if (visualElement.userData is IMutableStableDictionary<object?, object?> dictionary)
+        if (visualElement.userData is IMutableStableMap<object?, object?> dictionary)
             return dictionary;
-        var newDictionary = MutableStableDictionaryOf<object?, object?>();
+        var newDictionary = MutableStableMapOf<object?, object?>();
         visualElement.userData = newDictionary;
         return newDictionary;
     }

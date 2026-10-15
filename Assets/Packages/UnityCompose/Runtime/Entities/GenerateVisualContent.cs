@@ -21,8 +21,8 @@ internal class GenerateVisualContent
 
     public void Insert(int index, Action<MeshGenerationContext> generateVisualContent)
     {
-        index = Math.Min(index, _generateVisualContent.Count);
-        _generateVisualContent.Insert(index, generateVisualContent);
+        index = Math.Min(index, _generateVisualContent.Size);
+        _generateVisualContent.Add(index, generateVisualContent);
         _element.MarkDirtyRepaint();
     }
 

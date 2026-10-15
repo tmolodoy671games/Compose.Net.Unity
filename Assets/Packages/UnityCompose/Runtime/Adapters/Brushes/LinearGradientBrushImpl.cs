@@ -48,7 +48,7 @@ internal record LinearGradientBrushImpl(
                         color.ToUnityColor(),
                         Stops != null
                             ? Stops[index]
-                            : (float)index / (Colors.Count - 1)
+                            : (float)index / (Colors.Size - 1)
                     ))
                     .ToArray(),
 
@@ -57,7 +57,7 @@ internal record LinearGradientBrushImpl(
                         color.Alpha * alpha,
                         Stops != null
                             ? Stops[index]
-                            : (float)index / (Colors.Count - 1)
+                            : (float)index / (Colors.Size - 1)
                     ))
                     .ToArray()
             },

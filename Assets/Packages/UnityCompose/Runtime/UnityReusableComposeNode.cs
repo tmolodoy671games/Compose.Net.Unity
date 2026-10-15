@@ -206,7 +206,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
             pickingMode = UnityEngine.UIElements.PickingMode.Ignore,
         };
         _contentContainer = _contentContainerInstance;
-        var children = VisualElement.Children().ToImmutableStableList();
+        var children = VisualElement.Children().ToPersistentStableList();
         foreach (var child in children)
             child.parent.Remove(child);
         VisualElement.Insert(0, _contentContainerInstance);
@@ -219,7 +219,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
     {
         if (_contentContainer == null)
             return;
-        var children = _contentContainer.Children().ToImmutableStableList();
+        var children = _contentContainer.Children().ToPersistentStableList();
         foreach (var child in children)
             child.parent.Remove(child);
         VisualElement.Remove(_contentContainer);

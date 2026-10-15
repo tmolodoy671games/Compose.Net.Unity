@@ -664,7 +664,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         StrokeCap strokeCap
     )
     {
-        if (points.Count == 0)
+        if (points.Size == 0)
             return;
 
         var painter = _context.painter2D;
@@ -717,7 +717,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         IStableList<Offset> points
     )
     {
-        for (var i = 0; i + 1 < points.Count; i += 2)
+        for (var i = 0; i + 1 < points.Size; i += 2)
         {
             painter.BeginPath();
             painter.MoveTo(points[i].ToVector2());
@@ -731,13 +731,13 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         IStableList<Offset> points
     )
     {
-        if (points.Count < 2)
+        if (points.Size < 2)
             return;
 
         painter.BeginPath();
         painter.MoveTo(points[0].ToVector2());
 
-        for (var i = 1; i < points.Count; i++)
+        for (var i = 1; i < points.Size; i++)
             painter.LineTo(points[i].ToVector2());
 
         painter.Stroke();

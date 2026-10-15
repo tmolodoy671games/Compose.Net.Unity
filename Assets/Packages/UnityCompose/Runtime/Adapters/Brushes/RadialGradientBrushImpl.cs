@@ -51,14 +51,14 @@ internal record RadialGradientBrushImpl(
                 colorKeys = Colors
                     .Select((color, index) => new GradientColorKey(
                             color.ToUnityColor(),
-                            Stops != null ? Stops[0] : index * 1f / Colors.Count
+                            Stops != null ? Stops[0] : index * 1f / Colors.Size
                         )
                     )
                     .ToArray(),
                 alphaKeys = Colors
                     .Select((color, index) => new GradientAlphaKey(
                             color.Alpha * alpha,
-                            Stops != null ? Stops[0] : index * 1f / Colors.Count
+                            Stops != null ? Stops[0] : index * 1f / Colors.Size
                         )
                     )
                     .ToArray()

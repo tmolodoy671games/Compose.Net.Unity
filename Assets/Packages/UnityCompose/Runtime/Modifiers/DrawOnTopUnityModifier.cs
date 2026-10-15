@@ -21,7 +21,7 @@ public abstract record DrawOnTopUnityModifier : UnityModifier,
     )
     {
         var index = 0;
-        for (var i = 0; i < newModifiers.Count; i++)
+        for (var i = 0; i < newModifiers.Size; i++)
         {
             var newModifier = newModifiers[i];
             if (ReferenceEquals(newModifier, this))

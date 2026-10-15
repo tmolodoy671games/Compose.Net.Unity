@@ -160,7 +160,7 @@ internal record PaddingModifierImpl : UnityModifier, IModifier
     private static PaddingType GetPaddingType(PaddingModifierImpl modifier, IStableList<IModifier> newModifiers)
     {
         var index = -1;
-        for (var i = 0; i < newModifiers.Count; i++)
+        for (var i = 0; i < newModifiers.Size; i++)
         {
             if (ReferenceEquals(newModifiers[i], modifier))
             {
@@ -169,7 +169,7 @@ internal record PaddingModifierImpl : UnityModifier, IModifier
             }
         }
 
-        for (var i = 0; i < newModifiers.Count; i++)
+        for (var i = 0; i < newModifiers.Size; i++)
         {
             if (i >= index)
                 return PaddingType.Margin;
