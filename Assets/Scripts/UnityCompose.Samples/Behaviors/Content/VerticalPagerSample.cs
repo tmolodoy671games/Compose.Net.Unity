@@ -16,7 +16,6 @@ namespace UnityCompose.Samples.Behaviors.Content
         [Composable]
         private static void Layout()
         {
-            Debug.Log("BRUH");
             Row(
                 modifier: Modifier.FillMaxSize(),
                 content: () =>

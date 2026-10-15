@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Compose.Net.Patcher;
+using Compose.Net.Patcher.Diagnostics;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Packages.UnityCompose.Editor.Extensions;
@@ -53,7 +55,22 @@ internal class ComposeILPostProcessor : ILPostProcessor
 
             return new ILPostProcessResult(
                 new InMemoryAssembly(peStream.ToArray(), pdbStream.ToArray()),
-                messages.ToList());
+                messages.Diagnostics
+                    .Select(it => new DiagnosticMessage
+                    {
+                        DiagnosticType = it.Severity switch
+                        {
+                            PatchSeverity.Warning => DiagnosticType.Warning,
+                            PatchSeverity.Error => DiagnosticType.Error,
+                            _ => DiagnosticType.Warning
+                        },
+                        MessageData = it.Message,
+                        Line = it.Line,
+                        Column = it.Column,
+                        File = it.File ?? ""
+                    })
+                    .ToList()
+            );
         }
         catch (Exception e)
         {
