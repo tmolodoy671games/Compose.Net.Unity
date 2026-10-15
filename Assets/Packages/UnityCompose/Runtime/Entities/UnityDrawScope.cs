@@ -815,7 +815,7 @@ public static partial class VisualElementExtensions
     {
         const string key = "UnityCompose_DrawScope";
         var visualElement = context.visualElement;
-        if (visualElement.UserData().TryGet(key, out var cached))
+        if (visualElement.UserData().GetOrDefault(key, null) is { } cached)
         {
             var cachedResult = (UnityDrawScope)cached.NotNull();
             cachedResult.Update(context);

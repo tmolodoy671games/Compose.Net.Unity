@@ -31,7 +31,7 @@ namespace UnityCompose.Samples.Behaviors.Stability
                     .OnGloballyPositioned(it => layoutCoordinates.Value = it.ToOptional()),
                 content: () =>
                 {
-                    var positions = Remember(static () => MutableStateDictionaryOf<int, Offset>());
+                    var positions = Remember(static () => MutableStateMapOf<int, Offset>());
 
                     Row(() =>
                     {

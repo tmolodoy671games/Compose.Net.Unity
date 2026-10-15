@@ -44,7 +44,7 @@ public static partial class VisualElementExtensions
     internal static GenerateVisualContent GenerateVisualContent(this VisualElement visualElement)
     {
         const string key = "UnityCompose_GenerateVisualElement";
-        if (visualElement.UserData().TryGet(key, out var cached))
+        if (visualElement.UserData().GetOrDefault(key, null) is { } cached)
             return (GenerateVisualContent)cached.NotNull();
         var newInstance = new GenerateVisualContent(visualElement);
         visualElement.UserData()[key] = newInstance;

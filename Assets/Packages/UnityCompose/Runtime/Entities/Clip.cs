@@ -35,7 +35,7 @@ public static partial class VisualElementExtensions
     public static Clip Clip(this VisualElement element)
     {
         const string key = "UnityCompose_Clip";
-        if (element.UserData().TryGet(key, out var cached))
+        if (element.UserData().GetOrDefault(key, null) is { } cached)
             return (Clip)cached.NotNull();
         var newInstance = new Clip(element);
         element.UserData()[key] = newInstance;

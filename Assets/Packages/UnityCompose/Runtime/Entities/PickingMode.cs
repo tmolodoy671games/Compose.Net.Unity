@@ -35,7 +35,7 @@ public static partial class VisualElementExtensions
     {
         const string key = "UnityCompose.ComposePickingMode";
         var userData = element.UserData();
-        if (userData.TryGet(key, out var cachedInstance))
+        if (userData.GetOrDefault(key, null) is { } cachedInstance)
             return (PickingMode)cachedInstance!;
         var newInstance = new PickingMode(element);
         userData[key] = newInstance;

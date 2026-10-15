@@ -10,7 +10,8 @@
       "Compose.Net/0.0.1": {
         "dependencies": {
           "T.Molodoy.Compose.Net.CodeGen": "0.0.1",
-          "T.Molodoy.StableCollections": "0.0.35",
+          "T.Molodoy.SharpExtensions": "0.0.42",
+          "T.Molodoy.StableCollections": "0.0.42",
           "Compose.Net.CodeGen": "0.0.1.0"
         },
         "runtime": {
@@ -207,22 +208,19 @@
           }
         }
       },
-      "T.Molodoy.SharpExtensions/0.0.25": {
+      "T.Molodoy.SharpExtensions/0.0.42": {
         "runtime": {
           "lib/netstandard2.1/Sharp Extensions.dll": {
-            "assemblyVersion": "0.0.25.0",
-            "fileVersion": "0.0.25.0"
+            "assemblyVersion": "0.0.42.0",
+            "fileVersion": "0.0.42.0"
           }
         }
       },
-      "T.Molodoy.StableCollections/0.0.35": {
-        "dependencies": {
-          "T.Molodoy.SharpExtensions": "0.0.25"
-        },
+      "T.Molodoy.StableCollections/0.0.42": {
         "runtime": {
           "lib/netstandard2.1/StableCollections.dll": {
-            "assemblyVersion": "0.0.35.0",
-            "fileVersion": "0.0.35.0"
+            "assemblyVersion": "0.0.42.0",
+            "fileVersion": "0.0.42.0"
           }
         }
       },
@@ -323,19 +321,19 @@
       "path": "system.threading.tasks.extensions/4.5.4",
       "hashPath": "system.threading.tasks.extensions.4.5.4.nupkg.sha512"
     },
-    "T.Molodoy.SharpExtensions/0.0.25": {
+    "T.Molodoy.SharpExtensions/0.0.42": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-sA++T0wgtwuJgm/v+WGYf15S20W22+VDzJFlrOnYt5NWz2rEGq/dmwKONKSkMJyhJGGme1wK9wIL6hIpofo+jQ==",
-      "path": "t.molodoy.sharpextensions/0.0.25",
-      "hashPath": "t.molodoy.sharpextensions.0.0.25.nupkg.sha512"
+      "sha512": "sha512-kZcxAFSpriFxSuV9bMyKufGpnzjQ/KvBYn/jrrhDcuXzEXHmfPtJdqYHpFm3aw1RzPWgMZUeYuUWc3Ol0GBGtA==",
+      "path": "t.molodoy.sharpextensions/0.0.42",
+      "hashPath": "t.molodoy.sharpextensions.0.0.42.nupkg.sha512"
     },
-    "T.Molodoy.StableCollections/0.0.35": {
+    "T.Molodoy.StableCollections/0.0.42": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-/fxrpAyZdWBfRVQcPgvWY2mgt89Tp8JqBKgxRvymCKhigsi6cf9PfI40zrv9Lcc9evMZdSuASr6XMZp25qjFsg==",
-      "path": "t.molodoy.stablecollections/0.0.35",
-      "hashPath": "t.molodoy.stablecollections.0.0.35.nupkg.sha512"
+      "sha512": "sha512-3IaiyVMTyxTn3XvzZRpJaPBPfgM9R8ygbrLvzJie+htW2BCVR40hebkweRSYnd5EZNqmR/Os/5lSIbev6EUQkQ==",
+      "path": "t.molodoy.stablecollections/0.0.42",
+      "hashPath": "t.molodoy.stablecollections.0.0.42.nupkg.sha512"
     },
     "T.Molodoy.Compose.Net.CodeGen/0.0.1": {
       "type": "project",
