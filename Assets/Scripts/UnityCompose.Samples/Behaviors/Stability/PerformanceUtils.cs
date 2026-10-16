@@ -24,21 +24,25 @@ public static class PerformanceUtils
 
     public static Color GetColor(int index) => Colors[index % Colors.Length];
 
-    public static IEnumerator MoveRandomlyCoroutine(Size parentSize, Action<Offset> onValueChanged)
+    public static IEnumerator MoveRandomlyCoroutine(Func<Size> parentSize, Action<Offset> onValueChanged)
     {
-        while (float.IsNaN(parentSize.Width) || float.IsNaN(parentSize.Height))
+        var parentSizeValue = parentSize();
+        while (float.IsNaN(parentSizeValue.Width) || float.IsNaN(parentSizeValue.Height))
+        {
+            parentSizeValue = parentSize();
             yield return null;
+        }
 
         var current = new Offset(
-            UnityRandom.Range(0f, parentSize.Width),
-            UnityRandom.Range(0f, parentSize.Height)
+            UnityRandom.Range(0f, parentSizeValue.Width),
+            UnityRandom.Range(0f, parentSizeValue.Height)
         );
 
         while (true)
         {
             var target = new Offset(
-                UnityRandom.Range(0f, parentSize.Width),
-                UnityRandom.Range(0f, parentSize.Height)
+                UnityRandom.Range(0f, parentSizeValue.Width),
+                UnityRandom.Range(0f, parentSizeValue.Height)
             );
 
             var elapsed = 0f;
@@ -51,6 +55,7 @@ public static class PerformanceUtils
                 var value = Offset.Lerp(current, target, t);
                 onValueChanged?.Invoke(value);
 
+                parentSizeValue = parentSize();
                 yield return null;
             }
 

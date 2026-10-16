@@ -41,7 +41,7 @@ namespace UnityCompose.Samples.Behaviors.Stability
             LaunchedEffect(
                 key: 1,
                 coroutine: () => PerformanceUtils.MoveRandomlyCoroutine(
-                    parentSize: parentSize,
+                    parentSize: () => parentSize,
                     it => position.Value = it
                 )
             );

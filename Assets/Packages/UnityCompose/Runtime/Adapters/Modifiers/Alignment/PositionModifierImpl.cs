@@ -44,10 +44,10 @@ internal record PositionModifierImpl(
         if (Top.HasValue)
             style.top = style.top.Add(-Top.Value.Value);
         if (Bottom.HasValue)
-            style.bottom = style.top.Add(-Bottom.Value.Value);
+            style.bottom = style.bottom.Add(-Bottom.Value.Value);
         if (Left.HasValue)
-            style.left = style.top.Add(-Left.Value.Value);
+            style.left = style.left.Add(-Left.Value.Value);
         if (Right.HasValue)
-            style.right = style.top.Add(-Right.Value.Value);
+            style.right = style.right.Add(-Right.Value.Value);
     }
 }
