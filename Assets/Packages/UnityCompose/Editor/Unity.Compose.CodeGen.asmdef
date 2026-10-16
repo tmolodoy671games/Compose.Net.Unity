@@ -1,4 +1,14 @@
-﻿{
-  "name": "Unity.Compose.CodeGen",
-  "autoReferenced": false
+{
+    "name": "Unity.Compose.CodeGen",
+    "rootNamespace": "",
+    "references": [],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
