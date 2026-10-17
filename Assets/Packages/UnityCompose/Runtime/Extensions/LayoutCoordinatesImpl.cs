@@ -51,14 +51,17 @@ internal sealed class LayoutCoordinatesImpl : ILayoutCoordinates
         Offset relativeToScreen
     )
     {
-        return default; // BRUH
+        var point = RuntimePanelUtils.ScreenToPanel(_element.panel, relativeToScreen.ToVector2());
+        return _element.WorldToLocal(point).ToOffset();
     }
 
     public Offset LocalToScreen(
         Offset relativeToLocal
     )
     {
-        return default; // BRUH
+        var origin = RuntimePanelUtils.ScreenToPanel(_element.panel, Vector2.zero);
+        var scale = RuntimePanelUtils.ScreenToPanel(_element.panel, Vector2.one) - origin;
+        return ((_element.LocalToWorld(relativeToLocal.ToVector2()) - origin) / scale).ToOffset();
     }
 
     public Offset RootToLocal(
