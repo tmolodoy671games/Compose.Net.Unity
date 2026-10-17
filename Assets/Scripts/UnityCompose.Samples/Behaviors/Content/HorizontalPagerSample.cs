@@ -79,7 +79,6 @@ namespace UnityCompose.Samples.Behaviors.Content
                                                 coroutineScope.Launch(async scope =>
                                                 {
                                                     await pagerState.AnimateScrollToPage(
-                                                        scope,
                                                         page,
                                                         animationSpec: Tween(1_000)
                                                     );

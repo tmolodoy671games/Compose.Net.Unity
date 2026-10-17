@@ -28,17 +28,18 @@ namespace UnityCompose.Samples.Behaviors.Stability
             Func<CancellationToken, Task> coroutine
         )
         {
-            var _ = Remember(key, () =>
-            {
-                var tokenSource = new CancellationTokenSource();
-                var token = tokenSource.Token;
-                coroutine(token);
-                return new CustomComposeDisposable(() =>
-                {
-                    tokenSource.Cancel();
-                    tokenSource.Dispose();
-                });
-            });
+            // BRUH
+            // var _ = Remember(key, () =>
+            // {
+            //     var tokenSource = new CancellationTokenSource();
+            //     var token = tokenSource.Token;
+            //     coroutine(token);
+            //     return new CustomComposeDisposable(() =>
+            //     {
+            //         tokenSource.Cancel();
+            //         tokenSource.Dispose();
+            //     });
+            // });
         }
 
         [Composable]
