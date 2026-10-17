@@ -27,7 +27,7 @@ internal record VerticalScrollModifierImpl(
             return;
         var multiplier = ReverseScrolling ? -1 : 1;
         offset *= -multiplier * ScrollMultiplier;
-        State.ScrollBy(offset);
+        State.SmoothScrollBy(offset);
         InteractionSource?.Emit(new IScrollInteraction.Scroll(offset));
     };
 

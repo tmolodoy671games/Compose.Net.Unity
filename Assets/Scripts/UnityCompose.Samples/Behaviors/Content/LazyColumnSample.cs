@@ -31,13 +31,19 @@ namespace UnityCompose.Samples.Behaviors.Content
                         content: scope =>
                         {
                             // Scroll
-                            scope.Items(10, it =>
+                            scope.Items(100, it =>
                             {
-                                Text(
-                                    $"Bla {it}",
-                                    fontSize: 64.Sp(),
+                                Box(
                                     modifier: Modifier
-                                        .Clickable(() => state.AnimateScrollToItem(it))
+                                        .Clickable(() => state.AnimateScrollToItemVisibility(it))
+                                        .FillMaxWidth(),
+                                    content: () =>
+                                    {
+                                        Text(
+                                            $"Bla {it}",
+                                            fontSize: 64.Sp()
+                                        );
+                                    }
                                 );
                             });
                         }
