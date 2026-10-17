@@ -1,4 +1,4 @@
-﻿// ReSharper disable ArrangeNamespaceBody
+// ReSharper disable ArrangeNamespaceBody
 
 using Compose.Net;
 using UnityEngine.UIElements;
@@ -75,7 +75,7 @@ namespace UnityCompose.Samples.Behaviors.Content
                     color: Color.White,
                     fontSize: 48.Sp(),
                     modifier: Modifier
-                        .SharedBounds(s.RememberSharedContentState($"text {index}"), a, boundsTransform: (_, _) => Tween(500))
+                        .SharedElement(s.RememberSharedContentState($"text {index}"), a, boundsTransform: (_, _) => Tween(500))
                 )
             );
         }
@@ -95,7 +95,7 @@ namespace UnityCompose.Samples.Behaviors.Content
                     color: Color.White,
                     fontSize: 128.Sp(),
                     modifier: Modifier.Padding(all: 32.Dp())
-                        .SharedBounds(s.RememberSharedContentState($"text {index}"), a, boundsTransform: (_, _) => Tween(500))
+                        .SharedElement(s.RememberSharedContentState($"text {index}"), a, boundsTransform: (_, _) => Tween(500))
                 )
             );
         }
