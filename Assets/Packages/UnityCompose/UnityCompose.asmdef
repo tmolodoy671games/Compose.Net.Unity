@@ -2,6 +2,7 @@
   "name": "UnityCompose",
   "rootNamespace": "UnityCompose",
   "references": [
-    "UnityEngine.UI"
+    "UnityEngine.UI",
+    "Unity.InputSystem"
   ]
 }
