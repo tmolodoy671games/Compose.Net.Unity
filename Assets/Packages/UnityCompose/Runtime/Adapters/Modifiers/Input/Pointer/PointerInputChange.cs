@@ -50,11 +50,11 @@ internal record PointerInputChange(
             Id: new PointerId(evt.pointerId),
             UptimeMillis: evt.timestamp,
             Position: evt.localPosition.ToOffset(),
-            Pressed: evt.pressure > 0,
+            Pressed: evt.pressedButtons != 0,
             Pressure: evt.pressure,
             PreviousUptimeMillis: (Time.time - evt.deltaTime).ToLongTime(),
             PreviousPosition: (evt.localPosition - evt.deltaPosition).ToOffset(),
-            PreviousPressed: evt.pressure > 0,
+            PreviousPressed: evt.pressedButtons != 0,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
             ScrollDelta: evt.deltaPosition.ToOffset(),
@@ -86,11 +86,11 @@ internal record PointerInputChange(
             Id: new PointerId(evt.pointerId),
             UptimeMillis: evt.timestamp,
             Position: evt.localPosition.ToOffset(),
-            Pressed: evt.pressure > 0,
+            Pressed: evt.pressedButtons != 0,
             Pressure: evt.pressure,
             PreviousUptimeMillis: (Time.time - evt.deltaTime).ToLongTime(),
             PreviousPosition: (evt.localPosition - evt.deltaPosition).ToOffset(),
-            PreviousPressed: evt.pressure > 0,
+            PreviousPressed: evt.pressedButtons != 0,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
             ScrollDelta: evt.deltaPosition.ToOffset(),
@@ -105,4 +105,4 @@ internal record PointerInputChange(
         IsConsumed = true;
         Event.StopPropagation();
     }
-}
+}
