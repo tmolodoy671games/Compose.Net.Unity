@@ -1,8 +1,0 @@
-﻿{
-  "name": "UnityCompose",
-  "rootNamespace": "UnityCompose",
-  "references": [
-    "UnityEngine.UI",
-    "Unity.InputSystem"
-  ]
-}

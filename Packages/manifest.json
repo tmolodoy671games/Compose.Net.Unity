@@ -1,11 +1,11 @@
 {
   "dependencies": {
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
+    "com.unity.ai.inference": "2.6.1",
     "com.unity.feature.2d": "2.0.2",
     "com.unity.ide.rider": "3.0.40",
     "com.unity.inputsystem": "6.7.0",
     "com.unity.memoryprofiler": "1.2.0-pre.1",
-    "com.unity.multiplayer.center": "3.0.0",
     "com.unity.render-pipelines.universal": "17.7.0",
     "com.unity.ugui": "2.7.0",
     "com.unity.modules.accessibility": "1.0.0",

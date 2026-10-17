@@ -1,0 +1,8 @@
+﻿{
+  "name": "Compose.Net.Unity",
+  "rootNamespace": "Compose.Net.Unity",
+  "references": [
+    "UnityEngine.UI",
+    "Unity.InputSystem"
+  ]
+}
