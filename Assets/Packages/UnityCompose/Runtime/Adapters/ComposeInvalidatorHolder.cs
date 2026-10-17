@@ -3,9 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Compose.Net;
 using SharpExtensions;
-using UnityCompose.Packages.UnityCompose.Runtime.Adapters.Utils;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // ReSharper disable ArrangeNamespaceBody
 // ReSharper disable CheckNamespace
@@ -18,75 +16,47 @@ namespace UnityCompose
     {
         private static ComposeInvalidatorHolder? _instance;
         private readonly ComposeInvalidator _invalidator = new();
-        private static bool _destroyed = false;
 
-        private static ComposeInvalidatorHolder? Instance
+        private static ComposeInvalidatorHolder Instance
         {
             get
             {
-                if (_destroyed)
-                    return null;
                 if (!_instance)
                 {
-                    _instance = FindAnyObjectByType<ComposeInvalidatorHolder>() ??
-                                new GameObject("Coroutine Runner").AddComponent<ComposeInvalidatorHolder>();
-                    if (ApplicationUtils.IsPlaying)
-                        DontDestroyOnLoad(_instance);
-                    _instance.gameObject.hideFlags = HideFlags.HideInHierarchy;
+                    _instance = new GameObject(nameof(ComposeInvalidatorHolder))
+                            { hideFlags = HideFlags.HideAndDontSave }
+                        .AddComponent<ComposeInvalidatorHolder>();
                 }
 
-                return _instance;
+                return _instance!;
             }
         }
 
-        public static ComposeInvalidator? ComposeInvalidator => Instance?._invalidator;
+        public static ComposeInvalidator ComposeInvalidator => Instance._invalidator;
 
-        private void Awake()
-        {
-            _destroyed = false;
-            _instance = this;
-            if (ApplicationUtils.IsPlaying)
-                DontDestroyOnLoad(this);
-        }
+        private void OnEnable() => _instance = this;
 
-        private void OnDestroy()
-        {
-            _instance = null;
-            _destroyed = true;
-        }
+        private void Update() => _invalidator.Tick();
 
-        private void Update()
-        {
-            _invalidator.Tick();
-        }
-
-        public static IDisposable StartCoroutineAsDisposable(IEnumerable<TimeSpan?>? coroutine)
-        {
-            if (Instance == null || coroutine == null)
-                return new CustomDisposable(() => { });
-            var coroutineHandle = Instance.StartCoroutine(CoroutineAdapter(coroutine));
-            return new CustomDisposable(() => Instance?.StopCoroutine(coroutineHandle));
-        }
+        public static IDisposable StartCoroutineAsDisposable(IEnumerable<TimeSpan?>? coroutine) =>
+            StartCoroutineAsDisposable(coroutine == null ? null : CoroutineAdapter(coroutine));
 
         public static IDisposable StartCoroutineAsDisposable(IEnumerator? coroutine)
         {
-            if (Instance == null || coroutine == null)
+            if (coroutine == null)
                 return new CustomDisposable(() => { });
-            var coroutineInstance = Instance.StartCoroutine(coroutine);
-            return new CustomDisposable(() => Instance?.StopCoroutine(coroutineInstance));
+            var holder = Instance;
+            var handle = holder.StartCoroutine(coroutine);
+            return new CustomDisposable(() =>
+            {
+                if (holder) holder.StopCoroutine(handle);
+            });
         }
 
-        private static IEnumerator CoroutineAdapter(IEnumerable<TimeSpan?>? coroutine)
+        private static IEnumerator CoroutineAdapter(IEnumerable<TimeSpan?> coroutine)
         {
-            if (coroutine == null)
-                yield break;
             foreach (var step in coroutine)
-            {
-                if (step == null)
-                    yield return null;
-                else
-                    yield return new WaitForSeconds(step.Value.TotalSeconds.ToFloat());
-            }
+                yield return step == null ? null : new WaitForSeconds(step.Value.TotalSeconds.ToFloat());
         }
     }
 }
