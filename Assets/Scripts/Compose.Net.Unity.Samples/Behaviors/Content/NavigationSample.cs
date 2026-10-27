@@ -3,7 +3,6 @@
 using System;
 using Compose.Net;
 using Compose.Net.Navigation;
-using static Compose.Net.Navigation.NavigationFunctions;
 
 namespace Compose.Net.Unity.Samples.Behaviors.Content
 {

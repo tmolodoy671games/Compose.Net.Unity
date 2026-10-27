@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.IO;
 using Mono.Cecil;
@@ -38,7 +38,7 @@ internal static class AssemblyDefinitionFactory
 
         // Unity managed assemblies.
         resolver.AddSearchDirectory(
-            Path.Combine(
+            System.IO.Path.Combine(
                 EditorApplication.applicationContentsPath,
                 "Managed"
             )
@@ -46,7 +46,7 @@ internal static class AssemblyDefinitionFactory
 
         // Unity modules.
         resolver.AddSearchDirectory(
-            Path.Combine(
+            System.IO.Path.Combine(
                 EditorApplication.applicationContentsPath,
                 "Managed",
                 "UnityEngine"
@@ -55,7 +55,7 @@ internal static class AssemblyDefinitionFactory
 
         // Packages / project assemblies which may be next to the target assembly.
         resolver.AddSearchDirectory(
-            Path.GetDirectoryName(typeof(EditorApplication).Assembly.GetLoadedAssemblyPath())!);
+            System.IO.Path.GetDirectoryName(typeof(EditorApplication).Assembly.GetLoadedAssemblyPath())!);
     }
 }
 #endif

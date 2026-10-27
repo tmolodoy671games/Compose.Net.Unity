@@ -17,7 +17,7 @@ internal static class CompiledAssemblyExtensions
         var resolver = new DefaultAssemblyResolver();
         foreach (var reference in compiledAssembly.References)
         {
-            var directory = Path.GetDirectoryName(reference);
+            var directory = System.IO.Path.GetDirectoryName(reference);
             if (!string.IsNullOrEmpty(directory))
                 resolver.AddSearchDirectory(directory);
         }
