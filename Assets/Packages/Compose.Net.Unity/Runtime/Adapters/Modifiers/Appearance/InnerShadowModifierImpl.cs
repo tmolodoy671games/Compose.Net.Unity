@@ -1,10 +1,6 @@
 ﻿// ReSharper disable CheckNamespace
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Compose.Net;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
@@ -14,99 +10,117 @@ namespace Compose.Net.Unity;
 internal record InnerShadowModifierImpl(
     Shape Shape,
     Compose.Net.Shadow Shadow
-) : ForegroundShadowUnityModifier, IAppearanceModifier
+) : ForegroundShadowUnityModifier<InnerShadowModifierImpl.InnerShadowNode>, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement drawBehind,
-        IStableList<IModifier> newModifiers
-    )
+    public override InnerShadowNode Create() => new(Shape, Shadow);
+
+    public override void Update(InnerShadowNode node) => node.Update(Shape, Shadow);
+
+    internal sealed class InnerShadowNode(Shape shape, Compose.Net.Shadow shadow) : ForegroundShadowNodeBase
     {
-        element.style.overflow = Overflow.Hidden;
-        Init(drawBehind, Shape, Shadow);
-    }
+        private Shape _shape = shape;
+        private Compose.Net.Shadow _shadow = shadow;
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement drawBehind,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.overflow = StyleKeyword.Null;
-        Revert(drawBehind, Shape, Shadow);
-    }
+        internal void Update(Shape nextShape, Compose.Net.Shadow nextShadow)
+        {
+            if (Element != null && Shadow != null)
+                RevertFromShadow(UnityNode!, Element, Shadow);
+            _shape = nextShape;
+            _shadow = nextShadow;
+            if (Element != null && Shadow != null)
+                ApplyToShadow(UnityNode!, Element, Shadow);
+        }
 
-    private static void Init(
-        VisualElement shadowElement,
-        Shape shape,
-        Compose.Net.Shadow shadow
-    )
-    {
-        var style = shadowElement.style;
-        style.borderTopLeftRadius = shape.TopLeft.ToLength();
-        style.borderTopRightRadius = shape.TopRight.ToLength();
-        style.borderBottomLeftRadius = shape.BottomLeft.ToLength();
-        style.borderBottomRightRadius = shape.BottomRight.ToLength();
+        protected override void ApplyToShadow(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement shadowElement
+        )
+        {
+            element.style.overflow = Overflow.Hidden;
+            Init(shadowElement, _shape, _shadow);
+        }
 
-        style.borderTopColor = shadow.Color.ToUnityColor();
-        style.borderBottomColor = shadow.Color.ToUnityColor();
-        style.borderLeftColor = shadow.Color.ToUnityColor();
-        style.borderRightColor = shadow.Color.ToUnityColor();
+        protected override void RevertFromShadow(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement shadowElement
+        )
+        {
+            element.style.overflow = StyleKeyword.Null;
+            Revert(shadowElement, _shape, _shadow);
+        }
 
-        var borderWidth = shadow.Spread * 2;
-        style.borderTopWidth = borderWidth.Value;
-        style.borderBottomWidth = borderWidth.Value;
-        style.borderLeftWidth = borderWidth.Value;
-        style.borderRightWidth = borderWidth.Value;
+        private static void Init(
+            VisualElement shadowElement,
+            Shape shape,
+            Compose.Net.Shadow shadow
+        )
+        {
+            var style = shadowElement.style;
+            style.borderTopLeftRadius = shape.TopLeft.ToLength();
+            style.borderTopRightRadius = shape.TopRight.ToLength();
+            style.borderBottomLeftRadius = shape.BottomLeft.ToLength();
+            style.borderBottomRightRadius = shape.BottomRight.ToLength();
 
-        var offsetWidth = (-borderWidth / 2).ToLength();
-        style.top = offsetWidth;
-        style.bottom = offsetWidth;
-        style.left = offsetWidth;
-        style.right = offsetWidth;
+            style.borderTopColor = shadow.Color.ToUnityColor();
+            style.borderBottomColor = shadow.Color.ToUnityColor();
+            style.borderLeftColor = shadow.Color.ToUnityColor();
+            style.borderRightColor = shadow.Color.ToUnityColor();
 
-        style.translate = shadow.Offset.ToVector2();
+            var borderWidth = shadow.Spread * 2;
+            style.borderTopWidth = borderWidth.Value;
+            style.borderBottomWidth = borderWidth.Value;
+            style.borderLeftWidth = borderWidth.Value;
+            style.borderRightWidth = borderWidth.Value;
 
-        var blur = new FilterFunction(FilterFunctionType.Blur);
-        blur.AddParameter(new FilterParameter(shadow.Radius.Value));
-        style.AddFilter(blur);
-    }
+            var offsetWidth = (-borderWidth / 2).ToLength();
+            style.top = offsetWidth;
+            style.bottom = offsetWidth;
+            style.left = offsetWidth;
+            style.right = offsetWidth;
 
-    private static void Revert(
-        VisualElement shadowElement,
-        Shape shape,
-        Compose.Net.Shadow shadow
-    )
-    {
-        var style = shadowElement.style;
-        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shape.TopLeft.ToLength());
-        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shape.TopRight.ToLength());
-        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shape.BottomLeft.ToLength());
-        style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(shape.BottomRight.ToLength());
+            style.translate = shadow.Offset.ToVector2();
 
-        style.borderTopColor = style.borderTopColor.CompareAndSetNull(shadow.Color.ToUnityColor());
-        style.borderBottomColor = style.borderBottomColor.CompareAndSetNull(shadow.Color.ToUnityColor());
-        style.borderLeftColor = style.borderLeftColor.CompareAndSetNull(shadow.Color.ToUnityColor());
-        style.borderRightColor = style.borderRightColor.CompareAndSetNull(shadow.Color.ToUnityColor());
+            var blur = new FilterFunction(FilterFunctionType.Blur);
+            blur.AddParameter(new FilterParameter(shadow.Radius.Value));
+            style.AddFilter(blur);
+        }
 
-        var borderWidth = shadow.Spread * 2;
-        style.borderTopWidth = style.borderTopWidth.CompareAndSetNull(borderWidth.Value);
-        style.borderBottomWidth = style.borderBottomWidth.CompareAndSetNull(borderWidth.Value);
-        style.borderLeftWidth = style.borderLeftWidth.CompareAndSetNull(borderWidth.Value);
-        style.borderRightWidth = style.borderRightWidth.CompareAndSetNull(borderWidth.Value);
+        private static void Revert(
+            VisualElement shadowElement,
+            Shape shape,
+            Compose.Net.Shadow shadow
+        )
+        {
+            var style = shadowElement.style;
+            style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shape.TopLeft.ToLength());
+            style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shape.TopRight.ToLength());
+            style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shape.BottomLeft.ToLength());
+            style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(shape.BottomRight.ToLength());
 
-        var offsetWidth = (-borderWidth / 2).ToLength();
-        style.top = style.top.CompareAndSetNull(offsetWidth);
-        style.bottom = style.bottom.CompareAndSetNull(offsetWidth);
-        style.left = style.left.CompareAndSetNull(offsetWidth);
-        style.right = style.right.CompareAndSetNull(offsetWidth);
+            style.borderTopColor = style.borderTopColor.CompareAndSetNull(shadow.Color.ToUnityColor());
+            style.borderBottomColor = style.borderBottomColor.CompareAndSetNull(shadow.Color.ToUnityColor());
+            style.borderLeftColor = style.borderLeftColor.CompareAndSetNull(shadow.Color.ToUnityColor());
+            style.borderRightColor = style.borderRightColor.CompareAndSetNull(shadow.Color.ToUnityColor());
 
-        style.translate = style.translate.CompareAndSetNull(shadow.Offset.ToVector2());
+            var borderWidth = shadow.Spread * 2;
+            style.borderTopWidth = style.borderTopWidth.CompareAndSetNull(borderWidth.Value);
+            style.borderBottomWidth = style.borderBottomWidth.CompareAndSetNull(borderWidth.Value);
+            style.borderLeftWidth = style.borderLeftWidth.CompareAndSetNull(borderWidth.Value);
+            style.borderRightWidth = style.borderRightWidth.CompareAndSetNull(borderWidth.Value);
 
-        var blur = new FilterFunction(FilterFunctionType.Blur);
-        blur.AddParameter(new FilterParameter(shadow.Radius.Value));
-        style.RemoveFilter(blur);
+            var offsetWidth = (-borderWidth / 2).ToLength();
+            style.top = style.top.CompareAndSetNull(offsetWidth);
+            style.bottom = style.bottom.CompareAndSetNull(offsetWidth);
+            style.left = style.left.CompareAndSetNull(offsetWidth);
+            style.right = style.right.CompareAndSetNull(offsetWidth);
+
+            style.translate = style.translate.CompareAndSetNull(shadow.Offset.ToVector2());
+
+            var blur = new FilterFunction(FilterFunctionType.Blur);
+            blur.AddParameter(new FilterParameter(shadow.Radius.Value));
+            style.RemoveFilter(blur);
+        }
     }
 }

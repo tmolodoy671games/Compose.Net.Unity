@@ -1,41 +1,57 @@
 ﻿// ReSharper disable CheckNamespace
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record BlurModifierImpl(Dp Radius) : UnityModifier, IAppearanceModifier
+internal record BlurModifierImpl(Dp Radius)
+    : ModifierNodeElement<BlurModifierImpl.BlurNode>, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        if (Radius.Value <= 0f)
-            return;
-        var filter = new FilterFunction(FilterFunctionType.Blur);
-        filter.AddParameter(new FilterParameter(Radius.Value));
-        element.style.AddFilter(filter);
-    }
+    public override BlurNode Create() => new(Radius.Value);
+    public override void Update(BlurNode node) => node.Update(Radius.Value);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class BlurNode(float radius) : IModifier.Node
     {
-        if (Radius.Value <= 0f)
-            return;
-        var filter = new FilterFunction(FilterFunctionType.Blur);
-        filter.AddParameter(new FilterParameter(Radius.Value));
-        element.style.RemoveFilter(filter);
+        private float _radius = radius;
+        private VisualElement? _element;
+
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            ApplyFilter();
+        }
+
+        internal void Update(float next)
+        {
+            if (_radius == next) return;
+            RemoveFilter();
+            _radius = next;
+            ApplyFilter();
+        }
+
+        public override void OnDetach()
+        {
+            RemoveFilter();
+            _element = null;
+        }
+
+        private void ApplyFilter()
+        {
+            if (_element == null || _radius <= 0f) return;
+            var filter = new FilterFunction(FilterFunctionType.Blur);
+            filter.AddParameter(new FilterParameter(_radius));
+            _element.style.AddFilter(filter);
+        }
+
+        private void RemoveFilter()
+        {
+            if (_element == null || _radius <= 0f) return;
+            var filter = new FilterFunction(FilterFunctionType.Blur);
+            filter.AddParameter(new FilterParameter(_radius));
+            _element.style.RemoveFilter(filter);
+        }
     }
 }

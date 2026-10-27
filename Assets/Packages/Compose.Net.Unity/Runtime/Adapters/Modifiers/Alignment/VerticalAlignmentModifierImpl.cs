@@ -1,7 +1,5 @@
-﻿using System;
-using Compose.Net;
+﻿using Compose.Net;
 using SharpExtensions;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
 
@@ -9,29 +7,55 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record VerticalAlignModifierImpl(
-    Alignment.Vertical Align
-) : UnityModifier
+internal record VerticalAlignModifierImpl(Alignment.Vertical Align)
+    : ModifierNodeElement<VerticalAlignModifierImpl.VerticalAlignNode>
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
-            return;
-        element.style.alignSelf = Align.ToAlign();
-    }
+    public override VerticalAlignNode Create() => new(Align);
+    public override void Update(VerticalAlignNode node) => node.Update(Align);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class VerticalAlignNode(Alignment.Vertical align) : IModifier.Node
     {
-        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
-            return;
-        element.style.alignSelf = StyleKeyword.Null;
+        private Alignment.Vertical _align = align;
+        private StyleEnum<Align> _original;
+        private bool _applied;
+        private VisualElement? _element;
+
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            Apply();
+        }
+
+        internal void Update(Alignment.Vertical next)
+        {
+            if (_align == next) return;
+            RevertIfApplied();
+            _align = next;
+            Apply();
+        }
+
+        public override void OnDetach()
+        {
+            RevertIfApplied();
+            _element = null;
+        }
+
+        private void Apply()
+        {
+            if (_element == null) return;
+            if (_element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
+                return;
+            _original = _element.style.alignSelf;
+            _element.style.alignSelf = _align.ToAlign();
+            _applied = true;
+        }
+
+        private void RevertIfApplied()
+        {
+            if (_element == null || !_applied) return;
+            _element.style.alignSelf = _original;
+            _applied = false;
+        }
     }
 }

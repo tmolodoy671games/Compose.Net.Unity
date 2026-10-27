@@ -1,7 +1,6 @@
 ﻿// ReSharper disable CheckNamespace
 
 using Compose.Net;
-using StableCollections;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -10,53 +9,56 @@ public interface IContentContainerUnityModifier : IAppearanceModifier
 {
 }
 
-public abstract record ContentContainerUnityModifier : UnityModifier, IContentContainerUnityModifier
+public abstract record ContentContainerUnityModifier<TNode> : ModifierNodeElement<TNode>, IContentContainerUnityModifier
+    where TNode : ContentContainerUnityModifier<TNode>.ContentContainerNodeBase
 {
-    protected sealed override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        Apply(
-            node: node,
-            element: element,
-            contentContainer: node.SetupContentContainer(),
-            newModifiers: newModifiers
-        );
-    }
+    public override object GetTarget(IReusableComposeNode node) => node;
 
-    protected sealed override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public abstract class ContentContainerNodeBase : IModifier.Node
     {
-        Revert(
-            node: node,
-            element: element,
-            contentContainer: node.SetupContentContainer(),
-            newModifiers: newModifiers
-        );
-        foreach (var newModifier in newModifiers)
+        protected UnityReusableComposeNode? UnityNode;
+        protected VisualElement? Element;
+        protected VisualElement? ContentContainer;
+
+        public override void OnAttach()
         {
-            if (newModifier is IContentContainerUnityModifier)
-                return;
+            UnityNode = (UnityReusableComposeNode)Target;
+            Element = UnityNode.VisualElement;
+            ContentContainer = UnityNode.AcquireContentContainer();
+            ApplyToContainer(
+                node: UnityNode,
+                element: Element,
+                contentContainer: ContentContainer
+            );
         }
-        node.RemoveContentContainer();
+
+        public override void OnDetach()
+        {
+            if (UnityNode != null && Element != null && ContentContainer != null)
+            {
+                RevertFromContainer(
+                    node: UnityNode,
+                    element: Element,
+                    contentContainer: ContentContainer
+                );
+                UnityNode.ReleaseContentContainer();
+            }
+
+            ContentContainer = null;
+            Element = null;
+            UnityNode = null;
+        }
+
+        protected abstract void ApplyToContainer(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement contentContainer
+        );
+
+        protected abstract void RevertFromContainer(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement contentContainer
+        );
     }
-
-    protected abstract void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement contentContainer,
-        IStableList<IModifier> newModifiers
-    );
-
-    protected abstract void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement contentContainer,
-        IStableList<IModifier> newModifiers
-    );
 }

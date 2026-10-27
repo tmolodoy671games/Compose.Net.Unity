@@ -1,30 +1,40 @@
-﻿using System;
-using Compose.Net;
-using StableCollections;
+﻿using Compose.Net;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers.Other;
 
-internal record TestTagModifierImpl(
-    string Tag
-) : UnityModifier
+internal record TestTagModifierImpl(string Tag) : ModifierNodeElement<TestTagModifierImpl.TestTagNode>
 {
+    public override TestTagNode Create() => new(Tag);
+    public override void Update(TestTagNode node) => node.Update(Tag);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class TestTagNode(string tag) : IModifier.Node
     {
-        element.name = Tag;
-    }
+        private string _tag = tag;
+        private string? _originalName;
+        private VisualElement? _element;
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.name = element.name == Tag ? null : Tag;
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            _originalName = _element.name;
+            _element.name = _tag;
+        }
+
+        internal void Update(string next)
+        {
+            if (_tag == next) return;
+            _tag = next;
+            if (_element != null)
+                _element.name = next;
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                _element.name = _originalName;
+            _element = null;
+        }
     }
 }

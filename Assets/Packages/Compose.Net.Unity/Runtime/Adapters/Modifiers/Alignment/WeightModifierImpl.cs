@@ -1,33 +1,42 @@
 ﻿// ReSharper disable CheckNamespace
 
-using System;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
-using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record WeightModifierImpl(
-    float Weight
-) : UnityModifier
+internal record WeightModifierImpl(float Weight) : ModifierNodeElement<WeightModifierImpl.WeightNode>
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.flexGrow = Weight;
-    }
+    public override WeightNode Create() => new(Weight);
+    public override void Update(WeightNode node) => node.Update(Weight);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class WeightNode(float weight) : IModifier.Node
     {
-        element.style.flexGrow = element.style.flexGrow.CompareAndSetNull(Weight);
+        private float _weight = weight;
+        private StyleFloat _original;
+        private VisualElement? _element;
+
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            _original = _element.style.flexGrow;
+            _element.style.flexGrow = _weight;
+        }
+
+        internal void Update(float next)
+        {
+            if (_weight == next) return;
+            _weight = next;
+            if (_element != null)
+                _element.style.flexGrow = next;
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                _element.style.flexGrow = _original;
+            _element = null;
+        }
     }
 }

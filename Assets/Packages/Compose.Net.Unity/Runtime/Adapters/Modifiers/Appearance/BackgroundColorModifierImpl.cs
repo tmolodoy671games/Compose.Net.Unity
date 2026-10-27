@@ -2,7 +2,6 @@
 
 using System;
 using Compose.Net;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
@@ -22,8 +21,7 @@ internal record BackgroundColorShapeModifierImpl(
         );
     };
 
-    protected override void OnApply(UnityReusableComposeNode node, VisualElement element,
-        IStableList<IModifier> newModifiers)
+    protected override void OnAttached(VisualElement element)
     {
         element.Clip().Increment();
         var shapeValue = Shape;
@@ -33,8 +31,7 @@ internal record BackgroundColorShapeModifierImpl(
         element.style.borderBottomRightRadius = shapeValue.BottomRight.ToLength();
     }
 
-    protected override void OnRevert(UnityReusableComposeNode node, VisualElement element,
-        IStableList<IModifier> newModifiers)
+    protected override void OnDetached(VisualElement element)
     {
         element.Clip().Decrement();
         var shapeValue = Shape;

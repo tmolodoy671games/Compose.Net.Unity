@@ -3,7 +3,6 @@
 using System;
 using Compose.Net;
 using SharpExtensions;
-using StableCollections;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Rect = Compose.Net.Rect;
@@ -29,7 +28,7 @@ internal record BorderModifierImpl(
         );
     };
 
-    protected override void OnApply(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+    protected override void OnAttached(VisualElement element)
     {
         element.style.borderTopWidth = BorderWidth.Value;
         element.style.borderBottomWidth = BorderWidth.Value;
@@ -37,7 +36,7 @@ internal record BorderModifierImpl(
         element.style.borderRightWidth = BorderWidth.Value;
     }
 
-    protected override void OnRevert(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+    protected override void OnDetached(VisualElement element)
     {
         element.style.borderTopWidth = StyleKeyword.Null;
         element.style.borderBottomWidth = StyleKeyword.Null;

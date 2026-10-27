@@ -1,7 +1,6 @@
 ﻿// ReSharper disable CheckNamespace
 
 using Compose.Net;
-using StableCollections;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -10,53 +9,56 @@ public interface IForegroundShadowModifier : IAppearanceModifier
 {
 }
 
-public abstract record ForegroundShadowUnityModifier : UnityModifier, IForegroundShadowModifier
+public abstract record ForegroundShadowUnityModifier<TNode> : ModifierNodeElement<TNode>, IForegroundShadowModifier
+    where TNode : ForegroundShadowUnityModifier<TNode>.ForegroundShadowNodeBase
 {
-    protected sealed override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        Apply(
-            node: node,
-            element: element,
-            shadow: node.SetupForegroundShadow(),
-            newModifiers: newModifiers
-        );
-    }
+    public override object GetTarget(IReusableComposeNode node) => node;
 
-    protected sealed override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public abstract class ForegroundShadowNodeBase : IModifier.Node
     {
-        Revert(
-            node: node,
-            element: element,
-            shadow: node.SetupForegroundShadow(),
-            newModifiers: newModifiers
-        );
-        foreach (var newModifier in newModifiers)
+        protected UnityReusableComposeNode? UnityNode;
+        protected VisualElement? Element;
+        protected VisualElement? Shadow;
+
+        public override void OnAttach()
         {
-            if (newModifier is IForegroundShadowModifier)
-                return;
+            UnityNode = (UnityReusableComposeNode)Target;
+            Element = UnityNode.VisualElement;
+            Shadow = UnityNode.AcquireForegroundShadow();
+            ApplyToShadow(
+                node: UnityNode,
+                element: Element,
+                shadow: Shadow
+            );
         }
-        node.RemoveForegroundShadow();
+
+        public override void OnDetach()
+        {
+            if (UnityNode != null && Element != null && Shadow != null)
+            {
+                RevertFromShadow(
+                    node: UnityNode,
+                    element: Element,
+                    shadow: Shadow
+                );
+                UnityNode.ReleaseForegroundShadow();
+            }
+
+            Shadow = null;
+            Element = null;
+            UnityNode = null;
+        }
+
+        protected abstract void ApplyToShadow(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement shadow
+        );
+
+        protected abstract void RevertFromShadow(
+            UnityReusableComposeNode node,
+            VisualElement element,
+            VisualElement shadow
+        );
     }
-
-    protected abstract void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement shadow,
-        IStableList<IModifier> newModifiers
-    );
-
-    protected abstract void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement shadow,
-        IStableList<IModifier> newModifiers
-    );
 }

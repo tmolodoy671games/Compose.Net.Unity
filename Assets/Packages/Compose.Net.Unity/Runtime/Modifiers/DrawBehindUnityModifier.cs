@@ -11,75 +11,104 @@ public interface IDrawBehindModifier : IAppearanceModifier
 {
 }
 
-public abstract record DrawBehindUnityModifier : UnityModifier,
-    IDrawBehindModifier
+public abstract record DrawBehindUnityModifier(int DrawIndex = -1)
+    : ModifierNodeElement<DrawBehindUnityModifier.DrawBehindNode>, IDrawBehindModifier
 {
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
 
-    protected sealed override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public sealed override DrawBehindNode Create() => new(this);
+
+    public sealed override void Update(DrawBehindNode node) => node.Update(this);
+
+    public override object GetTarget(IReusableComposeNode node) => node;
+
+    public sealed override IModifier Fill(IStableList<IModifier> modifiers)
     {
         var index = 0;
-        for (var i = 0; i < newModifiers.Size; i++)
+        for (var i = 0; i < modifiers.Size; i++)
         {
-            var newModifier = newModifiers[i];
-            if (ReferenceEquals(newModifier, this))
+            var modifier = modifiers[i];
+            if (ReferenceEquals(modifier, this))
                 break;
-            if (newModifier is IDrawBehindModifier)
+            if (modifier is IDrawBehindModifier)
                 index++;
         }
 
-        var drawBehind = node.SetupDrawBehind();
-        drawBehind.GenerateVisualContent().Insert(index, GenerateVisualContent);
-        OnApply(
-            node: node,
-            element: element,
-            drawOn: drawBehind,
-            newModifiers: newModifiers
-        );
+        return DrawIndex == index ? this : this with { DrawIndex = index };
     }
 
-    protected sealed override void Revert(
+    protected virtual void OnAttached(
         UnityReusableComposeNode node,
         VisualElement element,
-        IStableList<IModifier> newModifiers
+        VisualElement drawBehind
     )
     {
-        var drawBehind = node.SetupDrawBehind();
-        drawBehind.GenerateVisualContent().Remove(GenerateVisualContent);
-        OnRevert(
-            node: node,
-            element: element,
-            drawOn: drawBehind,
-            newModifiers: newModifiers
-        );
-        foreach (var newModifier in newModifiers)
+    }
+
+    protected virtual void OnDetached(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        VisualElement drawBehind
+    )
+    {
+    }
+
+    public sealed class DrawBehindNode(DrawBehindUnityModifier owner) : IModifier.Node
+    {
+        private DrawBehindUnityModifier _owner = owner;
+        private int _drawIndex = owner.DrawIndex;
+        private Action<MeshGenerationContext>? _insertedCallback;
+        private UnityReusableComposeNode? _unityNode;
+        private VisualElement? _drawBehind;
+
+        internal void Update(DrawBehindUnityModifier next)
         {
-            if (newModifier is IDrawBehindModifier)
+            var indexChanged = _drawIndex != next.DrawIndex;
+            var contentChanged = !ReferenceEquals(_owner.GenerateVisualContent, next.GenerateVisualContent);
+            _owner = next;
+            if (_drawBehind == null)
                 return;
+            if (!indexChanged && !contentChanged)
+                return;
+            RemoveCallback();
+            _drawIndex = next.DrawIndex;
+            InsertCallback();
+            next.OnAttached(_unityNode!, _unityNode!.VisualElement, _drawBehind);
         }
 
-        node.RemoveDrawBehind();
-    }
+        public override void OnAttach()
+        {
+            _unityNode = (UnityReusableComposeNode)Target;
+            _drawBehind = _unityNode.AcquireDrawBehind();
+            _drawIndex = _owner.DrawIndex;
+            InsertCallback();
+            _owner.OnAttached(_unityNode, _unityNode.VisualElement, _drawBehind);
+        }
 
-    protected virtual void OnApply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement drawOn,
-        IStableList<IModifier> newModifiers
-    )
-    {
-    }
+        public override void OnDetach()
+        {
+            if (_drawBehind != null && _unityNode != null)
+            {
+                RemoveCallback();
+                _owner.OnDetached(_unityNode, _unityNode.VisualElement, _drawBehind);
+                _unityNode.ReleaseDrawBehind();
+            }
 
-    protected virtual void OnRevert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        VisualElement drawOn,
-        IStableList<IModifier> newModifiers
-    )
-    {
+            _drawBehind = null;
+            _unityNode = null;
+        }
+
+        private void InsertCallback()
+        {
+            _insertedCallback = _owner.GenerateVisualContent;
+            _drawBehind!.GenerateVisualContent().Insert(_drawIndex, _insertedCallback);
+        }
+
+        private void RemoveCallback()
+        {
+            if (_drawBehind != null && _insertedCallback != null)
+                _drawBehind.GenerateVisualContent().Remove(_insertedCallback);
+            _insertedCallback = null;
+        }
     }
 }

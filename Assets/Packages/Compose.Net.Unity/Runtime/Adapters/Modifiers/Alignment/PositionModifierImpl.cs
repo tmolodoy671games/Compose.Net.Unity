@@ -1,7 +1,5 @@
-﻿using System;
-using Compose.Net;
+﻿using Compose.Net;
 using SharpExtensions;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
@@ -14,40 +12,61 @@ internal record PositionModifierImpl(
     Optional<Dp> Bottom,
     Optional<Dp> Left,
     Optional<Dp> Right
-) : UnityModifier
+) : ModifierNodeElement<PositionModifierImpl.PositionNode>
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var style = element.style;
-        style.position = Position.Absolute;
-        if (Top.HasValue)
-            style.top = style.top.Add(Top.Value.Value);
-        if (Bottom.HasValue)
-            style.bottom = style.bottom.Add(Bottom.Value.Value);
-        if (Left.HasValue)
-            style.left = style.left.Add(Left.Value.Value);
-        if (Right.HasValue)
-            style.right = style.right.Add(Right.Value.Value);
-    }
+    public override PositionNode Create() => new(Top, Bottom, Left, Right);
+    public override void Update(PositionNode node) => node.Update(Top, Bottom, Left, Right);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class PositionNode(
+        Optional<Dp> top,
+        Optional<Dp> bottom,
+        Optional<Dp> left,
+        Optional<Dp> right
+    ) : IModifier.Node
     {
-        var style = element.style;
-        if (Top.HasValue)
-            style.top = style.top.Add(-Top.Value.Value);
-        if (Bottom.HasValue)
-            style.bottom = style.bottom.Add(-Bottom.Value.Value);
-        if (Left.HasValue)
-            style.left = style.left.Add(-Left.Value.Value);
-        if (Right.HasValue)
-            style.right = style.right.Add(-Right.Value.Value);
+        private Optional<Dp> _top = top;
+        private Optional<Dp> _bottom = bottom;
+        private Optional<Dp> _left = left;
+        private Optional<Dp> _right = right;
+        private VisualElement? _element;
+
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            _element.style.position = Position.Absolute;
+            Apply(1f);
+        }
+
+        internal void Update(Optional<Dp> nextTop, Optional<Dp> nextBottom, Optional<Dp> nextLeft, Optional<Dp> nextRight)
+        {
+            Apply(-1f);
+            _top = nextTop;
+            _bottom = nextBottom;
+            _left = nextLeft;
+            _right = nextRight;
+            Apply(1f);
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                Apply(-1f);
+            _element = null;
+        }
+
+        private void Apply(float sign)
+        {
+            if (_element == null) return;
+            var style = _element.style;
+            if (_top.HasValue)
+                style.top = style.top.Add(sign * _top.Value.Value);
+            if (_bottom.HasValue)
+                style.bottom = style.bottom.Add(sign * _bottom.Value.Value);
+            if (_left.HasValue)
+                style.left = style.left.Add(sign * _left.Value.Value);
+            if (_right.HasValue)
+                style.right = style.right.Add(sign * _right.Value.Value);
+        }
     }
 }

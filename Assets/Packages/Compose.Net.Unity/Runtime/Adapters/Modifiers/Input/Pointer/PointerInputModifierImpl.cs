@@ -6,59 +6,62 @@ using System.Threading;
 using System.Threading.Tasks;
 using Compose.Net;
 using SharpExtensions;
-using StableCollections;
+using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal class PointerInputModifierImpl<T> : IModifier
+internal record PointerInputModifierImpl<T>(
+    T Key,
+    Func<IPointerInputScope, Task> Body
+) : ModifierNodeElement<PointerInputModifierImpl<T>.PointerNode>
 {
-    private readonly T _key;
-    private readonly Func<IPointerInputScope, Task> _body;
+    public override PointerNode Create() => new(Body);
+    public override void Update(PointerNode node) => node.Update(Body);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    public PointerInputModifierImpl(T key, Func<IPointerInputScope, Task> body)
-    {
-        _key = key;
-        _body = body;
-    }
+    public virtual bool Equals(PointerInputModifierImpl<T>? other) =>
+        other != null && EqualityUtils.Equals(Key, other.Key);
 
-    public void Apply(IReusableComposeNode node, IStableList<IModifier> newModifiers)
+    public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Key!);
+
+    internal sealed class PointerNode(Func<IPointerInputScope, Task> body) : IModifier.Node
     {
-        var source = new CancellationTokenSource();
-        var token = source.Token;
-        node.VisualElement().PickingMode().Increment();
-        node.VisualElement().UserData()[new ReferenceKey(this)] = new CustomDisposable(() =>
+        private Func<IPointerInputScope, Task> _body = body;
+        private CancellationTokenSource? _source;
+        private VisualElement? _element;
+
+        public override void OnAttach()
         {
-            source.Cancel();
-            source.Dispose();
-        });
-        _body(new PointerInputScopeImpl(node.VisualElement(), token));
-    }
+            _element = (VisualElement)Target;
+            _element.PickingMode().Increment();
+            StartBody();
+        }
 
-    public void Revert(IReusableComposeNode node, IStableList<IModifier> newModifiers)
-    {
-        var key = new ReferenceKey(this);
-        node.VisualElement().PickingMode().Decrement();
-        var source = node.VisualElement().UserData().GetOrNull(key)
-            ?.CastToOrNull<IDisposable>();
-        source?.Dispose();
-        node.VisualElement().UserData().Remove(key);
-    }
+        internal void Update(Func<IPointerInputScope, Task> next)
+        {
+            if (ReferenceEquals(_body, next))
+                return;
+            _body = next;
+            if (_element != null)
+                StartBody();
+        }
 
-    public override bool Equals(object? obj)
-    {
-        if (obj is null) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != GetType()) return false;
-        return Equals((PointerInputModifierImpl<T>)obj);
-    }
+        public override void OnDetach()
+        {
+            if (_element != null)
+                _element.PickingMode().Decrement();
+            _source?.Cancel();
+            _source?.Dispose();
+            _source = null;
+            _element = null;
+        }
 
-    public override int GetHashCode()
-    {
-        return EqualityComparer<T>.Default.GetHashCode(_key);
-    }
-
-    private bool Equals(PointerInputModifierImpl<T> other)
-    {
-        return EqualityUtils.Equals(_key, other._key);
+        private void StartBody()
+        {
+            _source?.Cancel();
+            _source?.Dispose();
+            _source = new CancellationTokenSource();
+            _body(new PointerInputScopeImpl(_element!, _source.Token));
+        }
     }
 }

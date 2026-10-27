@@ -1,39 +1,51 @@
 ﻿// ReSharper disable CheckNamespace
 
-using System;
 using Compose.Net;
 using SharpExtensions;
-using StableCollections;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record RotateModifierImpl(float Degrees) : UnityModifier
+internal record RotateModifierImpl(float Degrees) : ModifierNodeElement<RotateModifierImpl.RotateNode>
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        StyleRotate newRotate = new Rotate(element.style.rotate.value.angle.value + Degrees);
-        if (newRotate.value.angle.value == 0f)
-            newRotate = StyleKeyword.Null;
-        element.style.rotate = newRotate;
-    }
+    public override RotateNode Create() => new(Degrees);
+    public override void Update(RotateNode node) => node.Update(Degrees);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class RotateNode(float degrees) : IModifier.Node
     {
-        StyleRotate newRotate = ToNullIfNeeded(new Rotate(element.style.rotate.value.angle.value - Degrees));
-        element.style.rotate = newRotate;
-    }
+        private float _degrees = degrees;
+        private VisualElement? _element;
 
-    private static StyleRotate ToNullIfNeeded(Rotate rotate)
-    {
-        return rotate.angle.value.AlmostEquals(0f) ? StyleKeyword.Null : rotate;
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            ApplyDelta(_degrees);
+        }
+
+        internal void Update(float next)
+        {
+            if (_degrees == next) return;
+            ApplyDelta(-_degrees);
+            _degrees = next;
+            ApplyDelta(_degrees);
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                ApplyDelta(-_degrees);
+            _element = null;
+        }
+
+        private void ApplyDelta(float delta)
+        {
+            if (_element == null) return;
+            var current = _element.style.rotate.value.angle.value;
+            _element.style.rotate = ToNullIfNeeded(new Rotate(current + delta));
+        }
+
+        private static StyleRotate ToNullIfNeeded(Rotate rotate)
+            => rotate.angle.value.AlmostEquals(0f) ? StyleKeyword.Null : rotate;
     }
 }

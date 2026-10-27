@@ -1,37 +1,45 @@
 ﻿// ReSharper disable CheckNamespace
 
-using System;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
-using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record ScaleModifierImpl(
-    float ScaleX,
-    float ScaleY
-) : UnityModifier
+internal record ScaleModifierImpl(float ScaleX, float ScaleY) : ModifierNodeElement<ScaleModifierImpl.ScaleNode>
 {
+    public override ScaleNode Create() => new(ScaleX, ScaleY);
+    public override void Update(ScaleNode node) => node.Update(ScaleX, ScaleY);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class ScaleNode(float scaleX, float scaleY) : IModifier.Node
     {
-        element.style.scale = new Vector2(ScaleX, ScaleY);
-    }
+        private float _scaleX = scaleX;
+        private float _scaleY = scaleY;
+        private StyleScale _original;
+        private VisualElement? _element;
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.scale = element.style.scale.CompareAndSetNull(new Vector2(ScaleX, ScaleY));
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            _original = _element.style.scale;
+            _element.style.scale = new Vector2(_scaleX, _scaleY);
+        }
+
+        internal void Update(float nextX, float nextY)
+        {
+            if (_scaleX == nextX && _scaleY == nextY) return;
+            _scaleX = nextX;
+            _scaleY = nextY;
+            if (_element != null)
+                _element.style.scale = new Vector2(nextX, nextY);
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                _element.style.scale = _original;
+            _element = null;
+        }
     }
-    
 }

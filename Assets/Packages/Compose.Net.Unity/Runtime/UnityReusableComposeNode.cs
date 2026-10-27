@@ -34,6 +34,10 @@ public class UnityReusableComposeNode : IReusableComposeNode
     private Shadow? _foregroundShadow;
     private Shadow? _foregroundShadowInstance;
 
+    private int _contentContainerRefCount;
+    private int _drawBehindRefCount;
+    private int _foregroundShadowRefCount;
+
     public UnityReusableComposeNode(VisualElement visualElement) : this(visualElement, false)
     {
     }
@@ -234,6 +238,22 @@ public class UnityReusableComposeNode : IReusableComposeNode
         _drawOn = null;
     }
 
+    public VisualElement AcquireForegroundShadow()
+    {
+        SetupForegroundShadow();
+        _foregroundShadowRefCount++;
+        return _foregroundShadow!;
+    }
+
+    public void ReleaseForegroundShadow()
+    {
+        if (_foregroundShadowRefCount <= 0)
+            return;
+        _foregroundShadowRefCount--;
+        if (_foregroundShadowRefCount == 0)
+            RemoveForegroundShadow();
+    }
+
     public VisualElement SetupForegroundShadow()
     {
         if (_foregroundShadow != null)
@@ -268,6 +288,22 @@ public class UnityReusableComposeNode : IReusableComposeNode
         SyncDrawOnTop();
     }
 
+    public VisualElement AcquireDrawBehind()
+    {
+        SetupDrawBehind();
+        _drawBehindRefCount++;
+        return _drawBehind!;
+    }
+
+    public void ReleaseDrawBehind()
+    {
+        if (_drawBehindRefCount <= 0)
+            return;
+        _drawBehindRefCount--;
+        if (_drawBehindRefCount == 0)
+            RemoveDrawBehind();
+    }
+
     public VisualElement SetupDrawBehind()
     {
         if (_drawBehind != null)
@@ -297,6 +333,22 @@ public class UnityReusableComposeNode : IReusableComposeNode
         ContentContainer.Remove(_drawBehind);
         _drawBehind = null;
         SyncDrawOnTop();
+    }
+
+    public VisualElement AcquireContentContainer()
+    {
+        SetupContentContainer();
+        _contentContainerRefCount++;
+        return _contentContainer!;
+    }
+
+    public void ReleaseContentContainer()
+    {
+        if (_contentContainerRefCount <= 0)
+            return;
+        _contentContainerRefCount--;
+        if (_contentContainerRefCount == 0)
+            RemoveContentContainer();
     }
 
     public VisualElement SetupContentContainer()
