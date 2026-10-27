@@ -1,4 +1,5 @@
 ﻿// ReSharper disable CheckNamespace
+using System;
 using Compose.Net;
 using UnityEngine.UIElements;
 
@@ -6,6 +7,11 @@ namespace Compose.Net.Unity;
 
 internal record OffsetModifierImpl(Dp X, Dp Y) : ModifierNodeElement<OffsetModifierImpl.OffsetNode>
 {
+    public virtual bool Equals(OffsetModifierImpl? other) =>
+        other != null && X.Equals(other.X) && Y.Equals(other.Y);
+
+    public override int GetHashCode() => HashCode.Combine(X, Y);
+
     public override OffsetNode Create() => new(X.Value, Y.Value);
     public override void Update(OffsetNode node) => node.Update(X.Value, Y.Value);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
@@ -19,6 +25,7 @@ internal record OffsetModifierImpl(Dp X, Dp Y) : ModifierNodeElement<OffsetModif
         public override void OnAttach()
         {
             _element = (VisualElement)Target;
+            _element.usageHints |= UsageHints.DynamicTransform;
             _element.style.translate = new Translate(_x, _y);
         }
 

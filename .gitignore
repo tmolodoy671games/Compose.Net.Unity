@@ -95,6 +95,7 @@ fabric.properties
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
+/[Pp]rofilerCaptures/
 
 # Recordings can get excessive in size
 /[Rr]ecordings/
