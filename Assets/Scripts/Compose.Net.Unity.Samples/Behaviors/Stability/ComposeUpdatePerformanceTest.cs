@@ -97,29 +97,17 @@ namespace Compose.Net.Unity.Samples.Behaviors.Stability
                     it => position.Value = it
                 )
             );
-            // LaunchedEffect(
-            //     currentI,
-            //     token => PerformanceUtils.MoveRandomlyCoroutine(
-            //         parentSize: parentSize,
-            //         offset => position.Value = offset,
-            //         token
-            //     )
-            // );
 
             var baseModifier = Remember(currentI, () => Modifier
                 .Size(50.Dp())
-                .Background(
-                    PerformanceUtils.GetColor(currentI)
-                )
+                .Background(PerformanceUtils.GetColor(currentI))
                 .Float()
             );
             Spacer(
-                modifier:
-                baseModifier
-                    .Offset(
-                        x: position.Value.X.Dp(),
-                        y: position.Value.Y.Dp()
-                    )
+                modifier: baseModifier.Offset(
+                    x: position.Value.X.Dp(),
+                    y: position.Value.Y.Dp()
+                )
             );
         }
     }

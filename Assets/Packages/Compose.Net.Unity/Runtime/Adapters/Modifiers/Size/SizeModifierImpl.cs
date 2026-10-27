@@ -13,17 +13,12 @@ internal record SizeModifierImpl(Optional<Dp> Width, Optional<Dp> Height)
     public override void Update(SizeNode node) => node.Update(Width, Height);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class SizeNode : IModifier.Node
+    internal sealed class SizeNode(Optional<Dp> width, Optional<Dp> height) : IModifier.Node
     {
-        private Optional<Dp> _width, _height;
+        private Optional<Dp> _width = width;
+        private Optional<Dp> _height = height;
         private StyleLength _originalWidth, _originalHeight;
         private VisualElement? _element;
-
-        internal SizeNode(Optional<Dp> width, Optional<Dp> height)
-        {
-            _width = width;
-            _height = height;
-        }
 
         public override void OnAttach()
         {
@@ -34,17 +29,17 @@ internal record SizeModifierImpl(Optional<Dp> Width, Optional<Dp> Height)
             if (_height.HasValue) _element.style.height = _height.Value.ToLength();
         }
 
-        internal void Update(Optional<Dp> width, Optional<Dp> height)
+        internal void Update(Optional<Dp> nextWidth, Optional<Dp> nextHeight)
         {
             if (_element != null)
             {
-                if (!_width.Equals(width))
-                    _element.style.width = width.HasValue ? width.Value.ToLength() : _originalWidth;
-                if (!_height.Equals(height))
-                    _element.style.height = height.HasValue ? height.Value.ToLength() : _originalHeight;
+                if (!_width.Equals(nextWidth))
+                    _element.style.width = nextWidth.HasValue ? nextWidth.Value.ToLength() : _originalWidth;
+                if (!_height.Equals(nextHeight))
+                    _element.style.height = nextHeight.HasValue ? nextHeight.Value.ToLength() : _originalHeight;
             }
-            _width = width;
-            _height = height;
+            _width = nextWidth;
+            _height = nextHeight;
         }
 
         public override void OnDetach()

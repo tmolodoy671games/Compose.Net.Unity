@@ -2,60 +2,47 @@
 
 using System;
 using Compose.Net;
-using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-// Offset pushed by a subscription, so it changes without recomposition (e.g. pager scroll).
-internal record ObservedOffsetModifierImpl(
-    Func<Action<Offset>, IDisposable> Subscribe
-) : UnityModifier
+/// <summary>
+/// Offset pushed by a subscription, so it changes without recomposition (e.g. pager scroll).
+/// </summary>
+internal record ObservedOffsetModifierImpl(Func<Action<Offset>, IDisposable> Subscribe)
+    : ModifierNodeElement<ObservedOffsetModifierImpl.ObservedOffsetNode>
 {
-    private const string Key = "Compose.Net.Unity_ObservedOffset";
+    public override ObservedOffsetNode Create() => new(Subscribe);
+    public override void Update(ObservedOffsetNode node) => node.Update(Subscribe);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class ObservedOffsetNode(Func<Action<Offset>, IDisposable> subscribe) : IModifier.Node
     {
-        var state = new State(element);
-        // Stored in user data, so the subscription is also disposed together with the node.
-        element.UserData()[Key] = state;
-        state.Subscription = Subscribe(state.SetOffset);
-    }
+        private Func<Action<Offset>, IDisposable> _subscribe = subscribe;
+        private IDisposable? _subscription;
+        private Offset _offset;
+        private VisualElement? _element;
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var data = element.UserData();
-        if (data.GetOrNull(Key) is not State state)
-            return;
-        data[Key] = null;
-        state.Dispose();
-        state.SetOffset(Offset.Zero);
-    }
-
-    private sealed class State : IDisposable
-    {
-        private readonly VisualElement _element;
-        private Offset _offset = Offset.Zero;
-
-        public IDisposable? Subscription;
-
-        public State(VisualElement element)
+        public override void OnAttach()
         {
-            _element = element;
+            _element = (VisualElement)Target;
+            _subscription = _subscribe(SetOffset);
         }
 
-        // Offset modifiers also use translate, so only our own part is replaced.
-        public void SetOffset(Offset offset)
+        internal void Update(Func<Action<Offset>, IDisposable> next)
         {
+            if (Equals(_subscribe, next)) return;
+            _subscription?.Dispose();
+            _subscription = null;
+            _subscribe = next;
+            if (_element != null)
+                _subscription = _subscribe(SetOffset);
+        }
+
+        private void SetOffset(Offset offset)
+        {
+            if (_element == null) return;
             var style = _element.style;
             style.translate = style.translate
                 .Subtract(new Translate(_offset.X, _offset.Y))
@@ -63,10 +50,14 @@ internal record ObservedOffsetModifierImpl(
             _offset = offset;
         }
 
-        public void Dispose()
+        public override void OnDetach()
         {
-            Subscription?.Dispose();
-            Subscription = null;
+            _subscription?.Dispose();
+            _subscription = null;
+            if (_element != null && (_offset.X != 0f || _offset.Y != 0f))
+                SetOffset(Offset.Zero);
+            _element = null;
+            _offset = default;
         }
     }
 }

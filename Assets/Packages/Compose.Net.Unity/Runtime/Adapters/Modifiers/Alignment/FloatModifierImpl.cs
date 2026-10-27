@@ -1,6 +1,5 @@
 ﻿// ReSharper disable CheckNamespace
 using Compose.Net;
-using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -11,13 +10,11 @@ internal record FloatModifierImpl(bool Enabled) : ModifierNodeElement<FloatModif
     public override void Update(FloatNode node) => node.Update(Enabled);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class FloatNode : IModifier.Node
+    internal sealed class FloatNode(bool enabled) : IModifier.Node
     {
+        private bool _enabled = enabled;
         private StyleEnum<Position> _original;
-        private bool _enabled;
         private VisualElement? _element;
-
-        internal FloatNode(bool enabled) => _enabled = enabled;
 
         internal void Update(bool enabled)
         {

@@ -14,14 +14,12 @@ internal record OnGloballyPositionedModifierImpl(Action<ILayoutCoordinates> OnGl
     public override void Update(PositionNode node) => node.Update(OnGloballyPositioned);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class PositionNode : IModifier.Node
+    internal sealed class PositionNode(Action<ILayoutCoordinates> callback) : IModifier.Node
     {
-        private Action<ILayoutCoordinates> _callback;
+        private Action<ILayoutCoordinates> _callback = callback;
         private VisualElement? _element;
         private IVisualElementScheduledItem? _scheduled;
         private Optional<RelativeLayoutBounds> _previous;
-
-        internal PositionNode(Action<ILayoutCoordinates> callback) => _callback = callback;
 
         public override void OnAttach()
         {
@@ -30,10 +28,10 @@ internal record OnGloballyPositionedModifierImpl(Action<ILayoutCoordinates> OnGl
             Check();
         }
 
-        internal void Update(Action<ILayoutCoordinates> callback)
+        internal void Update(Action<ILayoutCoordinates> next)
         {
-            if (Equals(_callback, callback)) return;
-            _callback = callback;
+            if (Equals(_callback, next)) return;
+            _callback = next;
             _previous = default;
             Check();
         }

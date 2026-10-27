@@ -54,13 +54,11 @@ internal record BackgroundColorModifierImpl(Color BackgroundColor)
     public override void Update(ColorNode node) => node.Update(BackgroundColor);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class ColorNode : IModifier.Node
+    internal sealed class ColorNode(Color color) : IModifier.Node
     {
-        private Color _color;
+        private Color _color = color;
         private StyleColor _original;
         private VisualElement? _element;
-
-        internal ColorNode(Color color) => _color = color;
 
         public override void OnAttach()
         {
@@ -69,11 +67,11 @@ internal record BackgroundColorModifierImpl(Color BackgroundColor)
             _element.style.backgroundColor = _color.ToUnityColor();
         }
 
-        internal void Update(Color color)
+        internal void Update(Color next)
         {
-            if (_color == color) return;
-            _color = color;
-            if (_element != null) _element.style.backgroundColor = color.ToUnityColor();
+            if (_color == next) return;
+            _color = next;
+            if (_element != null) _element.style.backgroundColor = next.ToUnityColor();
         }
 
         public override void OnDetach()

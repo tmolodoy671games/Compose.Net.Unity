@@ -11,17 +11,12 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
     public override void Update(FillNode node) => node.Update(WidthFraction, HeightFraction);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class FillNode : IModifier.Node
+    internal sealed class FillNode(float width, float height) : IModifier.Node
     {
-        private float _width, _height;
+        private float _width = width;
+        private float _height = height;
         private StyleLength _originalWidth, _originalHeight;
         private VisualElement? _element;
-
-        internal FillNode(float width, float height)
-        {
-            _width = width;
-            _height = height;
-        }
 
         public override void OnAttach()
         {
@@ -32,21 +27,21 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
             if (_height > 0) _element.style.height = new Length(_height * 100, LengthUnit.Percent);
         }
 
-        internal void Update(float width, float height)
+        internal void Update(float nextWidth, float nextHeight)
         {
             if (_element != null)
             {
-                if (_width != width)
-                    _element.style.width = width > 0
-                        ? new Length(width * 100, LengthUnit.Percent)
+                if (_width != nextWidth)
+                    _element.style.width = nextWidth > 0
+                        ? new Length(nextWidth * 100, LengthUnit.Percent)
                         : _originalWidth;
-                if (_height != height)
-                    _element.style.height = height > 0
-                        ? new Length(height * 100, LengthUnit.Percent)
+                if (_height != nextHeight)
+                    _element.style.height = nextHeight > 0
+                        ? new Length(nextHeight * 100, LengthUnit.Percent)
                         : _originalHeight;
             }
-            _width = width;
-            _height = height;
+            _width = nextWidth;
+            _height = nextHeight;
         }
 
         public override void OnDetach()
