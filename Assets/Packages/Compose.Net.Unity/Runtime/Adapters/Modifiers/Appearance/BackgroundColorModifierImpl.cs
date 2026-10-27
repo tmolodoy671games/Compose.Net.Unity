@@ -35,7 +35,7 @@ internal record BackgroundColorShapeModifierImpl(
 
     protected override void OnRevert(UnityReusableComposeNode node, VisualElement element,
         IStableList<IModifier> newModifiers)
-    { 
+    {
         element.Clip().Decrement();
         var shapeValue = Shape;
         var style = element.style;
@@ -47,26 +47,40 @@ internal record BackgroundColorShapeModifierImpl(
     }
 }
 
-internal record BackgroundColorModifierImpl(
-    Color BackgroundColor
-) : UnityModifier, IAppearanceModifier
+internal record BackgroundColorModifierImpl(Color BackgroundColor)
+    : ModifierNodeElement<BackgroundColorModifierImpl.ColorNode>, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.backgroundColor = BackgroundColor.ToUnityColor();
-    }
+    public override ColorNode Create() => new(BackgroundColor);
+    public override void Update(ColorNode node) => node.Update(BackgroundColor);
+    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    internal sealed class ColorNode : IModifier.Node
     {
-        var style = element.style;
-        style.backgroundColor = style.backgroundColor.CompareAndSetNull(BackgroundColor.ToUnityColor());
+        private Color _color;
+        private StyleColor _original;
+        private VisualElement? _element;
+
+        internal ColorNode(Color color) => _color = color;
+
+        public override void OnAttach()
+        {
+            _element = (VisualElement)Target;
+            _original = _element.style.backgroundColor;
+            _element.style.backgroundColor = _color.ToUnityColor();
+        }
+
+        internal void Update(Color color)
+        {
+            if (_color == color) return;
+            _color = color;
+            if (_element != null) _element.style.backgroundColor = color.ToUnityColor();
+        }
+
+        public override void OnDetach()
+        {
+            if (_element != null)
+                _element.style.backgroundColor = _original;
+            _element = null;
+        }
     }
 }
