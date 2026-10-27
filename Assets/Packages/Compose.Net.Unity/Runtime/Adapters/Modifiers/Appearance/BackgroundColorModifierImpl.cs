@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -13,6 +13,15 @@ internal record BackgroundColorShapeModifierImpl(
     Shape Shape
 ) : DrawUnityModifier
 {
+    public override void UpdateStyle(UnityStyleModifierNode node)
+    {
+        node.Set<StyleEnum<Overflow>>(node.Styles.Overflow, Overflow.Hidden);
+        node.Set<StyleLength>(node.Styles.BorderTopLeftRadius, Shape.TopLeft.ToLength());
+        node.Set<StyleLength>(node.Styles.BorderTopRightRadius, Shape.TopRight.ToLength());
+        node.Set<StyleLength>(node.Styles.BorderBottomLeftRadius, Shape.BottomLeft.ToLength());
+        node.Set<StyleLength>(node.Styles.BorderBottomRightRadius, Shape.BottomRight.ToLength());
+    }
+
     protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = it =>
     {
         var drawScope = it.DrawScope();
@@ -22,51 +31,19 @@ internal record BackgroundColorShapeModifierImpl(
         );
     };
 
-    protected override void OnApply(UnityReusableComposeNode node, VisualElement element,
-        IStableList<IModifier> newModifiers)
-    {
-        element.Clip().Increment();
-        var shapeValue = Shape;
-        element.style.borderTopLeftRadius = shapeValue.TopLeft.ToLength();
-        element.style.borderTopRightRadius = shapeValue.TopRight.ToLength();
-        element.style.borderBottomLeftRadius = shapeValue.BottomLeft.ToLength();
-        element.style.borderBottomRightRadius = shapeValue.BottomRight.ToLength();
-    }
 
-    protected override void OnRevert(UnityReusableComposeNode node, VisualElement element,
-        IStableList<IModifier> newModifiers)
-    { 
-        element.Clip().Decrement();
-        var shapeValue = Shape;
-        var style = element.style;
-        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shapeValue.TopLeft.ToLength());
-        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shapeValue.TopRight.ToLength());
-        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shapeValue.BottomLeft.ToLength());
-        style.borderBottomRightRadius =
-            style.borderBottomRightRadius.CompareAndSetNull(shapeValue.BottomRight.ToLength());
-    }
+
+
 }
 
 internal record BackgroundColorModifierImpl(
     Color BackgroundColor
-) : UnityModifier, IAppearanceModifier
+) : UnityStyleModifier, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.backgroundColor = BackgroundColor.ToUnityColor();
-    }
+    public override void UpdateStyle(UnityStyleModifierNode node)
+        => node.Set<StyleColor>(node.Styles.BackgroundColor, BackgroundColor.ToUnityColor());
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var style = element.style;
-        style.backgroundColor = style.backgroundColor.CompareAndSetNull(BackgroundColor.ToUnityColor());
-    }
+
+
+
 }

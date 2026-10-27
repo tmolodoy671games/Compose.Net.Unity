@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -14,7 +14,7 @@ public interface IDrawOnModifier : IAppearanceModifier
 public abstract record DrawOnTopUnityModifier : UnityModifier,
     IDrawOnModifier
 {
-    protected sealed override void Apply(
+    protected sealed override void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -30,14 +30,14 @@ public abstract record DrawOnTopUnityModifier : UnityModifier,
                 index++;
         }
         node.InsertDrawOnTop(index, GenerateVisualContent);
-        OnApply(
+        OnDrawAttach(
             node: node,
             element: element,
             newModifiers: newModifiers
         );
     }
 
-    protected sealed override void Revert(
+    protected sealed override void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -53,7 +53,7 @@ public abstract record DrawOnTopUnityModifier : UnityModifier,
             }
         }
         node.RemoveDrawOnTop(GenerateVisualContent, keepHost);
-        OnRevert(
+        OnDrawDetach(
             node: node,
             element: element,
             newModifiers: newModifiers
@@ -63,13 +63,13 @@ public abstract record DrawOnTopUnityModifier : UnityModifier,
     // Drawn by the element itself while it has no children, and by a DrawOn view on top of them otherwise.
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
 
-    protected virtual void OnApply(
+    protected virtual void OnDrawAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
     ) {}
 
-    protected virtual void OnRevert(
+    protected virtual void OnDrawDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

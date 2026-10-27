@@ -1,0 +1,11 @@
+{
+  "name": "Compose.Net.Unity.Modifiers.Tests",
+  "references": [
+    "Compose.Net.Unity",
+    "Unity.Compose.Net.Unity.CodeGen"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

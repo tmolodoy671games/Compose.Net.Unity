@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -78,7 +78,7 @@ internal record AnimateContentSizeModifierImpl(
         };
     }
 
-    protected override void Apply(
+    protected override void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement contentContainer,
@@ -89,7 +89,7 @@ internal record AnimateContentSizeModifierImpl(
         contentContainer.RegisterCallback(_callback);
     }
 
-    protected override void Revert(
+    protected override void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement contentContainer,

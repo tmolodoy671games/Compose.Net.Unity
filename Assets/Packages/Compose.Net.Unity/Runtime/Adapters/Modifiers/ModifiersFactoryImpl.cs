@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Modifiers.Other;

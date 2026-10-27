@@ -1,5 +1,7 @@
 using System;
 using Compose.Net;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Transitions.Enter;
 
@@ -8,20 +10,19 @@ internal record ExpandVerticallyEnterTransitionImpl(
     Alignment.Vertical ExpandFrom,
     bool Clip,
     Func<float, float> InitialHeight
-) : IEnterTransition
+) : IEnterTransition, IUnityStyleTransition
 {
-    public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
-
-    public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
+    public IModifier CreateModifier(TimeSpan timeElapsed) => new UnityTransitionModifier(this, timeElapsed);
+    public void UpdateStyle(UnityStyleModifierNode node, TimeSpan timeElapsed)
     {
-        var element = node.VisualElement();
-        var size = element.layout.size.ToSize();
-        var otherSize = new Size(size.Width, InitialHeight(size.Height));
         var progress = AnimationSpec.GetProgress(timeElapsed);
-        SizeTransitionUtils.Apply(element, size, otherSize, progress, true,
-            ExpandFrom, Clip, false, true);
+        var size = node.Element.layout.size.ToSize();
+        SizeTransitionUtils.UpdateStyle(node, size, new Size(size.Width, InitialHeight(size.Height)), progress, true, ExpandFrom, Clip, false, true);
     }
 
-    public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
-        => SizeTransitionUtils.Revert(node.VisualElement(), Clip, false, true);
+    public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
+
+
+
+
 }

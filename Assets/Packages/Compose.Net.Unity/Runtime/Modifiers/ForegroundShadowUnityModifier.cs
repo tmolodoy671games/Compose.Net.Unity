@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using Compose.Net;
 using StableCollections;
@@ -12,13 +12,13 @@ public interface IForegroundShadowModifier : IAppearanceModifier
 
 public abstract record ForegroundShadowUnityModifier : UnityModifier, IForegroundShadowModifier
 {
-    protected sealed override void Apply(
+    protected sealed override void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
     )
     {
-        Apply(
+        OnAttach(
             node: node,
             element: element,
             shadow: node.SetupForegroundShadow(),
@@ -26,13 +26,13 @@ public abstract record ForegroundShadowUnityModifier : UnityModifier, IForegroun
         );
     }
 
-    protected sealed override void Revert(
+    protected sealed override void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
     )
     {
-        Revert(
+        OnDetach(
             node: node,
             element: element,
             shadow: node.SetupForegroundShadow(),
@@ -46,14 +46,14 @@ public abstract record ForegroundShadowUnityModifier : UnityModifier, IForegroun
         node.RemoveForegroundShadow();
     }
 
-    protected abstract void Apply(
+    protected abstract void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement shadow,
         IStableList<IModifier> newModifiers
     );
 
-    protected abstract void Revert(
+    protected abstract void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement shadow,

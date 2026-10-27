@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Compose.Net;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
@@ -10,7 +10,6 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
     public IModifier Rotate(float degrees) => new RotateModifierImpl(degrees);
     public IModifier Scale(float scaleX, float scaleY) => new ScaleModifierImpl(scaleX, scaleY);
     public IModifier TransformOrigin(Dp originX, Dp originY) => new TransformOriginModifierImpl(originX, originY);
-
 
     public IModifier VerticalScroll(
         IScrollState state,

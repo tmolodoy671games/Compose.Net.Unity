@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -11,24 +11,11 @@ namespace Compose.Net.Unity;
 internal record OffsetModifierImpl(
     Dp X,
     Dp Y
-) : UnityModifier
+) : UnityStyleModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        element.style.translate = element.style.translate.Add(new Translate(X.ToLength(), Y.ToLength()));
+        node.Set<StyleTranslate>(node.Styles.Translate, new Translate(X.ToLength(), Y.ToLength()));
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var style = element.style;
-        style.translate = style.translate.Subtract(new Translate(X.ToLength(), Y.ToLength()));
-    }
 }

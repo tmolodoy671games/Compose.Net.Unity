@@ -13,7 +13,7 @@ internal record OnLayoutRectChangedModifierImpl(
     Action<RelativeLayoutBounds> OnLayoutRectChanged
 ) : UnityModifier
 {
-    protected override void Apply(
+    protected override void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -33,7 +33,7 @@ internal record OnLayoutRectChangedModifierImpl(
         element.UserData()[new ReferenceKey(this)] = onGloballyPositionedCallback;
     }
 
-    protected override void Revert(
+    protected override void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

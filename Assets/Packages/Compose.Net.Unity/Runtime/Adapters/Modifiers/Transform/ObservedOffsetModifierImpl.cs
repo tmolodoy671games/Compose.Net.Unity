@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -11,62 +11,39 @@ namespace Compose.Net.Unity;
 // Offset pushed by a subscription, so it changes without recomposition (e.g. pager scroll).
 internal record ObservedOffsetModifierImpl(
     Func<Action<Offset>, IDisposable> Subscribe
-) : UnityModifier
+) : UnityModifier, IModifier
 {
-    private const string Key = "Compose.Net.Unity_ObservedOffset";
+    public override ModifierNode CreateNode() => new ObservedOffsetNode(Subscribe);
 
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    private sealed class ObservedOffsetNode : ModifierNode
     {
-        var state = new State(element);
-        // Stored in user data, so the subscription is also disposed together with the node.
-        element.UserData()[Key] = state;
-        state.Subscription = Subscribe(state.SetOffset);
-    }
-
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var data = element.UserData();
-        if (data.GetOrNull(Key) is not State state)
-            return;
-        data[Key] = null;
-        state.Dispose();
-        state.SetOffset(Offset.Zero);
-    }
-
-    private sealed class State : IDisposable
-    {
-        private readonly VisualElement _element;
-        private Offset _offset = Offset.Zero;
-
-        public IDisposable? Subscription;
-
-        public State(VisualElement element)
+        private Func<Action<Offset>, IDisposable> _subscribe;
+        internal ObservedOffsetNode(Func<Action<Offset>, IDisposable> subscribe) => _subscribe = subscribe;
+        private IDisposable? _subscription;
+        private ModifierValueBinding<StyleTranslate>? _value;
+        public override bool CanUpdate(IModifier modifier) => modifier is ObservedOffsetModifierImpl;
+        protected override void OnAttach()
         {
-            _element = element;
+            _value = ((UnityReusableComposeNode)Owner).Styles.Translate.Add(this, new Translate(0, 0));
+            _subscription = _subscribe(SetOffset);
         }
-
-        // Offset modifiers also use translate, so only our own part is replaced.
-        public void SetOffset(Offset offset)
+        public override void Update(IModifier modifier)
         {
-            var style = _element.style;
-            style.translate = style.translate
-                .Subtract(new Translate(_offset.X, _offset.Y))
-                .Add(new Translate(offset.X, offset.Y));
-            _offset = offset;
+            var next = ((ObservedOffsetModifierImpl)modifier).Subscribe;
+            if (Equals(_subscribe, next)) return;
+            _subscription?.Dispose();
+            _subscribe = next;
+            _subscription = _subscribe(SetOffset);
         }
-
-        public void Dispose()
+        private void SetOffset(Offset offset) => _value?.Set(new Translate(offset.X, offset.Y));
+        protected override void OnOrderChanged() => _value?.InvalidateOrder();
+        protected override void OnDetach()
         {
-            Subscription?.Dispose();
-            Subscription = null;
+            _subscription?.Dispose();
+            _subscription = null;
+            _value?.Dispose();
+            _value = null;
         }
     }
+
 }

@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using Compose.Net;
 using SharpExtensions;
@@ -11,23 +11,11 @@ namespace Compose.Net.Unity;
 
 internal record AlphaModifierImpl(
     float Alpha
-) : UnityModifier, IAppearanceModifier
+) : UnityStyleModifier, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        element.style.opacity = Alpha;
+        node.Set<StyleFloat>(node.Styles.Opacity, Alpha);
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.opacity = element.style.opacity.CompareAndSetNull(Alpha);
-    }
 }

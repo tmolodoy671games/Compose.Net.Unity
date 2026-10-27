@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -13,25 +13,12 @@ namespace Compose.Net.Unity;
 internal record ScaleModifierImpl(
     float ScaleX,
     float ScaleY
-) : UnityModifier
+) : UnityStyleModifier
 {
-
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        element.style.scale = new Vector2(ScaleX, ScaleY);
+        node.Set<StyleScale>(node.Styles.Scale, new Vector2(ScaleX, ScaleY));
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        element.style.scale = element.style.scale.CompareAndSetNull(new Vector2(ScaleX, ScaleY));
-    }
     
 }

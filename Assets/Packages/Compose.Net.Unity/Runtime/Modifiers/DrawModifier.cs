@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -14,7 +14,7 @@ public interface IDrawModifier : IAppearanceModifier
 
 public abstract record DrawUnityModifier : UnityModifier, IDrawModifier
 {
-    protected sealed override void Apply(
+    protected sealed override void OnAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -30,21 +30,21 @@ public abstract record DrawUnityModifier : UnityModifier, IDrawModifier
                 index++;
         }
         element.GenerateVisualContent().Insert(index, GenerateVisualContent);
-        OnApply(
+        OnDrawAttach(
             node: node,
             element: element,
             newModifiers: newModifiers
         );
     }
 
-    protected sealed override void Revert(
+    protected sealed override void OnDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
     )
     {
         element.GenerateVisualContent().Remove(GenerateVisualContent);
-        OnRevert(
+        OnDrawDetach(
             node: node,
             element: element,
             newModifiers: newModifiers
@@ -53,13 +53,13 @@ public abstract record DrawUnityModifier : UnityModifier, IDrawModifier
     
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
     
-    protected virtual void OnApply(
+    protected virtual void OnDrawAttach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
     ) {}
 
-    protected virtual void OnRevert(
+    protected virtual void OnDrawDetach(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

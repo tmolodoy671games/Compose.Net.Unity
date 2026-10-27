@@ -11,25 +11,11 @@ namespace Compose.Net.Unity;
 internal record TransformOriginModifierImpl(
     Dp X,
     Dp Y
-) : UnityModifier
+) : UnityStyleModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(X.ToLength(), Y.ToLength());
+        node.Set<StyleTransformOrigin>(node.Styles.TransformOrigin, new UnityEngine.UIElements.TransformOrigin(X.ToLength(), Y.ToLength()));
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var style = element.style;
-        style.transformOrigin =
-            style.transformOrigin.CompareAndSetNull(new UnityEngine.UIElements.TransformOrigin(X.ToLength(), Y.ToLength()));
-    }
 }

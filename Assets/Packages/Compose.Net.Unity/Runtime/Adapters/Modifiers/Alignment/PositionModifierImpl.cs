@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Compose.Net;
 using SharpExtensions;
 using StableCollections;
@@ -14,40 +14,15 @@ internal record PositionModifierImpl(
     Optional<Dp> Bottom,
     Optional<Dp> Left,
     Optional<Dp> Right
-) : UnityModifier
+) : UnityStyleModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        var style = element.style;
-        style.position = Position.Absolute;
-        if (Top.HasValue)
-            style.top = style.top.Add(Top.Value.Value);
-        if (Bottom.HasValue)
-            style.bottom = style.bottom.Add(Bottom.Value.Value);
-        if (Left.HasValue)
-            style.left = style.left.Add(Left.Value.Value);
-        if (Right.HasValue)
-            style.right = style.right.Add(Right.Value.Value);
+        node.Set<StyleEnum<Position>>(node.Styles.Position, Position.Absolute);
+        if (Top.HasValue) node.Set<StyleLength>(node.Styles.Top, Top.Value.ToLength());
+        if (Bottom.HasValue) node.Set<StyleLength>(node.Styles.Bottom, Bottom.Value.ToLength());
+        if (Left.HasValue) node.Set<StyleLength>(node.Styles.Left, Left.Value.ToLength());
+        if (Right.HasValue) node.Set<StyleLength>(node.Styles.Right, Right.Value.ToLength());
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var style = element.style;
-        if (Top.HasValue)
-            style.top = style.top.Add(-Top.Value.Value);
-        if (Bottom.HasValue)
-            style.bottom = style.bottom.Add(-Bottom.Value.Value);
-        if (Left.HasValue)
-            style.left = style.left.Add(-Left.Value.Value);
-        if (Right.HasValue)
-            style.right = style.right.Add(-Right.Value.Value);
-    }
 }

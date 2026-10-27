@@ -9,24 +9,11 @@ namespace Compose.Net.Unity;
 
 internal record ZIndexModifierImpl(
     float ZIndex
-) : UnityModifier, IAppearanceModifier
+) : UnityStyleModifier, IAppearanceModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        element.style.zIndex = Mathf.RoundToInt(ZIndex);
+        node.Set<StyleInt>(node.Styles.ZIndex, Mathf.RoundToInt(ZIndex));
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        if (element.style.zIndex == Mathf.RoundToInt(ZIndex))
-            element.style.zIndex = StyleKeyword.Null;
-    }
 }

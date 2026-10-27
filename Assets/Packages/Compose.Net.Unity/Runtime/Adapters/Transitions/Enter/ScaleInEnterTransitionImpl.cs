@@ -9,24 +9,22 @@ internal record ScaleInEnterTransitionImpl(
     AnimationSpec AnimationSpec,
     float InitialScale,
     Net.TransformOrigin TransformOrigin
-) : IEnterTransition
+) : IEnterTransition, IUnityStyleTransition
 {
-    public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
+    public IModifier CreateModifier(TimeSpan timeElapsed) => new UnityTransitionModifier(this, timeElapsed);
+    public void UpdateStyle(UnityStyleModifierNode node, TimeSpan timeElapsed)
     {
-        var element = node.VisualElement();
-        var scale = Mathf.LerpUnclamped(InitialScale, 1f, AnimationSpec.GetProgress(timeElapsed));
-        element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(
+        var progress = AnimationSpec.GetProgress(timeElapsed);
+        var scale = Mathf.LerpUnclamped(InitialScale, 1f, progress);
+        node.Set<StyleScale>(node.Styles.Scale, new Vector2(scale, scale));
+        node.Set<StyleTransformOrigin>(node.Styles.TransformOrigin, new UnityEngine.UIElements.TransformOrigin(
             new Length(TransformOrigin.PivotFractionX * 100f, LengthUnit.Percent),
-            new Length(TransformOrigin.PivotFractionY * 100f, LengthUnit.Percent));
-        element.style.scale = new Vector2(scale, scale);
+            new Length(TransformOrigin.PivotFractionY * 100f, LengthUnit.Percent)));
     }
 
-    public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
-    {
-        var element = node.VisualElement();
-        element.style.scale = StyleKeyword.Null;
-        element.style.transformOrigin = StyleKeyword.Null;
-    }
+
+
+
 
     public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
 }

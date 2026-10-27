@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using Compose.Net;
 using StableCollections;
@@ -7,27 +7,11 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record FloatModifierImpl(bool Enabled) : UnityModifier
+internal record FloatModifierImpl(bool Enabled) : UnityStyleModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        if (!Enabled)
-            return;
-        element.style.position = Position.Absolute;
+        node.Set<StyleEnum<Position>>(node.Styles.Position, Position.Absolute);
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        if (!Enabled)
-            return;
-        element.style.position = element.style.position.CompareAndSetNull(Position.Absolute);
-    }
 }

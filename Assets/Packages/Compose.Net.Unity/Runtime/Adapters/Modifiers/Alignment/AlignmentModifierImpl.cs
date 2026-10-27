@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using SharpExtensions;
 using StableCollections;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
@@ -11,39 +11,13 @@ namespace Compose.Net.Unity;
 
 internal record AlignModifierImpl(
     Alignment Align
-) : UnityModifier
+) : UnityStyleModifier
 {
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
+    public override bool DependsOnChain => true;
+    public override void UpdateStyle(UnityStyleModifierNode node)
     {
-        if (element.parent is Box)
-        {
-            Box.SetAlign(element, Align);
-            return;
-        }
-
-        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
-            return;
-        element.style.alignSelf = Align.ToAlign();
+        if (node.Element.parent?.style.flexDirection.value is FlexDirection.Row or FlexDirection.RowReverse)
+            node.Set<StyleEnum<Align>>(node.Styles.AlignSelf, Align.ToAlign());
     }
 
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        if (element.parent is Box)
-        {
-            Box.SetAlign(element, null);
-            return;
-        }
-
-        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
-            return;
-        element.style.alignSelf = element.style.alignSelf.CompareAndSetNull(Align.ToAlign());
-    }
 }
