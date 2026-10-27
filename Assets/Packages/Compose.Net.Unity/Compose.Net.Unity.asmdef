@@ -1,8 +1,17 @@
 {
-  "name": "Compose.Net.Unity",
-  "rootNamespace": "Compose.Net.Unity",
-  "references": [
-    "UnityEngine.UI",
-    "Unity.InputSystem"
-  ]
+    "name": "Compose.Net.Unity",
+    "rootNamespace": "Compose.Net.Unity",
+    "references": [
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
