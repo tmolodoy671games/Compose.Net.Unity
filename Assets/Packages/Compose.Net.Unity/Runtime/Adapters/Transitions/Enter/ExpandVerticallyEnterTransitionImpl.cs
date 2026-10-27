@@ -1,14 +1,11 @@
-﻿using System;
+using System;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
-using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Transitions.Enter;
 
 internal record ExpandVerticallyEnterTransitionImpl(
     AnimationSpec AnimationSpec,
+    Alignment.Vertical ExpandFrom,
     bool Clip,
     Func<float, float> InitialHeight
 ) : IEnterTransition
@@ -18,37 +15,13 @@ internal record ExpandVerticallyEnterTransitionImpl(
     public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
         var element = node.VisualElement();
+        var size = element.layout.size.ToSize();
+        var otherSize = new Size(size.Width, InitialHeight(size.Height));
         var progress = AnimationSpec.GetProgress(timeElapsed);
-        var height = element.layout.height;
-        if (height != 0 && !float.IsNaN(height))
-        {
-            progress = Mathf.LerpUnclamped(InitialHeight(height), height, progress);
-            progress /= height;
-        }
-        
-        element.style.flexShrink = 0;
-        element.parent.style.maxHeight = ShrinkUtils.GetLength(progress);
-        if (Clip)
-            element.Clip().Increment();
+        SizeTransitionUtils.Apply(element, size, otherSize, progress, true,
+            ExpandFrom, Clip, false, true);
     }
 
     public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
-    {
-        var element = node.VisualElement();
-        element.style.flexShrink = StyleKeyword.Null;
-        element.style.maxHeight = StyleKeyword.Null;
-        if (Clip)
-            element.Clip().Decrement();
-    }
-}
-
-internal static class ShrinkUtils
-{
-    public static Length GetLength(float progress)
-    {
-        var result = new Length(progress * 8, LengthUnit.Percent);
-        if (progress.AlmostEquals(1))
-            result = new Length(100, LengthUnit.Percent);
-        return result;
-    }
+        => SizeTransitionUtils.Revert(node.VisualElement(), Clip, false, true);
 }

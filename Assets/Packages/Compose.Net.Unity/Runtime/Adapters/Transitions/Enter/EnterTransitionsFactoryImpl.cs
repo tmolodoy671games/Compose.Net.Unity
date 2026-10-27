@@ -11,9 +11,9 @@ internal class EnterTransitionsFactoryImpl : IEnterTransitionsFactory
         return new FadeInEnterTransitionImpl(animationSpec, initialAlpha);
     }
 
-    public IEnterTransition ScaleIn(AnimationSpec animationSpec, float initialScale)
+    public IEnterTransition ScaleIn(AnimationSpec animationSpec, float initialScale, Net.TransformOrigin transformOrigin)
     {
-        return new ScaleInEnterTransitionImpl(animationSpec, initialScale);
+        return new ScaleInEnterTransitionImpl(animationSpec, initialScale, transformOrigin);
     }
 
     public IEnterTransition SlideIn(AnimationSpec animationSpec, Func<Size, Offset> initialOffset)
@@ -39,28 +39,31 @@ internal class EnterTransitionsFactoryImpl : IEnterTransitionsFactory
 
     public IEnterTransition ExpandHorizontally(
         AnimationSpec animationSpec,
+        Alignment.Horizontal expandFrom,
         bool clip,
         Func<float, float> initialWidth
     )
     {
-        return new ExpandHorizontallyEnterTransitionImpl(animationSpec, clip, initialWidth);
+        return new ExpandHorizontallyEnterTransitionImpl(animationSpec, expandFrom, clip, initialWidth);
     }
 
     public IEnterTransition ExpandVertically(
         AnimationSpec animationSpec,
+        Alignment.Vertical expandFrom,
         bool clip,
         Func<float, float> initialHeight
     )
     {
-        return new ExpandVerticallyEnterTransitionImpl(animationSpec, clip, initialHeight);
+        return new ExpandVerticallyEnterTransitionImpl(animationSpec, expandFrom, clip, initialHeight);
     }
 
     public IEnterTransition ExpandIn(
         AnimationSpec animationSpec,
+        Alignment expandFrom,
         bool clip,
         Func<Size, Size> initialSize
     )
     {
-        return new ExpandEnterTransitionImpl(animationSpec, clip, initialSize);
+        return new ExpandEnterTransitionImpl(animationSpec, expandFrom, clip, initialSize);
     }
 }
