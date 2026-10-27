@@ -138,7 +138,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawRect(
         Color color,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float alpha,
         DrawStyle? style
     )
@@ -154,7 +154,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawRect(
         IBrush brush,
         Offset topLeft = new(),
-        Optional<Size> size = new(),
+        Size size = default,
         float alpha = 1,
         DrawStyle? style = null
     )
@@ -173,7 +173,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
     private void DrawRectImpl(
         Offset topLeft = new(),
-        Optional<Size> size = new(),
+        Size size = default,
         DrawStyle? style = null
     )
     {
@@ -203,7 +203,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawRoundRect(
         Color color,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float cornerRadius,
         float alpha,
         DrawStyle? style
@@ -221,7 +221,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawRoundRect(
         IBrush brush,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float cornerRadius,
         float alpha,
         DrawStyle? style
@@ -243,8 +243,8 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawShape(
         Color color,
         Offset topLeft,
-        Optional<Size> size,
-        Optional<Shape> shape,
+        Size size,
+        Shape shape,
         float alpha = 1,
         DrawStyle? style = null
     )
@@ -261,8 +261,8 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawShape(
         IBrush brush,
         Offset topLeft,
-        Optional<Size> size,
-        Optional<Shape> shape,
+        Size size,
+        Shape shape,
         float alpha = 1,
         DrawStyle? style = null
     )
@@ -282,7 +282,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
     private void DrawRoundRectImpl(
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         Shape shape,
         DrawStyle? style
     )
@@ -300,7 +300,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Top-left
         var topLeftRadius = Mathf.Clamp(
-            shape.TopLeft.Value,
+            shape.TopLeft.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -308,7 +308,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Top-right
         var topRightRadius = Mathf.Clamp(
-            shape.TopRight.Value,
+            shape.TopRight.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -321,7 +321,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Bottom-right
         var bottomRightRadius = Mathf.Clamp(
-            shape.TopRight.Value,
+            shape.TopRight.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -334,7 +334,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Bottom-left
         var bottomLeftRadius = Mathf.Clamp(
-            shape.TopRight.Value,
+            shape.TopRight.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -417,7 +417,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawOval(
         Color color,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float alpha,
         DrawStyle? style
     )
@@ -433,7 +433,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
     public void DrawOval(
         IBrush brush,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float alpha,
         DrawStyle? style
     )
@@ -452,7 +452,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
     private void DrawOvalImpl(
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         DrawStyle? style
     )
     {
@@ -495,7 +495,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         float sweepAngle,
         bool useCenter,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float alpha,
         DrawStyle? style
     )
@@ -517,7 +517,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         float sweepAngle,
         bool useCenter,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         float alpha,
         DrawStyle? style
     )
@@ -542,7 +542,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         float sweepAngle,
         bool useCenter,
         Offset topLeft,
-        Optional<Size> size,
+        Size size,
         DrawStyle? style
     )
     {
@@ -751,7 +751,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         IImageBitmap image,
         Offset topLeft = new(),
         float alpha = 1,
-        Optional<Size> size = new(),
+        Size size = default,
         DrawStyle? style = null
     )
     {

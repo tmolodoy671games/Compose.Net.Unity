@@ -1,17 +1,16 @@
 ﻿// ReSharper disable CheckNamespace
 
 using Compose.Net;
-using SharpExtensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
 internal record SizeInModifierImpl(
-    Optional<Dp> MinWidth,
-    Optional<Dp> MaxWidth,
-    Optional<Dp> MinHeight,
-    Optional<Dp> MaxHeight
+    Dp MinWidth,
+    Dp MaxWidth,
+    Dp MinHeight,
+    Dp MaxHeight
 ) : ModifierNodeElement<SizeInModifierImpl.SizeInNode>, IAppearanceModifier
 {
     public override SizeInNode Create() => new(MinWidth, MaxWidth, MinHeight, MaxHeight);
@@ -19,16 +18,16 @@ internal record SizeInModifierImpl(
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class SizeInNode(
-        Optional<Dp> minWidth,
-        Optional<Dp> maxWidth,
-        Optional<Dp> minHeight,
-        Optional<Dp> maxHeight
+        Dp minWidth,
+        Dp maxWidth,
+        Dp minHeight,
+        Dp maxHeight
     ) : IModifier.Node
     {
-        private Optional<Dp> _minWidth = minWidth;
-        private Optional<Dp> _maxWidth = maxWidth;
-        private Optional<Dp> _minHeight = minHeight;
-        private Optional<Dp> _maxHeight = maxHeight;
+        private Dp _minWidth = minWidth;
+        private Dp _maxWidth = maxWidth;
+        private Dp _minHeight = minHeight;
+        private Dp _maxHeight = maxHeight;
         private StyleLength _originalMinWidth, _originalMaxWidth, _originalMinHeight, _originalMaxHeight;
         private VisualElement? _element;
 
@@ -44,22 +43,22 @@ internal record SizeInModifierImpl(
         }
 
         internal void Update(
-            Optional<Dp> nextMinWidth,
-            Optional<Dp> nextMaxWidth,
-            Optional<Dp> nextMinHeight,
-            Optional<Dp> nextMaxHeight
+            Dp nextMinWidth,
+            Dp nextMaxWidth,
+            Dp nextMinHeight,
+            Dp nextMaxHeight
         )
         {
             if (_element == null) return;
             var style = _element.style;
             if (!_minWidth.Equals(nextMinWidth))
-                style.minWidth = nextMinWidth.HasValue ? nextMinWidth.Value.ToLength() : _originalMinWidth;
+                style.minWidth = !nextMinWidth.IsUnspecified ? nextMinWidth.ToLength(UnityDensity.Current) : _originalMinWidth;
             if (!_maxWidth.Equals(nextMaxWidth))
-                style.maxWidth = nextMaxWidth.HasValue ? nextMaxWidth.Value.ToLength() : _originalMaxWidth;
+                style.maxWidth = !nextMaxWidth.IsUnspecified ? nextMaxWidth.ToLength(UnityDensity.Current) : _originalMaxWidth;
             if (!_minHeight.Equals(nextMinHeight))
-                style.minHeight = nextMinHeight.HasValue ? nextMinHeight.Value.ToLength() : _originalMinHeight;
+                style.minHeight = !nextMinHeight.IsUnspecified ? nextMinHeight.ToLength(UnityDensity.Current) : _originalMinHeight;
             if (!_maxHeight.Equals(nextMaxHeight))
-                style.maxHeight = nextMaxHeight.HasValue ? nextMaxHeight.Value.ToLength() : _originalMaxHeight;
+                style.maxHeight = !nextMaxHeight.IsUnspecified ? nextMaxHeight.ToLength(UnityDensity.Current) : _originalMaxHeight;
             _minWidth = nextMinWidth;
             _maxWidth = nextMaxWidth;
             _minHeight = nextMinHeight;
@@ -83,10 +82,10 @@ internal record SizeInModifierImpl(
         {
             if (_element == null) return;
             var style = _element.style;
-            if (_minWidth.HasValue) style.minWidth = _minWidth.Value.ToLength();
-            if (_maxWidth.HasValue) style.maxWidth = _maxWidth.Value.ToLength();
-            if (_minHeight.HasValue) style.minHeight = _minHeight.Value.ToLength();
-            if (_maxHeight.HasValue) style.maxHeight = _maxHeight.Value.ToLength();
+            if (!_minWidth.IsUnspecified) style.minWidth = _minWidth.ToLength(UnityDensity.Current);
+            if (!_maxWidth.IsUnspecified) style.maxWidth = _maxWidth.ToLength(UnityDensity.Current);
+            if (!_minHeight.IsUnspecified) style.minHeight = _minHeight.ToLength(UnityDensity.Current);
+            if (!_maxHeight.IsUnspecified) style.maxHeight = _maxHeight.ToLength(UnityDensity.Current);
         }
     }
 }

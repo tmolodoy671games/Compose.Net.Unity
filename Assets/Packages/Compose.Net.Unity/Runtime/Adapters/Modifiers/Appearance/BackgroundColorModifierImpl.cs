@@ -25,10 +25,10 @@ internal record BackgroundColorShapeModifierImpl(
     {
         element.Clip().Increment();
         var shapeValue = Shape;
-        element.style.borderTopLeftRadius = shapeValue.TopLeft.ToLength();
-        element.style.borderTopRightRadius = shapeValue.TopRight.ToLength();
-        element.style.borderBottomLeftRadius = shapeValue.BottomLeft.ToLength();
-        element.style.borderBottomRightRadius = shapeValue.BottomRight.ToLength();
+        element.style.borderTopLeftRadius = shapeValue.TopLeft.ToLength(UnityDensity.Current);
+        element.style.borderTopRightRadius = shapeValue.TopRight.ToLength(UnityDensity.Current);
+        element.style.borderBottomLeftRadius = shapeValue.BottomLeft.ToLength(UnityDensity.Current);
+        element.style.borderBottomRightRadius = shapeValue.BottomRight.ToLength(UnityDensity.Current);
     }
 
     protected override void OnDetached(VisualElement element)
@@ -36,11 +36,11 @@ internal record BackgroundColorShapeModifierImpl(
         element.Clip().Decrement();
         var shapeValue = Shape;
         var style = element.style;
-        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shapeValue.TopLeft.ToLength());
-        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shapeValue.TopRight.ToLength());
-        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shapeValue.BottomLeft.ToLength());
+        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shapeValue.TopLeft.ToLength(UnityDensity.Current));
+        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shapeValue.TopRight.ToLength(UnityDensity.Current));
+        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shapeValue.BottomLeft.ToLength(UnityDensity.Current));
         style.borderBottomRightRadius =
-            style.borderBottomRightRadius.CompareAndSetNull(shapeValue.BottomRight.ToLength());
+            style.borderBottomRightRadius.CompareAndSetNull(shapeValue.BottomRight.ToLength(UnityDensity.Current));
     }
 }
 

@@ -1,5 +1,4 @@
 ﻿using Compose.Net;
-using SharpExtensions;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
 
@@ -10,12 +9,12 @@ internal class SizeModifiersFactoryImpl : ISizeModifiersFactory
         return new FillMaxSizeModifierImpl(widthFraction, heightFraction);
     }
 
-    public IModifier SizeIn(Optional<Dp> minWidth, Optional<Dp> maxWidth, Optional<Dp> minHeight, Optional<Dp> maxHeight)
+    public IModifier SizeIn(Dp minWidth, Dp maxWidth, Dp minHeight, Dp maxHeight)
     {
         return new SizeInModifierImpl(minWidth, maxWidth, minHeight, maxHeight);
     }
 
-    public IModifier Size(Optional<Dp> width, Optional<Dp> height)
+    public IModifier Size(Dp width, Dp height)
     {
         return new SizeModifierImpl(width, height);
     }

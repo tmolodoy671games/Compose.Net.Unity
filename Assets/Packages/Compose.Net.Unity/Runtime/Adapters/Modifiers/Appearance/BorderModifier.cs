@@ -18,22 +18,24 @@ internal record BorderModifierImpl(
     protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = it =>
     {
         var scope = it.DrawScope();
-        var sideOffset = BorderWidth.Value / 2;
+        var density = UnityDensity.Current;
+        var sideOffset = BorderWidth.ToPx(density) / 2;
         scope.DrawRoundRect(
             brush: Brush,
             topLeft: new Offset(sideOffset, sideOffset),
             size: scope.Size - new Size(sideOffset * 2),
-            cornerRadius: Shape.TopLeft.Value,
-            style: Stroke(BorderWidth.Value)
+            cornerRadius: Shape.TopLeft.ToPx(density),
+            style: Stroke(BorderWidth.ToPx(density))
         );
     };
 
     protected override void OnAttached(VisualElement element)
     {
-        element.style.borderTopWidth = BorderWidth.Value;
-        element.style.borderBottomWidth = BorderWidth.Value;
-        element.style.borderLeftWidth = BorderWidth.Value;
-        element.style.borderRightWidth = BorderWidth.Value;
+        var width = BorderWidth.ToPx(UnityDensity.Current);
+        element.style.borderTopWidth = width;
+        element.style.borderBottomWidth = width;
+        element.style.borderLeftWidth = width;
+        element.style.borderRightWidth = width;
     }
 
     protected override void OnDetached(VisualElement element)

@@ -1,5 +1,4 @@
 ﻿using Compose.Net;
-using SharpExtensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
@@ -8,10 +7,10 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record PositionModifierImpl(
-    Optional<Dp> Top,
-    Optional<Dp> Bottom,
-    Optional<Dp> Left,
-    Optional<Dp> Right
+    Dp Top,
+    Dp Bottom,
+    Dp Left,
+    Dp Right
 ) : ModifierNodeElement<PositionModifierImpl.PositionNode>
 {
     public override PositionNode Create() => new(Top, Bottom, Left, Right);
@@ -19,16 +18,16 @@ internal record PositionModifierImpl(
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class PositionNode(
-        Optional<Dp> top,
-        Optional<Dp> bottom,
-        Optional<Dp> left,
-        Optional<Dp> right
+        Dp top,
+        Dp bottom,
+        Dp left,
+        Dp right
     ) : IModifier.Node
     {
-        private Optional<Dp> _top = top;
-        private Optional<Dp> _bottom = bottom;
-        private Optional<Dp> _left = left;
-        private Optional<Dp> _right = right;
+        private Dp _top = top;
+        private Dp _bottom = bottom;
+        private Dp _left = left;
+        private Dp _right = right;
         private VisualElement? _element;
 
         public override void OnAttach()
@@ -38,7 +37,7 @@ internal record PositionModifierImpl(
             Apply(1f);
         }
 
-        internal void Update(Optional<Dp> nextTop, Optional<Dp> nextBottom, Optional<Dp> nextLeft, Optional<Dp> nextRight)
+        internal void Update(Dp nextTop, Dp nextBottom, Dp nextLeft, Dp nextRight)
         {
             Apply(-1f);
             _top = nextTop;
@@ -59,14 +58,15 @@ internal record PositionModifierImpl(
         {
             if (_element == null) return;
             var style = _element.style;
-            if (_top.HasValue)
-                style.top = style.top.Add(sign * _top.Value.Value);
-            if (_bottom.HasValue)
-                style.bottom = style.bottom.Add(sign * _bottom.Value.Value);
-            if (_left.HasValue)
-                style.left = style.left.Add(sign * _left.Value.Value);
-            if (_right.HasValue)
-                style.right = style.right.Add(sign * _right.Value.Value);
+            var density = UnityDensity.Current;
+            if (!_top.IsUnspecified)
+                style.top = style.top.Add(sign * _top.ToPx(density));
+            if (!_bottom.IsUnspecified)
+                style.bottom = style.bottom.Add(sign * _bottom.ToPx(density));
+            if (!_left.IsUnspecified)
+                style.left = style.left.Add(sign * _left.ToPx(density));
+            if (!_right.IsUnspecified)
+                style.right = style.right.Add(sign * _right.ToPx(density));
         }
     }
 }

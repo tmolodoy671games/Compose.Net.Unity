@@ -9,8 +9,8 @@ namespace Compose.Net.Unity;
 internal record BlurModifierImpl(Dp Radius)
     : ModifierNodeElement<BlurModifierImpl.BlurNode>, IAppearanceModifier
 {
-    public override BlurNode Create() => new(Radius.Value);
-    public override void Update(BlurNode node) => node.Update(Radius.Value);
+    public override BlurNode Create() => new(Radius.ToPx(UnityDensity.Current));
+    public override void Update(BlurNode node) => node.Update(Radius.ToPx(UnityDensity.Current));
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class BlurNode(float radius) : IModifier.Node

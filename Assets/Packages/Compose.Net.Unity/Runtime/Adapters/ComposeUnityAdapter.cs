@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters;
 using Compose.Net.Unity.Runtime.Adapters.Brushes;
 using Compose.Net.Unity.Runtime.Adapters.Modifiers;
@@ -32,6 +33,7 @@ public class ComposeUnityAdapter : IComposeAdapter
         return frameRate;
     }
 
+    public IDensity Density => global::Compose.Net.Density.Default;
     public ComposeInvalidator? ComposeInvalidatorInstance => ComposeInvalidatorHolder.ComposeInvalidator;
     public IModifiersFactory ModifiersFactory { get; } = new ModifiersFactoryImpl();
     public IReusableNodeFactory NodeFactory { get; } = new ReusableNodeFactoryImpl();

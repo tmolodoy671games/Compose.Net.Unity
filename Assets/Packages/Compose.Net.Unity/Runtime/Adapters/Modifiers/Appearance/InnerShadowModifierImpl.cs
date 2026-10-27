@@ -58,10 +58,10 @@ internal record InnerShadowModifierImpl(
         )
         {
             var style = shadowElement.style;
-            style.borderTopLeftRadius = shape.TopLeft.ToLength();
-            style.borderTopRightRadius = shape.TopRight.ToLength();
-            style.borderBottomLeftRadius = shape.BottomLeft.ToLength();
-            style.borderBottomRightRadius = shape.BottomRight.ToLength();
+            style.borderTopLeftRadius = shape.TopLeft.ToLength(UnityDensity.Current);
+            style.borderTopRightRadius = shape.TopRight.ToLength(UnityDensity.Current);
+            style.borderBottomLeftRadius = shape.BottomLeft.ToLength(UnityDensity.Current);
+            style.borderBottomRightRadius = shape.BottomRight.ToLength(UnityDensity.Current);
 
             style.borderTopColor = shadow.Color.ToUnityColor();
             style.borderBottomColor = shadow.Color.ToUnityColor();
@@ -69,12 +69,12 @@ internal record InnerShadowModifierImpl(
             style.borderRightColor = shadow.Color.ToUnityColor();
 
             var borderWidth = shadow.Spread * 2;
-            style.borderTopWidth = borderWidth.Value;
-            style.borderBottomWidth = borderWidth.Value;
-            style.borderLeftWidth = borderWidth.Value;
-            style.borderRightWidth = borderWidth.Value;
+            style.borderTopWidth = borderWidth.ToPx(UnityDensity.Current);
+            style.borderBottomWidth = borderWidth.ToPx(UnityDensity.Current);
+            style.borderLeftWidth = borderWidth.ToPx(UnityDensity.Current);
+            style.borderRightWidth = borderWidth.ToPx(UnityDensity.Current);
 
-            var offsetWidth = (-borderWidth / 2).ToLength();
+            var offsetWidth = (-borderWidth / 2).ToLength(UnityDensity.Current);
             style.top = offsetWidth;
             style.bottom = offsetWidth;
             style.left = offsetWidth;
@@ -83,7 +83,7 @@ internal record InnerShadowModifierImpl(
             style.translate = shadow.Offset.ToVector2();
 
             var blur = new FilterFunction(FilterFunctionType.Blur);
-            blur.AddParameter(new FilterParameter(shadow.Radius.Value));
+            blur.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             style.AddFilter(blur);
         }
 
@@ -94,10 +94,10 @@ internal record InnerShadowModifierImpl(
         )
         {
             var style = shadowElement.style;
-            style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shape.TopLeft.ToLength());
-            style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shape.TopRight.ToLength());
-            style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shape.BottomLeft.ToLength());
-            style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(shape.BottomRight.ToLength());
+            style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shape.TopLeft.ToLength(UnityDensity.Current));
+            style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shape.TopRight.ToLength(UnityDensity.Current));
+            style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shape.BottomLeft.ToLength(UnityDensity.Current));
+            style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(shape.BottomRight.ToLength(UnityDensity.Current));
 
             style.borderTopColor = style.borderTopColor.CompareAndSetNull(shadow.Color.ToUnityColor());
             style.borderBottomColor = style.borderBottomColor.CompareAndSetNull(shadow.Color.ToUnityColor());
@@ -105,12 +105,12 @@ internal record InnerShadowModifierImpl(
             style.borderRightColor = style.borderRightColor.CompareAndSetNull(shadow.Color.ToUnityColor());
 
             var borderWidth = shadow.Spread * 2;
-            style.borderTopWidth = style.borderTopWidth.CompareAndSetNull(borderWidth.Value);
-            style.borderBottomWidth = style.borderBottomWidth.CompareAndSetNull(borderWidth.Value);
-            style.borderLeftWidth = style.borderLeftWidth.CompareAndSetNull(borderWidth.Value);
-            style.borderRightWidth = style.borderRightWidth.CompareAndSetNull(borderWidth.Value);
+            style.borderTopWidth = style.borderTopWidth.CompareAndSetNull(borderWidth.ToPx(UnityDensity.Current));
+            style.borderBottomWidth = style.borderBottomWidth.CompareAndSetNull(borderWidth.ToPx(UnityDensity.Current));
+            style.borderLeftWidth = style.borderLeftWidth.CompareAndSetNull(borderWidth.ToPx(UnityDensity.Current));
+            style.borderRightWidth = style.borderRightWidth.CompareAndSetNull(borderWidth.ToPx(UnityDensity.Current));
 
-            var offsetWidth = (-borderWidth / 2).ToLength();
+            var offsetWidth = (-borderWidth / 2).ToLength(UnityDensity.Current);
             style.top = style.top.CompareAndSetNull(offsetWidth);
             style.bottom = style.bottom.CompareAndSetNull(offsetWidth);
             style.left = style.left.CompareAndSetNull(offsetWidth);
@@ -119,7 +119,7 @@ internal record InnerShadowModifierImpl(
             style.translate = style.translate.CompareAndSetNull(shadow.Offset.ToVector2());
 
             var blur = new FilterFunction(FilterFunctionType.Blur);
-            blur.AddParameter(new FilterParameter(shadow.Radius.Value));
+            blur.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             style.RemoveFilter(blur);
         }
     }

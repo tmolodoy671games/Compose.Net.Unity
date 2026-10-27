@@ -59,7 +59,7 @@ internal record DropShadowModifierImpl(
             var shadowFilter = new FilterFunction(FilterFunctionType.DropShadow);
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.X));
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.Value));
+            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
             shadowElement.style.AddFilters(shadowFilter, shadowFilter);
         }
@@ -72,7 +72,7 @@ internal record DropShadowModifierImpl(
             var shadowFilter = new FilterFunction(FilterFunctionType.DropShadow);
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.X));
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.Value));
+            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
             shadowElement.style.RemoveFilters(shadowFilter, shadowFilter);
         }

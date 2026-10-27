@@ -12,8 +12,8 @@ internal record OffsetModifierImpl(Dp X, Dp Y) : ModifierNodeElement<OffsetModif
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
 
-    public override OffsetNode Create() => new(X.Value, Y.Value);
-    public override void Update(OffsetNode node) => node.Update(X.Value, Y.Value);
+    public override OffsetNode Create() => new(X.ToPx(UnityDensity.Current), Y.ToPx(UnityDensity.Current));
+    public override void Update(OffsetNode node) => node.Update(X.ToPx(UnityDensity.Current), Y.ToPx(UnityDensity.Current));
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class OffsetNode(float x, float y) : IModifier.Node

@@ -44,7 +44,8 @@ internal record TransformOriginModifierImpl(Dp X, Dp Y)
         private void Apply(Dp x, Dp y)
         {
             if (_element == null) return;
-            _element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(x.Value, y.Value);
+            var density = UnityDensity.Current;
+            _element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(x.ToPx(density), y.ToPx(density));
         }
     }
 }

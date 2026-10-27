@@ -2,7 +2,6 @@
 
 using System;
 using Compose.Net;
-using SharpExtensions;
 using StableCollections;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,7 +11,7 @@ namespace Compose.Net.Unity;
 
 internal record BackgroundBrushModifierImpl(
     IBrush Brush,
-    Optional<Shape> Shape
+    Shape Shape
 ) : DrawUnityModifier, IAppearanceModifier
 {
     protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = evt =>

@@ -2,7 +2,6 @@
 
 using System;
 using Compose.Net;
-using SharpExtensions;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -17,7 +16,7 @@ internal record OnSizeChangedImpl(Action<Size> OnSizeChanged)
     internal sealed class SizeChangedNode(Action<Size> onSizeChanged) : IModifier.Node
     {
         private Action<Size> _onSizeChanged = onSizeChanged;
-        private Optional<Size> _previousSize;
+        private Size _previousSize = Size.Unspecified;
         private VisualElement? _element;
         private EventCallback<GeometryChangedEvent>? _callback;
 
@@ -32,7 +31,7 @@ internal record OnSizeChangedImpl(Action<Size> OnSizeChanged)
         {
             if (Equals(_onSizeChanged, next)) return;
             _onSizeChanged = next;
-            _previousSize = default;
+            _previousSize = Size.Unspecified;
         }
 
         public override void OnDetach()

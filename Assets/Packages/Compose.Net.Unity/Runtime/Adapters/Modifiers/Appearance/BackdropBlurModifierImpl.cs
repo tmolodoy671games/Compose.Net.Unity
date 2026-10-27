@@ -9,8 +9,8 @@ namespace Compose.Net.Unity;
 internal record BackdropBlurModifierImpl(Dp Radius)
     : ModifierNodeElement<BackdropBlurModifierImpl.BackdropBlurNode>, IAppearanceModifier
 {
-    public override BackdropBlurNode Create() => new(Radius.Value);
-    public override void Update(BackdropBlurNode node) => node.Update(Radius.Value);
+    public override BackdropBlurNode Create() => new(Radius.ToPx(UnityDensity.Current));
+    public override void Update(BackdropBlurNode node) => node.Update(Radius.ToPx(UnityDensity.Current));
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class BackdropBlurNode(float radius) : IModifier.Node

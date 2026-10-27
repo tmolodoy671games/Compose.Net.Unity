@@ -10,10 +10,10 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record PaddingModifierImpl(
-    Optional<Dp> Top,
-    Optional<Dp> Bottom,
-    Optional<Dp> Left,
-    Optional<Dp> Right,
+    Dp Top,
+    Dp Bottom,
+    Dp Left,
+    Dp Right,
     Optional<PaddingType> Type = default
 ) : ModifierNodeElement<PaddingModifierImpl.PaddingNode>
 {
@@ -25,17 +25,17 @@ internal record PaddingModifierImpl(
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     internal sealed class PaddingNode(
-        Optional<Dp> top,
-        Optional<Dp> bottom,
-        Optional<Dp> left,
-        Optional<Dp> right,
+        Dp top,
+        Dp bottom,
+        Dp left,
+        Dp right,
         Optional<PaddingType> type
     ) : IModifier.Node
     {
-        private Optional<Dp> _top = top;
-        private Optional<Dp> _bottom = bottom;
-        private Optional<Dp> _left = left;
-        private Optional<Dp> _right = right;
+        private Dp _top = top;
+        private Dp _bottom = bottom;
+        private Dp _left = left;
+        private Dp _right = right;
         private Optional<PaddingType> _type = type;
         private VisualElement? _element;
 
@@ -46,10 +46,10 @@ internal record PaddingModifierImpl(
         }
 
         internal void Update(
-            Optional<Dp> nextTop,
-            Optional<Dp> nextBottom,
-            Optional<Dp> nextLeft,
-            Optional<Dp> nextRight,
+            Dp nextTop,
+            Dp nextBottom,
+            Dp nextLeft,
+            Dp nextRight,
             Optional<PaddingType> nextType
         )
         {
@@ -75,26 +75,27 @@ internal record PaddingModifierImpl(
             if (!_type.HasValue)
                 throw new InvalidOperationException("Padding must be filled before application or removal");
             var padding = _type.Value == PaddingType.Padding;
+            var density = UnityDensity.Current;
             var style = _element.style;
-            if (_top.HasValue)
+            if (!_top.IsUnspecified)
             {
-                if (padding) style.paddingTop = NullIfNeed(style.paddingTop.value.value + sign * _top.Value.Value);
-                else style.marginTop = NullIfNeed(style.marginTop.value.value + sign * _top.Value.Value);
+                if (padding) style.paddingTop = NullIfNeed(style.paddingTop.value.value + sign * _top.ToPx(density));
+                else style.marginTop = NullIfNeed(style.marginTop.value.value + sign * _top.ToPx(density));
             }
-            if (_bottom.HasValue)
+            if (!_bottom.IsUnspecified)
             {
-                if (padding) style.paddingBottom = NullIfNeed(style.paddingBottom.value.value + sign * _bottom.Value.Value);
-                else style.marginBottom = NullIfNeed(style.marginBottom.value.value + sign * _bottom.Value.Value);
+                if (padding) style.paddingBottom = NullIfNeed(style.paddingBottom.value.value + sign * _bottom.ToPx(density));
+                else style.marginBottom = NullIfNeed(style.marginBottom.value.value + sign * _bottom.ToPx(density));
             }
-            if (_left.HasValue)
+            if (!_left.IsUnspecified)
             {
-                if (padding) style.paddingLeft = NullIfNeed(style.paddingLeft.value.value + sign * _left.Value.Value);
-                else style.marginLeft = NullIfNeed(style.marginLeft.value.value + sign * _left.Value.Value);
+                if (padding) style.paddingLeft = NullIfNeed(style.paddingLeft.value.value + sign * _left.ToPx(density));
+                else style.marginLeft = NullIfNeed(style.marginLeft.value.value + sign * _left.ToPx(density));
             }
-            if (_right.HasValue)
+            if (!_right.IsUnspecified)
             {
-                if (padding) style.paddingRight = NullIfNeed(style.paddingRight.value.value + sign * _right.Value.Value);
-                else style.marginRight = NullIfNeed(style.marginRight.value.value + sign * _right.Value.Value);
+                if (padding) style.paddingRight = NullIfNeed(style.paddingRight.value.value + sign * _right.ToPx(density));
+                else style.marginRight = NullIfNeed(style.marginRight.value.value + sign * _right.ToPx(density));
             }
         }
 

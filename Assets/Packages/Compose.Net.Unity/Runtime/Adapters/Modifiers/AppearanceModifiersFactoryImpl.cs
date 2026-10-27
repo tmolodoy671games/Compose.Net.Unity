@@ -1,6 +1,5 @@
 ﻿using System;
 using Compose.Net;
-using SharpExtensions;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
 
@@ -12,19 +11,19 @@ internal class AppearanceModifiersFactoryImpl : IAppearanceModifiersFactory
     public IModifier Blur(Dp radius) => new BlurModifierImpl(radius);
     public IModifier BackdropBlur(Dp radius) => new BackdropBlurModifierImpl(radius);
 
-    public IModifier Clip(Optional<Shape> shape)
+    public IModifier Clip(Shape shape)
     {
         return new ClipModifierImpl(shape);
     }
 
-    public IModifier Background(Color color, Optional<Shape> shape)
+    public IModifier Background(Color color, Shape shape)
     {
-        return shape.HasValue
-            ? new BackgroundColorShapeModifierImpl(color, shape.Value)
+        return !shape.IsUnspecified
+            ? new BackgroundColorShapeModifierImpl(color, shape)
             : new BackgroundColorModifierImpl(color);
     }
 
-    public IModifier Background(IBrush brush, Optional<Shape> shape)
+    public IModifier Background(IBrush brush, Shape shape)
     {
         return new BackgroundBrushModifierImpl(brush, shape);
     }
