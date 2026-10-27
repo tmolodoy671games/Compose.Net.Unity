@@ -1,183 +1,70 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using System.Runtime.CompilerServices;
 using Compose.Net;
 using SharpExtensions;
 using StableCollections;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record PaddingModifierImpl : UnityModifier, IModifier
+internal record PaddingModifierImpl(
+    Optional<Dp> Top,
+    Optional<Dp> Bottom,
+    Optional<Dp> Left,
+    Optional<Dp> Right,
+    Optional<PaddingType> Type = default
+) : UnityModifier, IModifier
 {
-    private enum PaddingType
+    public IModifier Fill(IStableList<IModifier> modifiers)
+        => Type.HasValue ? this : this with { Type = GetPaddingType(this, modifiers) };
+
+    protected override void Apply(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+        => Change(element, 1);
+
+    protected override void Revert(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+        => Change(element, -1);
+
+    private void Change(VisualElement element, float sign)
     {
-        Padding,
-        Margin,
+        if (!Type.HasValue) throw new InvalidOperationException("Padding must be filled before application or removal");
+        var padding = Type.Value == PaddingType.Padding;
+        var style = element.style;
+        if (Top.HasValue)
+        {
+            if (padding) style.paddingTop = NullIfNeed(style.paddingTop.value.value + sign * Top.Value.Value);
+            else style.marginTop = NullIfNeed(style.marginTop.value.value + sign * Top.Value.Value);
+        }
+        if (Bottom.HasValue)
+        {
+            if (padding) style.paddingBottom = NullIfNeed(style.paddingBottom.value.value + sign * Bottom.Value.Value);
+            else style.marginBottom = NullIfNeed(style.marginBottom.value.value + sign * Bottom.Value.Value);
+        }
+        if (Left.HasValue)
+        {
+            if (padding) style.paddingLeft = NullIfNeed(style.paddingLeft.value.value + sign * Left.Value.Value);
+            else style.marginLeft = NullIfNeed(style.marginLeft.value.value + sign * Left.Value.Value);
+        }
+        if (Right.HasValue)
+        {
+            if (padding) style.paddingRight = NullIfNeed(style.paddingRight.value.value + sign * Right.Value.Value);
+            else style.marginRight = NullIfNeed(style.marginRight.value.value + sign * Right.Value.Value);
+        }
     }
-
-    private readonly Optional<Dp> _top;
-    private readonly Optional<Dp> _bottom;
-    private readonly Optional<Dp> _left;
-    private readonly Optional<Dp> _right;
-    private readonly ReferenceKey _key;
-
-    public PaddingModifierImpl(
-        Optional<Dp> top,
-        Optional<Dp> bottom,
-        Optional<Dp> left,
-        Optional<Dp> right
-    )
-    {
-        _key = new ReferenceKey(this);
-        _top = top;
-        _bottom = bottom;
-        _left = left;
-        _right = right;
-    }
-
-    protected override void Apply(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var paddingType = GetPaddingType(this, newModifiers);
-        element.UserData()[_key] = paddingType;
-
-        if (_top.HasValue)
-            AddTop(element, paddingType, _top.Value.Value);
-
-        if (_bottom.HasValue)
-            AddBottom(element, paddingType, _bottom.Value.Value);
-
-        if (_left.HasValue)
-            AddLeft(element, paddingType, _left.Value.Value);
-
-        if (_right.HasValue)
-            AddRight(element, paddingType, _right.Value.Value);
-    }
-
-    protected override void Revert(
-        UnityReusableComposeNode node,
-        VisualElement element,
-        IStableList<IModifier> newModifiers
-    )
-    {
-        var paddingType =
-            element.UserData().GetOrNull(_key) as PaddingType?
-            ?? PaddingType.Padding;
-
-        if (_top.HasValue)
-            AddTop(element, paddingType, -_top.Value.Value);
-
-        if (_bottom.HasValue)
-            AddBottom(element, paddingType, -_bottom.Value.Value);
-
-        if (_left.HasValue)
-            AddLeft(element, paddingType, -_left.Value.Value);
-
-        if (_right.HasValue)
-            AddRight(element, paddingType, -_right.Value.Value);
-    }
-
-    private static void AddTop(
-        VisualElement element,
-        PaddingType paddingType,
-        float value
-    )
-    {
-        if (paddingType == PaddingType.Padding)
-            element.style.paddingTop = NullIfNeed(element.style.paddingTop.value.value + value);
-        else
-            element.style.marginTop = NullIfNeed(element.style.marginTop.value.value + value);
-    }
-
-    private static void AddBottom(
-        VisualElement element,
-        PaddingType paddingType,
-        float value)
-    {
-        if (paddingType == PaddingType.Padding)
-            element.style.paddingBottom = NullIfNeed(element.style.paddingBottom.value.value + value);
-        else
-            element.style.marginBottom = NullIfNeed(element.style.marginBottom.value.value + value);
-    }
-
-    private static void AddLeft(
-        VisualElement element,
-        PaddingType paddingType,
-        float value)
-    {
-        if (paddingType == PaddingType.Padding)
-            element.style.paddingLeft = NullIfNeed(element.style.paddingLeft.value.value + value);
-        else
-            element.style.marginLeft = NullIfNeed(element.style.marginLeft.value.value + value);
-    }
-
-    private static void AddRight(
-        VisualElement element,
-        PaddingType paddingType,
-        float value)
-    {
-        if (paddingType == PaddingType.Padding)
-            element.style.paddingRight = NullIfNeed(element.style.paddingRight.value.value + value);
-        else
-            element.style.marginRight = NullIfNeed(element.style.marginRight.value.value + value);
-    }
-
-    bool IModifier.Equals(
-        IStableList<IModifier> modifiers,
-        IModifier other,
-        IStableList<IModifier> otherModifiers
-    )
-    {
-        if (other is not PaddingModifierImpl paddingOther)
-            return false;
-        var type = GetPaddingType(this, modifiers);
-        var otherType = GetPaddingType(paddingOther, otherModifiers);
-        return type == otherType && Equals(other);
-    }
-
-    public virtual bool Equals(PaddingModifierImpl? other)
-    {
-        return other != null &&
-               _top.Equals(other._top) &&
-               _bottom.Equals(other._bottom) &&
-               _left.Equals(other._left) &&
-               _right.Equals(other._right);
-    }
-
-    public override int GetHashCode() => HashCode.Combine(_top, _bottom, _left, _right);
 
     private static StyleLength NullIfNeed(float value)
+        => value.AlmostEquals(0f) ? StyleKeyword.Null : value;
+
+    private static PaddingType GetPaddingType(PaddingModifierImpl modifier, IStableList<IModifier> modifiers)
     {
-        return value.AlmostEquals(0f) ? StyleKeyword.Null : value;
-    }
-
-    private static PaddingType GetPaddingType(PaddingModifierImpl modifier, IStableList<IModifier> newModifiers)
-    {
-        var index = -1;
-        for (var i = 0; i < newModifiers.Size; i++)
+        var type = PaddingType.Margin;
+        for (var i = 0; i < modifiers.Size; i++)
         {
-            if (ReferenceEquals(newModifiers[i], modifier))
-            {
-                index = i;
-                break;
-            }
+            var current = modifiers[i];
+            if (ReferenceEquals(current, modifier)) return type;
+            if (current is IAppearanceModifier) type = PaddingType.Padding;
         }
-
-        for (var i = 0; i < newModifiers.Size; i++)
-        {
-            if (i >= index)
-                return PaddingType.Margin;
-            if (newModifiers[i] is not IAppearanceModifier)
-                continue;
-            return PaddingType.Padding;
-        }
-
         return PaddingType.Margin;
     }
 }
@@ -204,4 +91,10 @@ internal class ReferenceKey
             return false;
         return ReferenceEquals(_reference, obj.CastTo<ReferenceKey>()._reference);
     }
+}
+
+internal enum PaddingType
+{
+    Padding,
+    Margin,
 }
