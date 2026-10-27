@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using System.Runtime.CompilerServices;
@@ -7,22 +7,11 @@ using SharpExtensions;
 using StableCollections;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 
 namespace Compose.Net.Unity;
 
-internal record PaddingModifierImpl : UnityStyleModifier, IModifier
+internal record PaddingModifierImpl : UnityModifier, IModifier
 {
-    public override bool DependsOnChain => true;
-    public override void UpdateStyle(UnityStyleModifierNode node)
-    {
-        var padding = GetPaddingType(this, node.Modifiers) == PaddingType.Padding;
-        if (_top.HasValue) node.Set<StyleLength>(padding ? node.Styles.PaddingTop : node.Styles.MarginTop, _top.Value.ToLength());
-        if (_bottom.HasValue) node.Set<StyleLength>(padding ? node.Styles.PaddingBottom : node.Styles.MarginBottom, _bottom.Value.ToLength());
-        if (_left.HasValue) node.Set<StyleLength>(padding ? node.Styles.PaddingLeft : node.Styles.MarginLeft, _left.Value.ToLength());
-        if (_right.HasValue) node.Set<StyleLength>(padding ? node.Styles.PaddingRight : node.Styles.MarginRight, _right.Value.ToLength());
-    }
-
     private enum PaddingType
     {
         Padding,
@@ -47,6 +36,51 @@ internal record PaddingModifierImpl : UnityStyleModifier, IModifier
         _bottom = bottom;
         _left = left;
         _right = right;
+    }
+
+    protected override void Apply(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        var paddingType = GetPaddingType(this, newModifiers);
+        element.UserData()[_key] = paddingType;
+
+        if (_top.HasValue)
+            AddTop(element, paddingType, _top.Value.Value);
+
+        if (_bottom.HasValue)
+            AddBottom(element, paddingType, _bottom.Value.Value);
+
+        if (_left.HasValue)
+            AddLeft(element, paddingType, _left.Value.Value);
+
+        if (_right.HasValue)
+            AddRight(element, paddingType, _right.Value.Value);
+    }
+
+    protected override void Revert(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        var paddingType =
+            element.UserData().GetOrNull(_key) as PaddingType?
+            ?? PaddingType.Padding;
+
+        if (_top.HasValue)
+            AddTop(element, paddingType, -_top.Value.Value);
+
+        if (_bottom.HasValue)
+            AddBottom(element, paddingType, -_bottom.Value.Value);
+
+        if (_left.HasValue)
+            AddLeft(element, paddingType, -_left.Value.Value);
+
+        if (_right.HasValue)
+            AddRight(element, paddingType, -_right.Value.Value);
     }
 
     private static void AddTop(

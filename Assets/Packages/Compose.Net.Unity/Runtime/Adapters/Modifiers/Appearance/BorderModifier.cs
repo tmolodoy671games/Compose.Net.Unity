@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -16,14 +16,6 @@ internal record BorderModifierImpl(
     Shape Shape
 ) : DrawUnityModifier
 {
-    public override void UpdateStyle(UnityStyleModifierNode node)
-    {
-        node.Set<StyleFloat>(node.Styles.BorderTopWidth, BorderWidth.Value);
-        node.Set<StyleFloat>(node.Styles.BorderBottomWidth, BorderWidth.Value);
-        node.Set<StyleFloat>(node.Styles.BorderLeftWidth, BorderWidth.Value);
-        node.Set<StyleFloat>(node.Styles.BorderRightWidth, BorderWidth.Value);
-    }
-
     protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = it =>
     {
         var scope = it.DrawScope();
@@ -37,7 +29,19 @@ internal record BorderModifierImpl(
         );
     };
 
+    protected override void OnApply(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+    {
+        element.style.borderTopWidth = BorderWidth.Value;
+        element.style.borderBottomWidth = BorderWidth.Value;
+        element.style.borderLeftWidth = BorderWidth.Value;
+        element.style.borderRightWidth = BorderWidth.Value;
+    }
 
-
-
+    protected override void OnRevert(UnityReusableComposeNode node, VisualElement element, IStableList<IModifier> newModifiers)
+    {
+        element.style.borderTopWidth = StyleKeyword.Null;
+        element.style.borderBottomWidth = StyleKeyword.Null;
+        element.style.borderLeftWidth = StyleKeyword.Null;
+        element.style.borderRightWidth = StyleKeyword.Null;
+    }
 }

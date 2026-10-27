@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -8,21 +8,21 @@ namespace Compose.Net.Unity.Runtime.Adapters.Transitions.Enter;
 internal record SlideInHorizontallyTransitionImpl(
     AnimationSpec AnimationSpec,
     Func<float, float> InitialOffsetX
-) : IEnterTransition, IUnityStyleTransition
+) : IEnterTransition
 {
-    public IModifier CreateModifier(TimeSpan timeElapsed) => new UnityTransitionModifier(this, timeElapsed);
-    public void UpdateStyle(UnityStyleModifierNode node, TimeSpan timeElapsed)
+    public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
         var progress = AnimationSpec.GetProgress(timeElapsed);
-        var size = node.Element.LayoutCoordinates().Size;
-        var offset = new Offset(InitialOffsetX(size.Width), 0);
-        var value = Offset.LerpUnclamped(offset, Offset.Zero, progress);
-        node.Set<StyleTranslate>(node.Styles.Translate, new Translate(value.X, value.Y));
+        var element = node.VisualElement();
+        var initialOffset = InitialOffsetX(element.LayoutCoordinates().Size.Width);
+        var offset = Mathf.LerpUnclamped(initialOffset, 0, progress);
+        element.style.translate = new Vector2(offset, 0f);
     }
 
-
-
-
+    public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
+    {
+        node.VisualElement().style.translate = StyleKeyword.None;
+    }
 
     public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
 }

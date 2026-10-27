@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;

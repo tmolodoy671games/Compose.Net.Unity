@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -12,12 +12,31 @@ namespace Compose.Net.Unity;
 internal record SizeModifierImpl(
     Optional<Dp> Width,
     Optional<Dp> Height
-) : UnityStyleModifier, IAppearanceModifier
+) : UnityModifier, IAppearanceModifier
 {
-    public override void UpdateStyle(UnityStyleModifierNode node)
+    protected override void Apply(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
     {
-        if (Width.HasValue) node.Set<StyleLength>(node.Styles.Width, Width.Value.ToLength());
-        if (Height.HasValue) node.Set<StyleLength>(node.Styles.Height, Height.Value.ToLength());
+        var style = element.style;
+        if (Width.HasValue)
+            style.width = Width.Value.ToLength();
+        if (Height.HasValue)
+            style.height = Height.Value.ToLength();
     }
 
+    protected override void Revert(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        var style = element.style;
+        if (Width.HasValue)
+            style.width = style.width.CompareAndSetNull(Width.Value.ToLength());
+        if (Height.HasValue)
+            style.height = style.height.CompareAndSetNull(Height.Value.ToLength());
+    }
 }

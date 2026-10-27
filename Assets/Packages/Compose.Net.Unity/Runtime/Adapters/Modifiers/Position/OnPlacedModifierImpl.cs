@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -14,7 +14,7 @@ internal record OnPlacedModifierImpl(
 {
     private readonly EventCallback<GeometryChangedEvent> _onGeometryChanged = OnGeometryChanged(OnPlaced);
 
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -23,7 +23,7 @@ internal record OnPlacedModifierImpl(
         element.RegisterCallback(_onGeometryChanged);
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

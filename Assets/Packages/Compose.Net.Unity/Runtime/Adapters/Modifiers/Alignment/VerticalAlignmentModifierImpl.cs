@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 using SharpExtensions;
 using StableCollections;
@@ -11,13 +11,27 @@ namespace Compose.Net.Unity;
 
 internal record VerticalAlignModifierImpl(
     Alignment.Vertical Align
-) : UnityStyleModifier
+) : UnityModifier
 {
-    public override bool DependsOnChain => true;
-    public override void UpdateStyle(UnityStyleModifierNode node)
+    protected override void Apply(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
     {
-        if (node.Element.parent?.style.flexDirection.value is FlexDirection.Row or FlexDirection.RowReverse)
-            node.Set<StyleEnum<Align>>(node.Styles.AlignSelf, Align.ToAlign());
+        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
+            return;
+        element.style.alignSelf = Align.ToAlign();
     }
 
+    protected override void Revert(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        if (element.parent.NotNull().style.flexDirection.value is not (FlexDirection.Row or FlexDirection.RowReverse))
+            return;
+        element.style.alignSelf = StyleKeyword.Null;
+    }
 }

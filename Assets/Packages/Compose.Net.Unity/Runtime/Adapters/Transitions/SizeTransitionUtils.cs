@@ -6,31 +6,44 @@ namespace Compose.Net.Unity.Runtime.Adapters.Transitions;
 
 internal static class SizeTransitionUtils
 {
-    internal static void UpdateStyle(UnityStyleModifierNode node, Size full, Size other, float progress,
+    public static void Apply(VisualElement element, Size full, Size other, float progress,
         bool entering, Alignment alignment, bool clip, bool horizontal, bool vertical)
     {
-        var parent = node.ParentStyles;
+        var parent = element.parent;
         if (parent == null || float.IsNaN(full.Width) || float.IsNaN(full.Height)) return;
         var t = entering ? progress : 1f - progress;
         var width = Mathf.Max(0, Mathf.LerpUnclamped(other.Width, full.Width, t));
         var height = Mathf.Max(0, Mathf.LerpUnclamped(other.Height, full.Height, t));
-        node.Set<StyleFloat>(node.Styles.FlexShrink, 0);
+        element.style.flexShrink = 0;
         if (horizontal)
         {
-            node.Set<StyleLength>(parent.MaxWidth, width);
-            node.Set<StyleLength>(node.Styles.Left, (width - full.Width) * HorizontalFraction(alignment));
+            parent.style.maxWidth = width;
+            element.style.left = (width - full.Width) * HorizontalFraction(alignment);
         }
         if (vertical)
         {
-            node.Set<StyleLength>(parent.MaxHeight, height);
-            node.Set<StyleLength>(node.Styles.Top, (height - full.Height) * VerticalFraction(alignment));
+            parent.style.maxHeight = height;
+            element.style.top = (height - full.Height) * VerticalFraction(alignment);
         }
-        if (clip) node.Set<StyleEnum<Overflow>>(parent.Overflow, Overflow.Hidden);
+        if (clip) parent.Clip().Increment();
     }
 
-
-
-
+    public static void Revert(VisualElement element, bool clip, bool horizontal, bool vertical)
+    {
+        var parent = element.parent;
+        element.style.flexShrink = StyleKeyword.Null;
+        if (horizontal)
+        {
+            if (parent != null) parent.style.maxWidth = StyleKeyword.Null;
+            element.style.left = StyleKeyword.Null;
+        }
+        if (vertical)
+        {
+            if (parent != null) parent.style.maxHeight = StyleKeyword.Null;
+            element.style.top = StyleKeyword.Null;
+        }
+        if (clip && parent != null) parent.Clip().Decrement();
+    }
 
     private static float HorizontalFraction(Alignment alignment)
         => alignment == Alignment.Left || alignment == Alignment.TopLeft || alignment == Alignment.CenterLeft || alignment == Alignment.BottomLeft ? 0f

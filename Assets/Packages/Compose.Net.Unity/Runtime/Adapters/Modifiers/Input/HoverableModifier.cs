@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -53,7 +53,7 @@ internal record HoverableModiferImpl(
     private readonly EventCallback<PointerLeaveEvent> _pointerLeaveCallback = evt =>
         Exit(evt.VisualElement(), InteractionSource);
 
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -70,7 +70,7 @@ internal record HoverableModiferImpl(
             Enter(element, InteractionSource, initial: true);
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

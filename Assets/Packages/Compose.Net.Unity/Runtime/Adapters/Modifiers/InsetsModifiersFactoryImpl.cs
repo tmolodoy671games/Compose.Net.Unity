@@ -1,4 +1,4 @@
-using Compose.Net;
+﻿using Compose.Net;
 using SharpExtensions;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;

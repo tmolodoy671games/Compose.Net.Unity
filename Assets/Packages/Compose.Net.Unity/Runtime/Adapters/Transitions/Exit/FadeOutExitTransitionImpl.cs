@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -8,18 +8,18 @@ namespace Compose.Net.Unity.Runtime.Adapters.Transitions.Exit;
 internal record FadeOutExitTransitionImpl(
     AnimationSpec AnimationSpec,
     float TargetAlpha
-) : IExitTransition, IUnityStyleTransition
+) : IExitTransition
 {
-    public IModifier CreateModifier(TimeSpan timeElapsed) => new UnityTransitionModifier(this, timeElapsed);
-    public void UpdateStyle(UnityStyleModifierNode node, TimeSpan timeElapsed)
+    public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
         var progress = AnimationSpec.GetProgress(timeElapsed);
-        node.Set<StyleFloat>(node.Styles.Opacity, Mathf.LerpUnclamped(1f, TargetAlpha, progress));
+        node.VisualElement().style.opacity = Mathf.LerpUnclamped(1, TargetAlpha, progress);
     }
 
-
-
-
+    public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
+    {
+        node.VisualElement().style.opacity = StyleKeyword.None;
+    }
 
     public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
 }

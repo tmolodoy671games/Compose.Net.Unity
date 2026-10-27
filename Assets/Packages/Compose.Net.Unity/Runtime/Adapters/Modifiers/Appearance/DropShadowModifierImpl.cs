@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +16,7 @@ internal record DropShadowModifierImpl(
     Compose.Net.Shadow Shadow
 ) : UnityModifier
 {
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -27,7 +27,7 @@ internal record DropShadowModifierImpl(
         Init(element, Shadow);
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -35,7 +35,7 @@ internal record DropShadowModifierImpl(
     {
         if (Shadow.Color.Alpha <= 0f)
             return;
-        OnDetach(element, Shadow);
+        Revert(element, Shadow);
     }
 
     private static void Init(
@@ -51,7 +51,7 @@ internal record DropShadowModifierImpl(
         shadowElement.style.AddFilters(shadowFilter, shadowFilter);
     }
 
-    private static void OnDetach(
+    private static void Revert(
         VisualElement shadowElement,
         Compose.Net.Shadow shadow
     )

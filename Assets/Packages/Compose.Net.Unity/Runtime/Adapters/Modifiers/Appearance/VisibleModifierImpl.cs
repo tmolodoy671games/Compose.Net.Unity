@@ -8,11 +8,24 @@ namespace Compose.Net.Unity;
 
 internal record VisibleModifierImpl(
     bool Visible
-) : UnityStyleModifier, IAppearanceModifier
+) : UnityModifier, IAppearanceModifier
 {
-    public override void UpdateStyle(UnityStyleModifierNode node)
+    protected override void Apply(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
     {
-        node.Set<StyleEnum<Visibility>>(node.Styles.Visibility, Visible ? Visibility.Visible : Visibility.Hidden);
+        element.visible = Visible;
     }
 
+    protected override void Revert(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        if (!Visible)
+            element.visible = true;
+    }
 }

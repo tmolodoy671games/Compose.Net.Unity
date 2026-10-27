@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace Compose.Net.Unity;
 
 internal record BlurModifierImpl(Dp Radius) : UnityModifier, IAppearanceModifier
 {
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -26,7 +26,7 @@ internal record BlurModifierImpl(Dp Radius) : UnityModifier, IAppearanceModifier
         element.style.AddFilter(filter);
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

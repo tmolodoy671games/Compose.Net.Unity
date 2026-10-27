@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 using StableCollections;
 using UnityEngine.UIElements;
@@ -10,7 +10,7 @@ internal record TestTagModifierImpl(
 ) : UnityModifier
 {
 
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -19,7 +19,7 @@ internal record TestTagModifierImpl(
         element.name = Tag;
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers

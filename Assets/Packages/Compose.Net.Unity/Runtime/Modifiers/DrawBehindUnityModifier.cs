@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -16,7 +16,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
 {
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
 
-    protected sealed override void OnAttach(
+    protected sealed override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -34,7 +34,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
 
         var drawBehind = node.SetupDrawBehind();
         drawBehind.GenerateVisualContent().Insert(index, GenerateVisualContent);
-        OnDrawAttach(
+        OnApply(
             node: node,
             element: element,
             drawOn: drawBehind,
@@ -42,7 +42,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
         );
     }
 
-    protected sealed override void OnDetach(
+    protected sealed override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         IStableList<IModifier> newModifiers
@@ -50,7 +50,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
     {
         var drawBehind = node.SetupDrawBehind();
         drawBehind.GenerateVisualContent().Remove(GenerateVisualContent);
-        OnDrawDetach(
+        OnRevert(
             node: node,
             element: element,
             drawOn: drawBehind,
@@ -65,7 +65,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
         node.RemoveDrawBehind();
     }
 
-    protected virtual void OnDrawAttach(
+    protected virtual void OnApply(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement drawOn,
@@ -74,7 +74,7 @@ public abstract record DrawBehindUnityModifier : UnityModifier,
     {
     }
 
-    protected virtual void OnDrawDetach(
+    protected virtual void OnRevert(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement drawOn,

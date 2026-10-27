@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using Compose.Net;
 using SharpExtensions;
@@ -105,4 +105,4 @@ internal record PointerInputChange(
         IsConsumed = true;
         Event.StopPropagation();
     }
-}
+}

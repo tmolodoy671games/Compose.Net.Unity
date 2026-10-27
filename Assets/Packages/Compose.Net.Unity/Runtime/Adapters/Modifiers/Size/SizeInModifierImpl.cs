@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -15,14 +15,39 @@ internal record SizeInModifierImpl(
     Optional<Dp> MaxWidth,
     Optional<Dp> MinHeight,
     Optional<Dp> MaxHeight
-) : UnityStyleModifier, IAppearanceModifier
+) : UnityModifier, IAppearanceModifier
 {
-    public override void UpdateStyle(UnityStyleModifierNode node)
+    protected override void Apply(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
     {
-        if (MinWidth.HasValue) node.Set<StyleLength>(node.Styles.MinWidth, MinWidth.Value.ToLength());
-        if (MaxWidth.HasValue) node.Set<StyleLength>(node.Styles.MaxWidth, MaxWidth.Value.ToLength());
-        if (MinHeight.HasValue) node.Set<StyleLength>(node.Styles.MinHeight, MinHeight.Value.ToLength());
-        if (MaxHeight.HasValue) node.Set<StyleLength>(node.Styles.MaxHeight, MaxHeight.Value.ToLength());
+        var style = element.style;
+        if (MinWidth.HasValue)
+            style.minWidth = MinWidth.Value.ToLength();
+        if (MaxWidth.HasValue)
+            style.maxWidth = MaxWidth.Value.ToLength();
+        if (MinHeight.HasValue)
+            style.minHeight = MinHeight.Value.ToLength();
+        if (MaxHeight.HasValue)
+            style.maxHeight = MaxHeight.Value.ToLength();
     }
 
+    protected override void Revert(
+        UnityReusableComposeNode node,
+        VisualElement element,
+        IStableList<IModifier> newModifiers
+    )
+    {
+        var style = element.style;
+        if (MinWidth.HasValue)
+            style.minWidth = style.minWidth.CompareAndSetNull(MinWidth.Value.ToLength());
+        if (MaxWidth.HasValue)
+            style.maxWidth = style.maxWidth.CompareAndSetNull(MaxWidth.Value.ToLength());
+        if (MinHeight.HasValue)
+            style.minHeight = style.minHeight.CompareAndSetNull(MinHeight.Value.ToLength());
+        if (MaxHeight.HasValue)
+            style.maxHeight = style.maxHeight.CompareAndSetNull(MaxHeight.Value.ToLength());
+    }
 }

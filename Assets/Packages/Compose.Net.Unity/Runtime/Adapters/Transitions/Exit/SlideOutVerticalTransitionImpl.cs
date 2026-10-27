@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Compose.Net;
 using SharpExtensions;
 using UnityEngine;
@@ -6,18 +6,8 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Transitions.Exit;
 
-internal class SlideOutVerticalTransitionImpl : IExitTransition, IUnityStyleTransition
+internal class SlideOutVerticalTransitionImpl : IExitTransition
 {
-    public IModifier CreateModifier(TimeSpan timeElapsed) => new UnityTransitionModifier(this, timeElapsed);
-    public void UpdateStyle(UnityStyleModifierNode node, TimeSpan timeElapsed)
-    {
-        var progress = _animationSpec.GetProgress(timeElapsed);
-        var size = node.Element.LayoutCoordinates().Size;
-        var offset = new Offset(0, _targetOffsetY(size.Height));
-        var value = Offset.LerpUnclamped(Offset.Zero, offset, progress);
-        node.Set<StyleTranslate>(node.Styles.Translate, new Translate(value.X, value.Y));
-    }
-
     private readonly Func<float, float> _targetOffsetY;
     private readonly AnimationSpec _animationSpec;
 
@@ -27,9 +17,19 @@ internal class SlideOutVerticalTransitionImpl : IExitTransition, IUnityStyleTran
         _animationSpec = animationSpec;
     }
 
+    public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
+    {
+        var progress = _animationSpec.GetProgress(timeElapsed);
+        var element = node.VisualElement();
+        var targetOffsetY = _targetOffsetY(element.LayoutCoordinates().Size.Height);
+        var targetOffset = Mathf.LerpUnclamped(0f, targetOffsetY, progress);
+        element.style.translate = new Vector2(0f, targetOffset);
+    }
 
-
-
+    public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
+    {
+        node.VisualElement().style.translate = StyleKeyword.None;
+    }
 
     public TimeSpan TotalDuration => _animationSpec.TotalDuration;
 

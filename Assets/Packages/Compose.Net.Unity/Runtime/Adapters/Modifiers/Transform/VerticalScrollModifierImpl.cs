@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using System.Threading;
@@ -43,7 +43,7 @@ internal record VerticalScrollModifierImpl(
         State.ContentSize = element.contentRect.height;
     };
 
-    protected override void OnAttach(
+    protected override void Apply(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement contentContainer,
@@ -65,7 +65,7 @@ internal record VerticalScrollModifierImpl(
         element.Clip().Increment();
     }
 
-    protected override void OnDetach(
+    protected override void Revert(
         UnityReusableComposeNode node,
         VisualElement element,
         VisualElement contentContainer,

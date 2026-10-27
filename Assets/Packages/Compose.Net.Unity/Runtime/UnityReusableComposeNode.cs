@@ -1,4 +1,4 @@
-// ReSharper disable CheckNamespace
+﻿// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -11,22 +11,9 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 
 namespace Compose.Net.Unity;
 
-public class UnityReusableComposeNode : IReusableComposeNode, IModifierNodeHost
+public class UnityReusableComposeNode : IReusableComposeNode
 {
     public readonly VisualElement VisualElement;
-    private ModifierStyles? _styles;
-    internal ModifierStyles Styles => _styles ??= new ModifierStyles(VisualElement);
-    public void BeginModifierUpdate()
-    {
-        Styles.Controller.BeginUpdate();
-        (Parent as UnityReusableComposeNode)?.Styles.Controller.BeginUpdate();
-    }
-    public void EndModifierUpdate()
-    {
-        try { Styles.Controller.EndUpdate(); }
-        finally { (Parent as UnityReusableComposeNode)?.Styles.Controller.EndUpdate(); }
-    }
-
     private AnchorManager? _anchorManager;
 
     private VisualElement? _contentContainerInstance;
