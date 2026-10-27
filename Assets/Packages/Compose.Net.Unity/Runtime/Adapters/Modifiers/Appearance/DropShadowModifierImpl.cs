@@ -61,7 +61,7 @@ internal record DropShadowModifierImpl(
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
             shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
-            shadowElement.style.AddFilters(shadowFilter, shadowFilter);
+            shadowElement.style.AddFilters(shadowFilter);
         }
 
         private static void Revert(
@@ -74,7 +74,7 @@ internal record DropShadowModifierImpl(
             shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
             shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
             shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
-            shadowElement.style.RemoveFilters(shadowFilter, shadowFilter);
+            shadowElement.style.RemoveFilters(shadowFilter);
         }
     }
 }

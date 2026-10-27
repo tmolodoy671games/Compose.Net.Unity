@@ -680,7 +680,7 @@ PlayerSettings:
     - -NOWARN:8669
   platformArchitecture: {}
   scriptingBackend:
-    Standalone: 0
+    Standalone: 1
   il2cppCompilerConfiguration:
     Standalone: 2
   il2cppCodeGeneration: {}
