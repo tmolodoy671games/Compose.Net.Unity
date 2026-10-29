@@ -18,7 +18,7 @@ internal record FadeInEnterTransitionImpl(
 
     public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        node.VisualElement().style.opacity = StyleKeyword.None;
+        node.VisualElement().style.opacity = StyleKeyword.Null;
     }
 
     public TimeSpan TotalDuration => AnimationSpec.TotalDuration;
