@@ -22,6 +22,7 @@ try {
 $assemblies = @(
     "$projectRoot/Temp/Bin/Debug/Compose.Net.Unity/Compose.Net.Unity.dll",
     "$projectRoot/Assets/Packages/Compose.Net.Unity/Assemblies/Compose.Net.dll",
+    "$projectRoot/Assets/Packages/Compose.Net.Unity/Assemblies/Editor/Compose.Net.Kaspresso.dll",
     "$projectRoot/Assets/Packages/Compose.Net.Unity/Assemblies/Compose.Net.Navigation.dll",
     "$projectRoot/Assets/Packages/T.Molodoy.SharpExtensions.0.0.48/lib/netstandard2.1/Sharp Extensions.dll",
     "$projectRoot/Assets/Packages/T.Molodoy.StableCollections.0.0.45/lib/netstandard2.1/StableCollections.dll",
@@ -30,13 +31,13 @@ $assemblies = @(
     "$projectRoot/Library/ScriptAssemblies/UnityEditor.UI.dll"
 )
 foreach ($assembly in $assemblies) { Copy-Item -LiteralPath $assembly -Destination "$probeRoot/Assets/Plugins" -Force }
-Copy-Item -LiteralPath "$projectRoot/Assets/Tests/Editor/AnimatedVisibilityLayoutTests.cs" -Destination "$probeRoot/Assets/Tests/Editor" -Force
+Copy-Item -LiteralPath "$projectRoot/Assets/Tests/Editor/AnimatedVisibility/AnimatedVisibilityLayoutTests.cs" -Destination "$probeRoot/Assets/Tests/Editor" -Force
 Copy-Item -LiteralPath "$projectRoot/Assets/Tests/Editor/csc.rsp" -Destination "$probeRoot/Assets/Tests/Editor" -Force
-$definition = Get-Content -Raw "$projectRoot/Assets/Tests/Editor/Compose.Net.Unity.AnimateContentSize.Tests.asmdef" | ConvertFrom-Json
+$definition = Get-Content -Raw "$projectRoot/Assets/Tests/Editor/AnimatedVisibility/Compose.Net.Unity.AnimatedVisibility.Tests.asmdef" | ConvertFrom-Json
 $definition.references = @() # The isolated project imports the adapter as a precompiled DLL.
 $definition.precompiledReferences += 'Compose.Net.Unity.dll'
 $utf8 = New-Object Text.UTF8Encoding($false)
-[IO.File]::WriteAllText("$probeRoot/Assets/Tests/Editor/Compose.Net.Unity.AnimateContentSize.Tests.asmdef", ($definition | ConvertTo-Json -Depth 8), $utf8)
+[IO.File]::WriteAllText("$probeRoot/Assets/Tests/Editor/Compose.Net.Unity.AnimatedVisibility.Tests.asmdef", ($definition | ConvertTo-Json -Depth 8), $utf8)
 $testFramework = Get-ChildItem "$projectRoot/Library/PackageCache" -Directory -Filter 'com.unity.test-framework@*' | Select-Object -First 1
 $nunit = Get-ChildItem "$projectRoot/Library/PackageCache" -Directory -Filter 'com.unity.ext.nunit@*' | Select-Object -First 1
 if (-not $testFramework -or -not $nunit) { throw 'Install Unity Test Framework in the main project first.' }
@@ -53,11 +54,11 @@ Copy-Item -LiteralPath "$projectRoot/ProjectSettings/ProjectVersion.txt" -Destin
 
 # The test runner exits on completion. Do not pass -quit, which can prevent tests from running.
 $arguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $probeRoot + '"'),
-    '-runTests', '-testPlatform', 'EditMode', '-testFilter', 'Compose.Net.Unity.Tests.AnimatedVisibilityLayoutTests',
+    '-runTests', '-testPlatform', 'EditMode', '-testFilter', 'AnimatedVisibilityLayoutTests',
     '-testResults', ('"' + "$ResultsDirectory/results.xml" + '"'), '-logFile', ('"' + "$ResultsDirectory/editor.log" + '"'))
 $process = Start-Process -FilePath $UnityEditor -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "Unity tests failed (exit $($process.ExitCode)). See $ResultsDirectory/editor.log" }
 [xml]$results = Get-Content -Raw "$ResultsDirectory/results.xml"
 $run = $results.'test-run'
 Write-Output "AnimatedVisibility: $($run.passed) passed, $($run.failed) failed, $($run.skipped) skipped."
-if ([int]$run.total -ne 6 -or [int]$run.passed -ne 6) { throw 'Expected exactly 6 passing tests.' }
+if ([int]$run.total -ne 50 -or [int]$run.passed -ne 50) { throw 'Expected exactly 50 passing tests.' }
