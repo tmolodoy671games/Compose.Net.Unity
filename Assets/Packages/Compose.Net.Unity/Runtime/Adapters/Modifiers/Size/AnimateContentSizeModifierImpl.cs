@@ -47,7 +47,6 @@ internal record AnimateContentSizeModifierImpl(
             _callback = e =>
             {
                 var content = e.VisualElement();
-                content.style.position = Position.Absolute;
                 var targetWidth = content.resolvedStyle.width
                                   + content.resolvedStyle.marginLeft
                                   + content.resolvedStyle.marginRight
@@ -66,7 +65,17 @@ internal record AnimateContentSizeModifierImpl(
                 var previousRecord = content.UserData().GetOrNull(key)?.CastToOrNull<AnimationRecord>();
                 if (previousRecord != null && previousRecord.TargetSize == targetSize)
                     return;
-                previousRecord?.Animation.Stop();
+                // The first measurement establishes the size; only later changes animate.
+                // Set both dimensions before taking the content out of the layout flow.
+                if (previousRecord == null)
+                {
+                    content.parent.style.width = targetWidth;
+                    content.parent.style.height = targetHeight;
+                    content.style.position = Position.Absolute;
+                    content.UserData()[key] = new AnimationRecord(null, targetSize);
+                    return;
+                }
+                previousRecord.Animation?.Stop();
                 var initialWidth = content.parent.resolvedStyle.width;
                 var initialHeight = content.parent.resolvedStyle.height;
                 content.UserData()[key] = new AnimationRecord(
@@ -110,7 +119,7 @@ internal record AnimateContentSizeModifierImpl(
         }
 
         private record AnimationRecord(
-            ValueAnimation<float> Animation,
+            ValueAnimation<float>? Animation,
             Vector2 TargetSize
         );
     }

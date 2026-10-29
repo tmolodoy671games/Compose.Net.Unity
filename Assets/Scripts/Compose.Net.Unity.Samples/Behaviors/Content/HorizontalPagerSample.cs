@@ -31,7 +31,6 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     var coroutineScope = RememberCoroutineScope();
                     HorizontalPager(
                         state: pagerState,
-                        // pageSize: new PageSize.Fixed(400.Dp()),
                         contentPadding: PaddingValues(64.Dp()),
                         pageSpacing: 32.Dp(),
                         modifier: Modifier
