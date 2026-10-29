@@ -1,3 +1,4 @@
+using System;
 using Compose.Net;
 using SharpExtensions;
 using UnityEngine;
@@ -7,6 +8,15 @@ namespace Compose.Net.Unity.Runtime.Adapters.Transitions;
 
 internal static class SizeTransitionUtils
 {
+    public static bool DeferUntilMeasured(VisualElement element, Action apply, bool horizontal, bool vertical)
+    {
+        if (!float.IsNaN(element.layout.width) && !float.IsNaN(element.layout.height)) return false;
+        var key = StateKey(horizontal, vertical);
+        if (element.UserData().GetOrDefault(key, null) is PendingLayout previous) previous.Cancel();
+        element.UserData()[key] = new PendingLayout(element, apply, key);
+        return true;
+    }
+
     public static void Apply(VisualElement element, Size full, Size other, float progress,
         bool entering, Alignment alignment, bool clip, bool horizontal, bool vertical)
     {
@@ -46,6 +56,12 @@ internal static class SizeTransitionUtils
     {
         var data = element.UserData();
         var key = StateKey(horizontal, vertical);
+        if (data.GetOrDefault(key, null) is PendingLayout pending)
+        {
+            pending.Cancel();
+            data.Remove(key);
+            return;
+        }
         if (data.GetOrDefault(key, null) is not AppliedState state) return;
         data.Remove(key);
         var parent = state.Parent;
@@ -68,6 +84,29 @@ internal static class SizeTransitionUtils
     private static string StateKey(bool horizontal, bool vertical) =>
         horizontal ? vertical ? "Compose.Net.Unity_SizeTransitionXY" : "Compose.Net.Unity_SizeTransitionX"
             : "Compose.Net.Unity_SizeTransitionY";
+
+    private sealed class PendingLayout
+    {
+        private readonly VisualElement _element;
+        private readonly EventCallback<GeometryChangedEvent> _callback;
+
+        public PendingLayout(VisualElement element, Action apply, string key)
+        {
+            _element = element;
+            _callback = evt =>
+            {
+                if (evt.target != element || float.IsNaN(element.layout.width) || float.IsNaN(element.layout.height)) return;
+                Cancel();
+                element.UserData().Remove(key);
+                // Geometry changes are dispatched during layout, before painting.
+                // Apply the initial size in that pass, rather than showing a full-size frame.
+                apply();
+            };
+            element.RegisterCallback(_callback);
+        }
+
+        public void Cancel() => _element.UnregisterCallback(_callback);
+    }
 
     private sealed class AppliedState
     {

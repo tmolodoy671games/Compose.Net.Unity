@@ -15,6 +15,7 @@ internal record ExpandVerticallyEnterTransitionImpl(
     public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
         var element = node.VisualElement();
+        if (SizeTransitionUtils.DeferUntilMeasured(element, () => Apply(node, timeElapsed), false, true)) return;
         var size = element.layout.size.ToSize();
         var otherSize = new Size(size.Width, InitialHeight(size.Height));
         var progress = AnimationSpec.GetProgress(timeElapsed);

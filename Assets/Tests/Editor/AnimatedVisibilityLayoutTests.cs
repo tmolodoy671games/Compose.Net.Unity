@@ -10,11 +10,13 @@ namespace Compose.Net.Unity.Tests;
 
 public class AnimatedVisibilityLayoutTests
 {
-    [TestCase(false, false)]
-    [TestCase(false, true)]
-    [TestCase(true, false)]
-    [TestCase(true, true)]
-    public void EnterReachesNaturalSizeWithPaddedShell(bool measureBeforeEnter, bool horizontal)
+    [TestCase(false, false, false)]
+    [TestCase(false, true, false)]
+    [TestCase(true, false, false)]
+    [TestCase(true, true, false)]
+    [TestCase(false, false, true)]
+    [TestCase(false, true, true)]
+    public void EnterReachesNaturalSizeWithPaddedShell(bool measureBeforeEnter, bool horizontal, bool cancelBeforeLayout)
     {
         var owner = ScriptableObject.CreateInstance<PanelOwner>();
         var panelType = typeof(VisualElement).Assembly.GetType("UnityEngine.UIElements.Panel", true);
@@ -38,6 +40,15 @@ public class AnimatedVisibilityLayoutTests
             var spec = new AnimationSpec(TimeSpan.FromSeconds(1), TimeSpan.Zero, new LinearEasing());
             var transition = horizontal ? factory.ExpandHorizontally(spec, Alignment.Right, true, _ => 0)
                 : factory.ExpandVertically(spec, Alignment.Bottom, true, _ => 0);
+            if (cancelBeforeLayout)
+            {
+                transition.Apply(contentNode, TimeSpan.Zero);
+                transition.Revert(contentNode, TimeSpan.Zero);
+                validate.Invoke(panel, null);
+                Assert.That(shell.layout.width, Is.EqualTo(152).Within(.6f), "cancelled enter must not run after layout");
+                Assert.That(shell.layout.height, Is.EqualTo(112).Within(.6f), "cancelled enter must not run after layout");
+                Assert.That(shell.style.overflow.keyword, Is.EqualTo(StyleKeyword.Null), "cancelled enter must not acquire clipping");
+            }
             if (measureBeforeEnter) validate.Invoke(panel, null);
             for (var frame = 0; frame <= 10; frame++)
             {
@@ -47,7 +58,7 @@ public class AnimatedVisibilityLayoutTests
                 validate.Invoke(panel, null);
                 Assert.That(content.layout.width, Is.EqualTo(120).Within(.6f), "natural width during enter");
                 Assert.That(content.layout.height, Is.EqualTo(80).Within(.6f), "natural height during enter");
-                if (frame > 0) Assert.That(horizontal ? shell.layout.width : shell.layout.height,
+                Assert.That(horizontal ? shell.layout.width : shell.layout.height,
                     Is.EqualTo(32 + (horizontal ? 120 : 80) * frame / 10f).Within(.6f), "animated shell size");
             }
             Assert.That(content.layout.height, Is.EqualTo(80).Within(.6f), "natural content height");

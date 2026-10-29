@@ -60,4 +60,4 @@ if ($process.ExitCode -ne 0) { throw "Unity tests failed (exit $($process.ExitCo
 [xml]$results = Get-Content -Raw "$ResultsDirectory/results.xml"
 $run = $results.'test-run'
 Write-Output "AnimatedVisibility: $($run.passed) passed, $($run.failed) failed, $($run.skipped) skipped."
-if ([int]$run.total -ne 4 -or [int]$run.passed -ne 4) { throw 'Expected exactly 4 passing tests.' }
+if ([int]$run.total -ne 6 -or [int]$run.passed -ne 6) { throw 'Expected exactly 6 passing tests.' }
