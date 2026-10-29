@@ -1,0 +1,10 @@
+{
+    "name": "Compose.Net.Unity.AnimateContentSize.Tests",
+    "rootNamespace": "Compose.Net.Unity.Tests",
+    "references": ["Compose.Net.Unity"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["Compose.Net.dll", "StableCollections.dll", "Sharp Extensions.dll", "nunit.framework.dll"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "autoReferenced": false
+}

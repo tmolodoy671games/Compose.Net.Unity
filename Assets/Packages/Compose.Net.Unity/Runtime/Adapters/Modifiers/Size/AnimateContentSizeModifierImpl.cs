@@ -2,8 +2,6 @@
 
 using System;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.UIElements.Experimental;
@@ -15,26 +13,32 @@ internal record AnimateContentSizeModifierImpl(
 ) : ContentContainerUnityModifier<AnimateContentSizeModifierImpl.AnimateContentSizeNode>
 {
     public override AnimateContentSizeNode Create() => new(AnimationSpec);
-
     public override void Update(AnimateContentSizeNode node) => node.Update(AnimationSpec);
 
     internal sealed class AnimateContentSizeNode(AnimationSpec animationSpec) : ContentContainerNodeBase
     {
-        private AnimationSpec _animationSpec = animationSpec;
+        private AnimationSpec _animationSpec = animationSpec.GetOrDefault();
         private EventCallback<GeometryChangedEvent>? _callback;
+        private ValueAnimation<float>? _animation;
+        private IVisualElementScheduledItem? _initialLayout;
+        private Vector2? _targetSize;
+        private bool _initializing;
+        private StyleLength _originalWidth;
+        private StyleLength _originalHeight;
+        private StyleEnum<Position> _originalPosition;
+        private StyleFloat _originalShrink;
+        private StyleEnum<FlexDirection> _originalDirection;
+        private StyleEnum<Align> _originalAlign;
+        private StyleEnum<Justify> _originalJustify;
 
         internal void Update(AnimationSpec next)
         {
+            next = next.GetOrDefault();
             if (_animationSpec == next)
                 return;
-            if (ContentContainer != null)
-            {
-                RevertFromContainer(UnityNode!, Element!, ContentContainer);
-                _animationSpec = next;
-                ApplyToContainer(UnityNode!, Element!, ContentContainer);
-            }
-            else
-                _animationSpec = next;
+            _animationSpec = next;
+            if (_animation is { isRunning: true } && Element != null && _targetSize is { } target)
+                Animate(Element, target);
         }
 
         protected override void ApplyToContainer(
@@ -43,67 +47,101 @@ internal record AnimateContentSizeModifierImpl(
             VisualElement contentContainer
         )
         {
-            var key = new ReferenceKey(this);
-            _callback = e =>
-            {
-                var content = e.VisualElement();
-                var targetWidth = content.resolvedStyle.width
-                                  + content.resolvedStyle.marginLeft
-                                  + content.resolvedStyle.marginRight
-                                  + content.resolvedStyle.borderLeftWidth
-                                  + content.resolvedStyle.borderRightWidth
-                                  + content.parent.resolvedStyle.paddingLeft
-                                  + content.parent.resolvedStyle.paddingRight;
-                var targetHeight = content.resolvedStyle.height
-                                   + content.resolvedStyle.marginTop
-                                   + content.resolvedStyle.marginBottom
-                                   + content.resolvedStyle.borderTopWidth
-                                   + content.resolvedStyle.borderBottomWidth
-                                   + content.parent.resolvedStyle.paddingTop
-                                   + content.parent.resolvedStyle.paddingBottom;
-                var targetSize = new Vector2(targetWidth, targetHeight);
-                var previousRecord = content.UserData().GetOrNull(key)?.CastToOrNull<AnimationRecord>();
-                if (previousRecord != null && previousRecord.TargetSize == targetSize)
-                    return;
-                // The first measurement establishes the size; only later changes animate.
-                // Set both dimensions before taking the content out of the layout flow.
-                if (previousRecord == null)
-                {
-                    content.parent.style.width = targetWidth;
-                    content.parent.style.height = targetHeight;
-                    content.style.position = Position.Absolute;
-                    content.UserData()[key] = new AnimationRecord(null, targetSize);
-                    return;
-                }
-                previousRecord.Animation?.Stop();
-                var initialWidth = content.parent.resolvedStyle.width;
-                var initialHeight = content.parent.resolvedStyle.height;
-                content.UserData()[key] = new AnimationRecord(
-                    TargetSize: targetSize,
-                    Animation: content.parent.experimental.animation.Start(
-                        0,
-                        1,
-                        _animationSpec.TotalDuration.TotalMilliseconds.ToFloat().ToInt(),
-                        (_, progress) =>
-                        {
-                            progress = _animationSpec.GetProgress(_animationSpec.TotalDuration * progress);
-                            content.parent.style.width = Mathf.LerpUnclamped(
-                                initialWidth,
-                                targetWidth,
-                                progress
-                            );
+            _originalWidth = element.style.width;
+            _originalHeight = element.style.height;
+            _originalPosition = contentContainer.style.position;
+            _originalShrink = contentContainer.style.flexShrink;
+            _originalDirection = contentContainer.style.flexDirection;
+            _originalAlign = contentContainer.style.alignItems;
+            _originalJustify = contentContainer.style.justifyContent;
+            _targetSize = null;
+            _initializing = true;
 
-                            content.parent.style.height = Mathf.LerpUnclamped(
-                                initialHeight,
-                                targetHeight,
-                                progress
-                            );
-                        }
-                    ).KeepAlive()
-                );
-            };
+            // Preserve Row/Column layout for every child; Box has its own stacking layout.
+            if (element is not Box)
+            {
+                contentContainer.style.flexDirection = element.style.flexDirection;
+                contentContainer.style.alignItems = element.style.alignItems;
+                contentContainer.style.justifyContent = element.style.justifyContent;
+            }
             contentContainer.style.flexShrink = 0;
+
+            _callback = _ =>
+            {
+                var contentStyle = contentContainer.resolvedStyle;
+                var hostStyle = element.resolvedStyle;
+                // layout.size already includes the content container's own borders.
+                var target = new Vector2(
+                    contentContainer.layout.width + contentStyle.marginLeft + contentStyle.marginRight
+                    + hostStyle.paddingLeft + hostStyle.paddingRight
+                    + hostStyle.borderLeftWidth + hostStyle.borderRightWidth,
+                    contentContainer.layout.height + contentStyle.marginTop + contentStyle.marginBottom
+                    + hostStyle.paddingTop + hostStyle.paddingBottom
+                    + hostStyle.borderTopWidth + hostStyle.borderBottomWidth
+                );
+                if (!IsFinite(target.x) || !IsFinite(target.y))
+                    return;
+                if (_targetSize == target)
+                    return;
+                _targetSize = target;
+
+                if (_initializing)
+                {
+                    SetSize(element, target);
+                    contentContainer.style.position = Position.Absolute;
+                    // Box may need several layout passes to stack multiple children.
+                    // All measurements before the first paint establish the initial size.
+                    _initialLayout ??= element.schedule.Execute(() =>
+                    {
+                        _initializing = false;
+                        _initialLayout = null;
+                    });
+                }
+                else
+                    Animate(element, target);
+            };
             contentContainer.RegisterCallback(_callback);
+            element.RegisterCallback(_callback);
+        }
+
+        private void Animate(VisualElement element, Vector2 target)
+        {
+            StopAnimation();
+            var spec = _animationSpec;
+            if (spec.TotalDuration <= TimeSpan.Zero)
+            {
+                SetSize(element, target);
+                return;
+            }
+            var initial = new Vector2(element.resolvedStyle.width, element.resolvedStyle.height);
+            _animation = element.experimental.animation.Start(
+                0f, 1f, (int)Math.Min(int.MaxValue, Math.Max(1, spec.TotalDuration.TotalMilliseconds)),
+                (_, fraction) =>
+                {
+                    var elapsed = spec.TotalDuration * fraction;
+                    var progress = spec.Duration <= TimeSpan.Zero
+                        ? (elapsed >= spec.Delay ? 1f : 0f)
+                        : spec.GetProgress(elapsed);
+                    SetSize(element, Vector2.LerpUnclamped(initial, target, progress));
+                }
+            ).Ease(progress => progress).KeepAlive();
+        }
+
+        private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+        private static void SetSize(VisualElement element, Vector2 size)
+        {
+            element.style.width = size.x;
+            element.style.height = size.y;
+        }
+
+        private void StopAnimation()
+        {
+            if (_animation == null)
+                return;
+            _animation.Stop();
+            _animation.Recycle();
+            _animation = null;
         }
 
         protected override void RevertFromContainer(
@@ -112,15 +150,23 @@ internal record AnimateContentSizeModifierImpl(
             VisualElement contentContainer
         )
         {
-            contentContainer.style.flexShrink = 1;
             if (_callback != null)
+            {
                 contentContainer.UnregisterCallback(_callback);
+                element.UnregisterCallback(_callback);
+            }
             _callback = null;
+            _initialLayout?.Pause();
+            _initialLayout = null;
+            StopAnimation();
+            _targetSize = null;
+            element.style.width = _originalWidth;
+            element.style.height = _originalHeight;
+            contentContainer.style.position = _originalPosition;
+            contentContainer.style.flexShrink = _originalShrink;
+            contentContainer.style.flexDirection = _originalDirection;
+            contentContainer.style.alignItems = _originalAlign;
+            contentContainer.style.justifyContent = _originalJustify;
         }
-
-        private record AnimationRecord(
-            ValueAnimation<float>? Animation,
-            Vector2 TargetSize
-        );
     }
 }
