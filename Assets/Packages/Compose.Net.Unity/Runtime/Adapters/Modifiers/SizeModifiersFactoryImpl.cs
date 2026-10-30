@@ -19,8 +19,8 @@ internal class SizeModifiersFactoryImpl : ISizeModifiersFactory
         return new SizeModifierImpl(width, height);
     }
 
-    public IModifier AnimateContentSize(AnimationSpec animationSpec)
+    public IModifier AnimateContentSize(AnimationSpec animationSpec, Alignment alignment, System.Action<Size, Size>? finishedListener)
     {
-        return new AnimateContentSizeModifierImpl(animationSpec);
+        return new AnimateContentSizeModifierImpl(animationSpec, alignment, finishedListener);
     }
 }

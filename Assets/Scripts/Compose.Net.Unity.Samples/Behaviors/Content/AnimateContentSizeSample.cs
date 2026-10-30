@@ -16,34 +16,39 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         [Composable]
         private static void Layout()
         {
-            Box(
-                contentAlignment: Alignment.Center,
-                modifier: Modifier
-                    .FillMaxSize(),
-                content: () =>
+            using (
+                Box(
+                    contentAlignment: Alignment.Center,
+                    modifier: Modifier
+                        .FillMaxSize()
+                )
+            )
+            {
                 {
                     var isSwitched = Remember(() => MutableStateOf(true));
-                    Box(
-                        contentAlignment: Alignment.Center,
-                        modifier: Modifier
-                            .Clip(RoundedCornerShape(32.Dp()))
-                            .Padding(16.Dp())
-                            .Background(Color.LightCoral)
-                            .AnimateContentSize(Tween(3_000))
-                            .Clickable(
-                                () => isSwitched.Value = !isSwitched.Value
-                            )
-                        ,
-                        content: () => Text(
+                    using (
+                        Box(
+                            contentAlignment: Alignment.Center,
+                            modifier: Modifier
+                                .Clip(RoundedCornerShape(32.Dp()))
+                                .Padding(16.Dp())
+                                .Background(Color.LightCoral)
+                                .AnimateContentSize(Tween(3_000), alignment: Alignment.Center)
+                                .Clickable(() => isSwitched.Value = !isSwitched.Value
+                                )
+                        )
+                    )
+                    {
+                        Text(
                             text: isSwitched.Value
                                 ? "Short"
                                 : "Looooooooooooooooooooong\nLooooooooooooooooooooong\nLooooooooooooooooooooong",
                             fontSize: 64.Sp(),
                             color: Color.White
-                        )
-                    );
+                        );
+                    }
                 }
-            );
+            }
         }
     }
 }

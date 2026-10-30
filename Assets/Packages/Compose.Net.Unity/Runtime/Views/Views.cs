@@ -82,7 +82,7 @@ public class Box : VisualElement, ILayout
         (child.parent as Box)?.Arrange();
     }
 
-    public void Track(VisualElement child)
+    public virtual void Track(VisualElement child)
     {
         var data = child.UserData();
         var owner = data.GetOrNull(OwnerKey) as ILayout;

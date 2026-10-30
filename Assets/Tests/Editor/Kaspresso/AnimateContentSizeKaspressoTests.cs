@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Compose.Net;
 using NUnit.Framework;
+using UnityEngine.UIElements;
 using static Compose.Net.ComposeFunctions;
 
 // ReSharper disable CheckNamespace
@@ -14,6 +16,63 @@ public partial class AnimateContentSizeKaspressoTests
     private string _layout;
     private int _duration;
     private int _delay;
+    private Alignment _alignment = Alignment.TopStart;
+    private readonly List<(Size Initial, Size Target)> _finished = new();
+
+    [Test]
+    public async Task ListenerReportsInterruptedStartAndOnlyCompletedTarget()
+    {
+        using var driver = Create("Column");
+        Assert.That(_finished, Is.Empty);
+        _width.Value = 160;
+        await driver.SizeAsync("host", 80, 30);
+        await driver.AdvanceAsync(500);
+        _width.Value = 200;
+        await driver.SizeAsync("host", 120, 30);
+        Assert.That(_finished, Is.Empty);
+        await driver.AdvanceAsync(1001);
+        Assert.That(_finished.Count, Is.EqualTo(1));
+        Assert.That(_finished[0].Initial.Width, Is.EqualTo(120).Within(.6f));
+        Assert.That(_finished[0].Target, Is.EqualTo(new Size(200, 30)));
+    }
+
+    [TestCase(0f)]
+    [TestCase(.5f)]
+    [TestCase(1f)]
+    public async Task ContentUsesAlignmentWithinAnimatedBounds(float fraction)
+    {
+        using var driver = Create("Column", alignment: fraction == 0 ? Alignment.TopStart
+            : fraction == .5f ? Alignment.Center : Alignment.BottomEnd);
+        _width.Value = 160;
+        _height.Value = 90;
+        await driver.SizeAsync("host", 80, 30);
+        await driver.AdvanceAsync(500);
+        var host = driver.Root.Q("host");
+        var child = driver.Root.Q("child-0");
+        Assert.That(child.worldBound.x - host.worldBound.x, Is.EqualTo(-40 * fraction).Within(.6f));
+        Assert.That(child.worldBound.y - host.worldBound.y, Is.EqualTo(-30 * fraction).Within(.6f));
+        Assert.That(host.resolvedStyle.overflow, Is.EqualTo(Overflow.Hidden));
+    }
+
+    [Test]
+    public async Task SnapNotifiesOnceAndDisposalDoesNotCompleteAnAnimation()
+    {
+        using (var driver = Create("Column", duration: 0))
+        {
+            _width.Value = 160;
+            await driver.SizeAsync("host", 160, 30);
+            Assert.That(_finished.Count, Is.EqualTo(1));
+            Assert.That(_finished[0].Initial, Is.EqualTo(new Size(80, 30)));
+            Assert.That(_finished[0].Target, Is.EqualTo(new Size(160, 30)));
+        }
+        using (var driver = Create("Column"))
+        {
+            _width.Value = 160;
+            await driver.SizeAsync("host", 80, 30);
+            await driver.AdvanceAsync(500);
+        }
+        Assert.That(_finished, Is.Empty);
+    }
 
     [TestCase("Column", 160, 30)]
     [TestCase("Row", 80, 90)]
@@ -102,10 +161,12 @@ public partial class AnimateContentSizeKaspressoTests
         await driver.SizeAsync("host", 160, 30);
     }
 
-    private UnityComposeTestDriver Create(string layout, int duration = 1000, int delay = 0)
+    private UnityComposeTestDriver Create(string layout, int duration = 1000, int delay = 0, Alignment alignment = null)
     {
         _width.Value = 80; _height.Value = 30; _count.Value = 1;
         _layout = layout; _duration = duration; _delay = delay;
+        _alignment = alignment ?? Alignment.TopStart;
+        _finished.Clear();
         var driver = new UnityComposeTestDriver();
         try { driver.SetContent(Content); return driver; }
         catch { driver.Dispose(); throw; }
@@ -115,7 +176,8 @@ public partial class AnimateContentSizeKaspressoTests
     private void Content()
     {
         var modifier = Modifier.TestTag("host").AnimateContentSize(new AnimationSpec(
-            TimeSpan.FromMilliseconds(_duration), TimeSpan.FromMilliseconds(_delay), new Linear()));
+            TimeSpan.FromMilliseconds(_duration), TimeSpan.FromMilliseconds(_delay), new Linear()),
+            alignment: _alignment, finishedListener: (initial, target) => _finished.Add((initial, target)));
         if (_layout == "Row") Row(modifier: modifier, content: Children);
         else if (_layout == "Box") Box(modifier: modifier, content: Children);
         else Column(modifier: modifier, content: Children);

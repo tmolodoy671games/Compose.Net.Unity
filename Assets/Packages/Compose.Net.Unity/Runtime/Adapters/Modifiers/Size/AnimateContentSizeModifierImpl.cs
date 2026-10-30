@@ -9,15 +9,23 @@ using UnityEngine.UIElements.Experimental;
 namespace Compose.Net.Unity;
 
 internal record AnimateContentSizeModifierImpl(
-    AnimationSpec AnimationSpec
+    AnimationSpec AnimationSpec,
+    Alignment Alignment,
+    Action<Size, Size>? FinishedListener
 ) : ContentContainerUnityModifier<AnimateContentSizeModifierImpl.AnimateContentSizeNode>
 {
-    public override AnimateContentSizeNode Create() => new(AnimationSpec);
-    public override void Update(AnimateContentSizeNode node) => node.Update(AnimationSpec);
+    public override AnimateContentSizeNode Create() => new(AnimationSpec, Alignment, FinishedListener);
+    public override void Update(AnimateContentSizeNode node) => node.Update(AnimationSpec, Alignment, FinishedListener);
 
-    internal sealed class AnimateContentSizeNode(AnimationSpec animationSpec) : ContentContainerNodeBase
+    internal sealed class AnimateContentSizeNode(AnimationSpec animationSpec, Alignment alignment, Action<Size, Size>? finishedListener) : ContentContainerNodeBase
     {
         private AnimationSpec _animationSpec = animationSpec.GetOrDefault();
+        private Alignment _alignment = alignment;
+        private Action<Size, Size>? _finishedListener = finishedListener;
+        private VisualElement? _content;
+        private StyleLength _originalLeft;
+        private StyleLength _originalTop;
+        private StyleEnum<Overflow> _originalOverflow;
         private EventCallback<GeometryChangedEvent>? _callback;
         private ValueAnimation<float>? _animation;
         private IVisualElementScheduledItem? _initialLayout;
@@ -31,14 +39,14 @@ internal record AnimateContentSizeModifierImpl(
         private StyleEnum<Align> _originalAlign;
         private StyleEnum<Justify> _originalJustify;
 
-        internal void Update(AnimationSpec next)
+        internal void Update(AnimationSpec next, Alignment nextAlignment, Action<Size, Size>? listener)
         {
-            next = next.GetOrDefault();
-            if (_animationSpec == next)
-                return;
-            _animationSpec = next;
-            if (_animation is { isRunning: true } && Element != null && _targetSize is { } target)
-                Animate(Element, target);
+            // Parameter changes affect subsequent animations without restarting the current one.
+            _animationSpec = next.GetOrDefault();
+            _alignment = nextAlignment;
+            _finishedListener = listener;
+            if (Element != null && _targetSize is { } target)
+                AlignContent(Element, target);
         }
 
         protected override void ApplyToContainer(
@@ -47,6 +55,11 @@ internal record AnimateContentSizeModifierImpl(
             VisualElement contentContainer
         )
         {
+            _content = contentContainer;
+            _originalLeft = contentContainer.style.left;
+            _originalTop = contentContainer.style.top;
+            _originalOverflow = element.style.overflow;
+            element.style.overflow = Overflow.Hidden;
             _originalWidth = element.style.width;
             _originalHeight = element.style.height;
             _originalPosition = contentContainer.style.position;
@@ -89,6 +102,7 @@ internal record AnimateContentSizeModifierImpl(
                 );
                 if (!IsFinite(target.x) || !IsFinite(target.y))
                     return;
+                AlignContent(element, target);
                 if (_targetSize == target)
                     return;
                 _targetSize = target;
@@ -116,12 +130,13 @@ internal record AnimateContentSizeModifierImpl(
         {
             StopAnimation();
             var spec = _animationSpec;
+            var initial = new Vector2(element.resolvedStyle.width, element.resolvedStyle.height);
             if (spec.TotalDuration <= TimeSpan.Zero)
             {
                 SetSize(element, target);
+                NotifyFinished(initial, target);
                 return;
             }
-            var initial = new Vector2(element.resolvedStyle.width, element.resolvedStyle.height);
             _animation = element.experimental.animation.Start(
                 0f, 1f, (int)Math.Min(int.MaxValue, Math.Max(1, spec.TotalDuration.TotalMilliseconds)),
                 (_, fraction) =>
@@ -132,21 +147,38 @@ internal record AnimateContentSizeModifierImpl(
                         : spec.GetProgress(elapsed);
                     SetSize(element, Vector2.LerpUnclamped(initial, target, progress));
                 }
-            ).Ease(progress => progress).KeepAlive();
+            ).Ease(progress => progress).OnCompleted(() => NotifyFinished(initial, target)).KeepAlive();
+        }
+
+        private void NotifyFinished(Vector2 initial, Vector2 target) =>
+            _finishedListener?.Invoke(new Size(initial.x, initial.y), new Size(target.x, target.y));
+
+        private void AlignContent(VisualElement element, Vector2 target)
+        {
+            if (_content == null) return;
+            var horizontal = _alignment == Alignment.TopStart || _alignment == Alignment.CenterStart || _alignment == Alignment.BottomStart ? 0f
+                : _alignment == Alignment.TopCenter || _alignment == Alignment.Center || _alignment == Alignment.BottomCenter ? .5f : 1f;
+            var vertical = _alignment == Alignment.TopStart || _alignment == Alignment.TopCenter || _alignment == Alignment.TopEnd ? 0f
+                : _alignment == Alignment.CenterStart || _alignment == Alignment.Center || _alignment == Alignment.CenterEnd ? .5f : 1f;
+            _content.style.left = element.resolvedStyle.paddingLeft + (element.resolvedStyle.width - target.x) * horizontal;
+            _content.style.top = element.resolvedStyle.paddingTop + (element.resolvedStyle.height - target.y) * vertical;
         }
 
         private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 
-        private static void SetSize(VisualElement element, Vector2 size)
+        private void SetSize(VisualElement element, Vector2 size)
         {
             element.style.width = size.x;
             element.style.height = size.y;
+            if (_targetSize is { } target) AlignContent(element, target);
         }
 
         private void StopAnimation()
         {
             if (_animation == null)
                 return;
+            // Stop also invokes completion in UI Toolkit; interrupted animations must stay silent.
+            _animation.onAnimationCompleted = null;
             _animation.Stop();
             _animation.Recycle();
             _animation = null;
@@ -168,6 +200,10 @@ internal record AnimateContentSizeModifierImpl(
             _initialLayout = null;
             StopAnimation();
             _targetSize = null;
+            _content = null;
+            element.style.overflow = _originalOverflow;
+            contentContainer.style.left = _originalLeft;
+            contentContainer.style.top = _originalTop;
             element.style.width = _originalWidth;
             element.style.height = _originalHeight;
             contentContainer.style.position = _originalPosition;

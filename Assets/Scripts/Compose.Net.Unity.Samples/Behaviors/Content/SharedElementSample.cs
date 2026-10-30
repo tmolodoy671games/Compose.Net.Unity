@@ -43,14 +43,18 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                             );
                             if (it)
                             {
-                                Box(
-                                    contentAlignment: Alignment.Center,
-                                    modifier: cardModifier
-                                        .FillMaxSize()
-                                        .Background(Color.DodgerBlue)
-                                        .Clickable(() => expanded.Value = false),
-                                    content: () => Text("Экран", color: Color.White, fontSize: 96.Sp())
-                                );
+                                using (
+                                    Box(
+                                        contentAlignment: Alignment.Center,
+                                        modifier: cardModifier
+                                            .FillMaxSize()
+                                            .Background(Color.DodgerBlue)
+                                            .Clickable(() => expanded.Value = false)
+                                    )
+                                )
+                                {
+                                    Text("Экран", color: Color.White, fontSize: 96.Sp());
+                                }
                             }
                             else
                             {
