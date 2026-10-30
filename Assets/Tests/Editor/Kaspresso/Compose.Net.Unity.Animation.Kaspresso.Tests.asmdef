@@ -1,0 +1,9 @@
+{
+    "name": "Compose.Net.Unity.Animation.Kaspresso.Tests",
+    "references": ["Compose.Net.Unity"],
+    "includePlatforms": ["Editor"],
+    "overrideReferences": true,
+    "precompiledReferences": ["Compose.Net.dll", "Compose.Net.Kaspresso.dll", "StableCollections.dll", "Sharp Extensions.dll", "nunit.framework.dll"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "autoReferenced": false
+}

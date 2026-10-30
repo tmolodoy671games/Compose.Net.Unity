@@ -68,6 +68,14 @@ internal record AnimateContentSizeModifierImpl(
 
             _callback = _ =>
             {
+                // Compose applies the node initializer after attaching modifiers. In a Row,
+                // flexDirection may therefore change after the content container was acquired.
+                if (element is not Box)
+                {
+                    contentContainer.style.flexDirection = element.style.flexDirection;
+                    contentContainer.style.alignItems = element.style.alignItems;
+                    contentContainer.style.justifyContent = element.style.justifyContent;
+                }
                 var contentStyle = contentContainer.resolvedStyle;
                 var hostStyle = element.resolvedStyle;
                 // layout.size already includes the content container's own borders.

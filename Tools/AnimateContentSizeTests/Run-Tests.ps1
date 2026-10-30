@@ -53,7 +53,7 @@ Copy-Item -LiteralPath "$projectRoot/ProjectSettings/ProjectVersion.txt" -Destin
 
 # The test runner exits on completion. Do not pass -quit, which can prevent tests from running.
 $arguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $probeRoot + '"'),
-    '-runTests', '-testPlatform', 'EditMode', '-testFilter', 'Compose.Net.Unity.Tests.AnimateContentSizeTests',
+    '-runTests', '-testPlatform', 'EditMode', '-testFilter', 'AnimateContentSizeTests',
     '-testResults', ('"' + "$ResultsDirectory/results.xml" + '"'), '-logFile', ('"' + "$ResultsDirectory/editor.log" + '"'))
 $process = Start-Process -FilePath $UnityEditor -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "Unity tests failed (exit $($process.ExitCode)). See $ResultsDirectory/editor.log" }

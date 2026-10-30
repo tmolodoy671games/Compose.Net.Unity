@@ -61,8 +61,8 @@ internal record HoverableModiferImpl(
         private void EnableHover()
         {
             if (_element == null) return;
-            _pointerEnterCallback = evt => Enter(evt.VisualElement(), _interactionSource);
-            _pointerLeaveCallback = evt => Exit(evt.VisualElement(), _interactionSource);
+            _pointerEnterCallback = evt => Enter(_element, _interactionSource);
+            _pointerLeaveCallback = evt => Exit(_element, _interactionSource);
             _firstLayoutCallback = OnFirstLayout;
             _element.PickingMode().Increment();
             _element.RegisterCallback(_pointerEnterCallback);
@@ -93,7 +93,7 @@ internal record HoverableModiferImpl(
         {
             if (!(evt.newRect.width > 0) || !(evt.newRect.height > 0))
                 return;
-            var visualElement = evt.VisualElement();
+            var visualElement = _element!;
             if (_firstLayoutCallback != null)
                 visualElement.UnregisterCallback(_firstLayoutCallback);
             if (!visualElement.IsUnderPointer())

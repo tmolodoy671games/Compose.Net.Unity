@@ -12,16 +12,13 @@ internal record SlideInHorizontallyTransitionImpl(
 {
     public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        var progress = AnimationSpec.GetProgress(timeElapsed);
-        var element = node.VisualElement();
-        var initialOffset = InitialOffsetX(element.LayoutCoordinates().Size.Width);
-        var offset = Mathf.LerpUnclamped(initialOffset, 0, progress);
-        element.style.translate = new Vector2(offset, 0f);
+        SlideTransitionUtils.Apply(node.VisualElement(), "X", AnimationSpec, timeElapsed,
+            size => new Offset(InitialOffsetX(size.Width), 0), entering: true);
     }
 
     public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        node.VisualElement().style.translate = StyleKeyword.None;
+        SlideTransitionUtils.Revert(node.VisualElement(), "X");
     }
 
     public TimeSpan TotalDuration => AnimationSpec.TotalDuration;

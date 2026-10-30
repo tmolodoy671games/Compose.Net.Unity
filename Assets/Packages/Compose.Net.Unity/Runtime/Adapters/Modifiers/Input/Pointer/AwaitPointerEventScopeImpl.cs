@@ -44,7 +44,7 @@ internal sealed class AwaitPointerEventScopeImpl : IAwaitPointerEventScope
         while (true)
         {
             var change = await Next();
-            if (!downOnly || !change.ChangedToUp())
+            if (!downOnly || change.ChangedToPressed())
                 return change;
         }
     }
@@ -55,7 +55,9 @@ internal sealed class AwaitPointerEventScopeImpl : IAwaitPointerEventScope
         if (_pending.Count > 0)
             return Task.FromResult(_pending.Dequeue());
 
-        _waiter = new TaskCompletionSource<IPointerInputChange>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // UI Toolkit pools events. Resume on the dispatching UI thread while the event
+        // (and its target/local coordinates) is still valid.
+        _waiter = new TaskCompletionSource<IPointerInputChange>();
         return _waiter.Task;
     }
 

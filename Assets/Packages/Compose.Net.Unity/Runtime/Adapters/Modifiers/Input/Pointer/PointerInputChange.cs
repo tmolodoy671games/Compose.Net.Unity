@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using Compose.Net;
 using SharpExtensions;
@@ -23,7 +23,8 @@ internal record PointerInputChange(
     bool IsInitiallyConsumed,
     PointerType Type,
     Offset ScrollDelta,
-    EventBase Event
+    EventBase Event,
+    bool IsCancelled = false
 ) : IPointerInputChange
 {
     public static IPointerInputChange Create(PointerDownEvent evt)
@@ -86,15 +87,16 @@ internal record PointerInputChange(
             Id: new PointerId(evt.pointerId),
             UptimeMillis: evt.timestamp,
             Position: evt.localPosition.ToOffset(),
-            Pressed: evt.pressedButtons != 0,
+            Pressed: false,
             Pressure: evt.pressure,
             PreviousUptimeMillis: (Time.time - evt.deltaTime).ToLongTime(),
             PreviousPosition: (evt.localPosition - evt.deltaPosition).ToOffset(),
-            PreviousPressed: evt.pressedButtons != 0,
+            PreviousPressed: true,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
             ScrollDelta: evt.deltaPosition.ToOffset(),
-            Event: evt
+            Event: evt,
+            IsCancelled: true
         );
     }
 

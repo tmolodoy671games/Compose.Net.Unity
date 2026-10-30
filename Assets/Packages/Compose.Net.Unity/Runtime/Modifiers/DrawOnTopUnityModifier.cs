@@ -62,7 +62,7 @@ public abstract record DrawOnTopUnityModifier(int DrawIndex = -1)
             if (!indexChanged && !contentChanged)
                 return;
             if (_content != null)
-                _unityNode.RemoveDrawOnTop(_content, keepHost: false);
+                _unityNode.RemoveDrawOnTop(_content, keepHost: true);
             _drawIndex = next.DrawIndex;
             _content = next.GenerateVisualContent;
             _unityNode.InsertDrawOnTop(_drawIndex, _content);

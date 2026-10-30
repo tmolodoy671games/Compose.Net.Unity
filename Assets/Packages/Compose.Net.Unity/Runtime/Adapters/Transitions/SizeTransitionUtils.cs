@@ -3,6 +3,7 @@ using Compose.Net;
 using SharpExtensions;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Transitions;
 
@@ -134,4 +135,71 @@ internal static class SizeTransitionUtils
     private static float VerticalFraction(Alignment alignment)
         => alignment == Alignment.Top || alignment == Alignment.TopLeft || alignment == Alignment.TopCenter || alignment == Alignment.TopRight ? 0f
             : alignment == Alignment.CenterVertically || alignment == Alignment.CenterLeft || alignment == Alignment.Center || alignment == Alignment.CenterRight ? 0.5f : 1f;
+}
+
+// Slides share translate with Box stacking and Offset modifiers. Replace only this
+// transition's contribution, and resolve size-dependent offsets after the first layout.
+internal static class SlideTransitionUtils
+{
+    public static void Apply(VisualElement element, string axis, AnimationSpec spec, TimeSpan elapsed,
+        Func<Size, Offset> offset, bool entering)
+    {
+        var key = "Compose.Net.Unity_Slide" + axis;
+        var data = element.UserData();
+        if (data.GetOrDefault(key, null) is not State state)
+            data[key] = state = new State(element);
+        state.CancelPending();
+        void ApplyMeasured()
+        {
+            var size = element.LayoutCoordinates().Size;
+            var edge = offset(size);
+            var fraction = spec.GetProgress(elapsed);
+            var value = Offset.LerpUnclamped(Offset.Zero, edge, entering ? 1 - fraction : fraction);
+            state.Set(value);
+        }
+        var rect = element.layout;
+        if (float.IsNaN(rect.width) || float.IsNaN(rect.height) || rect.width <= 0 || rect.height <= 0)
+            state.WaitForLayout(ApplyMeasured);
+        else
+            ApplyMeasured();
+    }
+
+    public static void Revert(VisualElement element, string axis)
+    {
+        var key = "Compose.Net.Unity_Slide" + axis;
+        if (element.UserData().GetOrDefault(key, null) is not State state) return;
+        state.CancelPending();
+        state.Set(Offset.Zero);
+        element.UserData().Remove(key);
+    }
+
+    private sealed class State(VisualElement element)
+    {
+        private Offset _applied;
+        private EventCallback<GeometryChangedEvent>? _pending;
+
+        public void Set(Offset value)
+        {
+            element.style.translate = element.style.translate.Add(new Translate(value.X - _applied.X, value.Y - _applied.Y));
+            _applied = value;
+        }
+
+        public void WaitForLayout(Action apply)
+        {
+            _pending = evt =>
+            {
+                if (evt.target != element || !(evt.newRect.width > 0) || !(evt.newRect.height > 0)) return;
+                CancelPending();
+                apply();
+            };
+            element.RegisterCallback(_pending);
+        }
+
+        public void CancelPending()
+        {
+            if (_pending == null) return;
+            element.UnregisterCallback(_pending);
+            _pending = null;
+        }
+    }
 }

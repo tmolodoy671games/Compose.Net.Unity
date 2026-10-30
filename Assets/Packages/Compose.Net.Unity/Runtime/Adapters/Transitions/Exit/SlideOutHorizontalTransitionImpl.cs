@@ -19,16 +19,13 @@ internal class SlideOutHorizontalTransitionImpl : IExitTransition
 
     public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        var progress = _animationSpec.GetProgress(timeElapsed);
-        var element = node.VisualElement();
-        var targetOffsetX = _targetOffsetX(element.LayoutCoordinates().Size.Width);
-        var targetOffset = Mathf.LerpUnclamped(0f, targetOffsetX, progress);
-        element.style.translate = new Vector2(targetOffset, 0f);
+        SlideTransitionUtils.Apply(node.VisualElement(), "X", _animationSpec, timeElapsed,
+            size => new Offset(_targetOffsetX(size.Width), 0), entering: false);
     }
 
     public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        node.VisualElement().style.translate = StyleKeyword.None;
+        SlideTransitionUtils.Revert(node.VisualElement(), "X");
     }
 
     public TimeSpan TotalDuration => _animationSpec.TotalDuration;

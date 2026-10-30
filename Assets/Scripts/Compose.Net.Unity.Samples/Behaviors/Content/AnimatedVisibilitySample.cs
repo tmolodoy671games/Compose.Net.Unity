@@ -11,10 +11,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
     {
         private int Foo
         {
-            [Composable]
-            get => 1;
+            [Composable] get => 1;
         }
-        
+
         [Composable]
         protected override void Content()
         {
@@ -44,16 +43,21 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                             .Clip(RoundedCornerShape(16.Dp()))
                             .Clickable(() => isVisible.Value = !isVisible.Value)
                     );
-                    AnimatedVisibility(
-                        visible: isVisible.Value,
-                        enter: FadeIn(Tween(1_000)) + ExpandVertically(Tween(1_000)),
-                        exit: FadeOut(Tween(1_000)) + ShrinkVertically(Tween(1_000)),
-                        modifier: Modifier
-                            .Padding(16.Dp())
-                            .Background(Color.LightBlue),
-                        content: () => Text(
-                            "Text",
-                            fontSize: 64.Sp())
+                    Box(
+                        modifier: Modifier.Padding(top: 16.Dp()),
+                        content: () =>
+                        {
+                            AnimatedVisibility(
+                                visible: isVisible.Value,
+                                enter: FadeIn(Tween(1_000)) + ExpandVertically(Tween(1_000)),
+                                exit: FadeOut(Tween(1_000)) + ShrinkVertically(Tween(1_000)),
+                                modifier: Modifier
+                                    .Background(Color.LightBlue),
+                                content: () => Text(
+                                    "Text",
+                                    fontSize: 64.Sp())
+                            );
+                        }
                     );
                 }
             );

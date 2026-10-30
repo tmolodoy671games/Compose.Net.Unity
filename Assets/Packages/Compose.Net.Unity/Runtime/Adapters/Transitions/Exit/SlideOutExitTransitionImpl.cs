@@ -17,15 +17,12 @@ internal sealed class SlideOutExitTransitionImpl : IExitTransition
 
     public void Apply(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        var progress = _animationSpec.GetProgress(timeElapsed);
-        var initialOffset = new Offset();
-        var targetOffset = _targetOffset(node.VisualElement().LayoutCoordinates().Size);
-        node.VisualElement().style.translate = Offset.LerpUnclamped(initialOffset, targetOffset, progress).ToVector2();
+        SlideTransitionUtils.Apply(node.VisualElement(), "XY", _animationSpec, timeElapsed, _targetOffset, entering: false);
     }
 
     public void Revert(IReusableComposeNode node, TimeSpan timeElapsed)
     {
-        node.VisualElement().style.translate = StyleKeyword.None;
+        SlideTransitionUtils.Revert(node.VisualElement(), "XY");
     }
 
     public TimeSpan TotalDuration => _animationSpec.TotalDuration;
