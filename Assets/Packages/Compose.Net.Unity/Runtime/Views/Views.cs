@@ -25,6 +25,38 @@ public interface ILayout
 
 public class Box : VisualElement, ILayout
 {
+    private bool _propagateMinConstraints;
+    private readonly System.Collections.Generic.Dictionary<VisualElement, (StyleLength Width, StyleLength Height)> _minimums = new();
+    public bool PropagateMinConstraints
+    {
+        get => _propagateMinConstraints;
+        set { _propagateMinConstraints = value; Arrange(); }
+    }
+
+    private void ApplyMinimums()
+    {
+        foreach (var child in Children())
+        {
+            if (!IsTracked(child)) continue;
+            if (_propagateMinConstraints)
+            {
+                if (!_minimums.ContainsKey(child)) _minimums.Add(child, (child.style.minWidth, child.style.minHeight));
+                var width = Mathf.Max(0, resolvedStyle.minWidth.value - resolvedStyle.paddingLeft - resolvedStyle.paddingRight);
+                var height = Mathf.Max(0, resolvedStyle.minHeight.value- resolvedStyle.paddingTop - resolvedStyle.paddingBottom);
+                if (!float.IsNaN(width)) child.style.minWidth = Mathf.Max(_minimums[child].Width.value.value, width);
+                if (!float.IsNaN(height)) child.style.minHeight = Mathf.Max(_minimums[child].Height.value.value, height);
+            }
+            else RestoreMinimums(child);
+        }
+    }
+
+    private void RestoreMinimums(VisualElement child)
+    {
+        if (!_minimums.TryGetValue(child, out var original)) return;
+        child.style.minWidth = original.Width;
+        child.style.minHeight = original.Height;
+        _minimums.Remove(child);
+    }
     private const string AlignKey = "Compose.Net.Unity_BoxAlign";
     private const string OwnerKey = "Compose.Net.Unity_BoxOwner";
     private const string ShrinkKey = "Compose.Net.Unity_BoxPreviousShrink";
@@ -99,6 +131,7 @@ public class Box : VisualElement, ILayout
 
     public void Untrack(VisualElement child)
     {
+        RestoreMinimums(child);
         var data = child.UserData();
         if (data.GetOrNull(OwnerKey) != this)
             return;
@@ -113,6 +146,7 @@ public class Box : VisualElement, ILayout
 
     private void Arrange()
     {
+        ApplyMinimums();
         KeepPullLast();
 
         VisualElement? single = null;
@@ -289,8 +323,41 @@ public class Content : VisualElement
 
 public class Text : Label
 {
+    private Compose.Net.TextOverflow _overflow;
+    private int _maxLines = int.MaxValue, _minLines = 1;
+    private System.Action<TextLayoutResult>? _onTextLayout;
+
+    internal void ConfigureLayout(Compose.Net.TextOverflow overflow, int maxLines, int minLines,
+        System.Action<TextLayoutResult>? onTextLayout)
+    {
+        _overflow = overflow;
+        _maxLines = maxLines;
+        _minLines = minLines;
+        _onTextLayout = onTextLayout;
+        style.textOverflow = overflow == Compose.Net.TextOverflow.Ellipsis
+            ? UnityEngine.UIElements.TextOverflow.Ellipsis : UnityEngine.UIElements.TextOverflow.Clip;
+        style.overflow = overflow == Compose.Net.TextOverflow.Visible ? Overflow.Visible : Overflow.Hidden;
+        UpdateTextLayout();
+    }
+
+    private void UpdateTextLayout()
+    {
+        var lineHeight = MeasureTextSize("Mg", 0, MeasureMode.Undefined, 0, MeasureMode.Undefined).y;
+        if (!(lineHeight > 0) || float.IsNaN(lineHeight)) return;
+        style.minHeight = _minLines * lineHeight + resolvedStyle.paddingTop + resolvedStyle.paddingBottom;
+        style.maxHeight = _maxLines == int.MaxValue ? new StyleLength(StyleKeyword.None)
+            : new StyleLength(_maxLines * lineHeight + resolvedStyle.paddingTop + resolvedStyle.paddingBottom);
+        var width = contentRect.width;
+        if (!(width > 0)) return;
+        var measured = MeasureTextSize(text, width, MeasureMode.AtMost, 0, MeasureMode.Undefined);
+        var lines = Mathf.Max(1, Mathf.CeilToInt(measured.y / lineHeight));
+        _onTextLayout?.Invoke(new TextLayoutResult(new Size(width, contentRect.height),
+            Mathf.Min(lines, _maxLines), measured.x > width + .5f, lines > _maxLines || measured.y > contentRect.height + .5f));
+    }
+
     public Text()
     {
+        RegisterCallback<GeometryChangedEvent>(_ => UpdateTextLayout());
         ClearClassList();
         
         style.flexBasis = StyleKeyword.Auto;

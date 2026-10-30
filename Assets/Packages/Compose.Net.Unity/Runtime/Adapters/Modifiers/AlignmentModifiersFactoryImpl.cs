@@ -24,6 +24,6 @@ internal class AlignmentModifiersFactoryImpl : IAlignmentModifiersFactory
         return new PositionModifierImpl(top, bottom, left, right);
     }
 
-    public IModifier Weight(float weight) => new WeightModifierImpl(weight);
+    public IModifier Weight(float weight, bool fill = true) => new WeightModifierImpl(weight, fill);
     public IModifier Float(bool enabled) => new FloatModifierImpl(enabled);
 }

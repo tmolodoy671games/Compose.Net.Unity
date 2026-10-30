@@ -10,9 +10,11 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
         return new UnityReusableComposeNode(CreateBox(type));
     }
 
-    public void Apply(IReusableComposeNode node, Alignment alignment)
+    public void Apply(IReusableComposeNode node, Alignment alignment, bool propagateMinConstraints = false)
     {
-        node.VisualElement<Box>().ContentAlignment = alignment;
+        var box = node.VisualElement<Box>();
+        box.ContentAlignment = alignment;
+        box.PropagateMinConstraints = propagateMinConstraints;
     }
 
     // Typed nodes also give the UI Toolkit debugger readable names.

@@ -17,16 +17,20 @@ internal class ImageNodeFactoryImpl : IImageNodeFactory
         });
     }
 
-    public void Apply(IReusableComposeNode node, IImageBitmap bitmap, ScaleMode scaleMode)
+    public void Apply(IReusableComposeNode node, IImageBitmap bitmap, ScaleMode scaleMode, string? contentDescription = null)
     {
         var element = node.VisualElement().CastTo<Image>();
         bitmap.SetImage(node);
         element.scaleMode = scaleMode.ToUnityScaleMode();
+        element.UserData()["Compose.Net.ContentDescription"] = contentDescription;
     }
 
-    public void Apply(IReusableComposeNode node, IPainter painter, ScaleMode scaleMode)
+    public void Apply(IReusableComposeNode node, IPainter painter, ScaleMode scaleMode, string? contentDescription = null)
     {
         painter.SetImage(node);
+        var element = node.VisualElement<Image>();
+        element.scaleMode = scaleMode.ToUnityScaleMode();
+        element.UserData()["Compose.Net.ContentDescription"] = contentDescription;
     }
 }
 

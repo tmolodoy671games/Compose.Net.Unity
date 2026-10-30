@@ -54,6 +54,16 @@ internal sealed class UnityComposeTestDriver : IComposeTestDriver, IDisposable
         Pump();
     }
 
+    public void SetContentForFirstLayout([Composable] Action content)
+    {
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false),
+            new UnityReusableComposeNode(Root), content);
+        _adapter.Invalidator.Tick();
+        // Exactly one panel layout, with no recomposition after geometry callbacks.
+        _layout.Invoke(_panel, null);
+        CheckLayoutFailures();
+    }
+
     private void Pump()
     {
         _adapter.Invalidator.Tick();

@@ -4,6 +4,9 @@ namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
 
 internal class SizeModifiersFactoryImpl : ISizeModifiersFactory
 {
+    public IModifier Size(System.Func<System.Action<Size>, System.IDisposable> subscribe)
+        => new ObservedSizeModifierImpl(subscribe);
+
     public IModifier FillMaxSize(float widthFraction, float heightFraction)
     {
         return new FillMaxSizeModifierImpl(widthFraction, heightFraction);

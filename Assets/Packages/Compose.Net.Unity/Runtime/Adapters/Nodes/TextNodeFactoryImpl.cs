@@ -19,7 +19,12 @@ internal class TextNodeFactoryImpl : ITextNodeFactory
         FontWeight fontWeight,
         Sp fontSize,
         Color color,
-        TextAlign textAlign
+        TextAlign textAlign,
+        Compose.Net.TextOverflow overflow = Compose.Net.TextOverflow.Clip,
+        int maxLines = int.MaxValue,
+        int minLines = 1,
+        Sp letterSpacing = default,
+        System.Action<TextLayoutResult>? onTextLayout = null
     )
     {
         var it = node.VisualElement<Text>();
@@ -30,5 +35,7 @@ internal class TextNodeFactoryImpl : ITextNodeFactory
         it.style.unityTextAlign = textAlign.ToTextAnchor();
         it.style.fontSize = fontSize.Value;
         it.style.color = color.ToUnityColor();
+        it.style.letterSpacing = letterSpacing.IsUnspecified ? 0 : letterSpacing.Value;
+        it.ConfigureLayout(overflow, maxLines, minLines, onTextLayout);
     }
 }
