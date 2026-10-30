@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record OnPlacedModifierImpl(Action<ILayoutCoordinates> OnPlaced)
-    : ModifierNodeElement<OnPlacedModifierImpl.PlacedNode>
+    : UnityModifierElement<OnPlacedModifierImpl.PlacedNode>
 {
     public override PlacedNode Create() => new(OnPlaced);
     public override void Update(PlacedNode node) => node.Update(OnPlaced);

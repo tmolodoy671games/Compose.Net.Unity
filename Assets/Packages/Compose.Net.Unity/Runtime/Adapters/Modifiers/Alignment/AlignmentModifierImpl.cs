@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using SharpExtensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record AlignModifierImpl(Alignment Align) : ModifierNodeElement<AlignModifierImpl.AlignNode>
+internal record AlignModifierImpl(Alignment Align) : UnityModifierElement<AlignModifierImpl.AlignNode>
 {
     public override AlignNode Create() => new(Align);
     public override void Update(AlignNode node) => node.Update(Align);

@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFraction)
-    : ModifierNodeElement<FillMaxSizeModifierImpl.FillNode>, IAppearanceModifier
+    : UnityModifierElement<FillMaxSizeModifierImpl.FillNode>, IAppearanceModifier
 {
     public override FillNode Create() => new(WidthFraction, HeightFraction);
     public override void Update(FillNode node) => node.Update(WidthFraction, HeightFraction);

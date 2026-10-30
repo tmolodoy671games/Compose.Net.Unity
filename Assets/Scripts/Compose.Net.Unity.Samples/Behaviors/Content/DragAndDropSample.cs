@@ -134,15 +134,16 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         enabled.Value ? "enabled: true" : "enabled: false",
                         color: Color.White,
                         modifier: Modifier
+                            .Clickable(() => enabled.Value = !enabled.Value)
                             .Background(Color.SteelBlue)
                             .Padding(all: 8.Dp())
                             .Clip()
-                            .Clickable(() => enabled.Value = !enabled.Value)
                     );
 
                     Spacer(
                         Modifier
                             .Size(60.Dp())
+                            .Padding(top: 16.Dp())
                             .Offset(x: offset.Value.Dp())
                             .Background(enabled.Value ? Color.MediumSeaGreen : Color.DimGray)
                             .Draggable(

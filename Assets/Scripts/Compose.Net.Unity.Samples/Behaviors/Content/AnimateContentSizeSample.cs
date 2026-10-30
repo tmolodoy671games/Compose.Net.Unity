@@ -30,12 +30,10 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         Box(
                             contentAlignment: Alignment.Center,
                             modifier: Modifier
-                                .Clip(RoundedCornerShape(32.Dp()))
-                                .Padding(16.Dp())
+                                .Clickable(() => isSwitched.Value = !isSwitched.Value)
                                 .Background(Color.LightCoral)
+                                .Clip(RoundedCornerShape(32.Dp()))
                                 .AnimateContentSize(Tween(3_000), alignment: Alignment.Center)
-                                .Clickable(() => isSwitched.Value = !isSwitched.Value
-                                )
                         )
                     )
                     {
@@ -44,7 +42,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                 ? "Short"
                                 : "Looooooooooooooooooooong\nLooooooooooooooooooooong\nLooooooooooooooooooooong",
                             fontSize: 64.Sp(),
-                            color: Color.White
+                            color: Color.White,
+                            modifier: Modifier
+                                .Padding(16.Dp())
                         );
                     }
                 }

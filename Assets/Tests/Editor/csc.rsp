@@ -1,2 +1,2 @@
 -langversion:latest
--nullable:disable
+-nullable:enable

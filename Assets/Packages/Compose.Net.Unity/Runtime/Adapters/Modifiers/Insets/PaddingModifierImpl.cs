@@ -15,7 +15,7 @@ internal record PaddingModifierImpl(
     Dp Left,
     Dp Right,
     Optional<PaddingType> Type = default
-) : ModifierNodeElement<PaddingModifierImpl.PaddingNode>
+) : UnityModifierElement<PaddingModifierImpl.PaddingNode>
 {
     public override IModifier Fill(IStableList<IModifier> modifiers)
         => Type.HasValue ? this : this with { Type = GetPaddingType(this, modifiers) };

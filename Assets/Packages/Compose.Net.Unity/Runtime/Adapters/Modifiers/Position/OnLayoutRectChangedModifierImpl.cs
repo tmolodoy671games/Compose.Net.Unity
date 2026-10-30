@@ -9,7 +9,7 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 namespace Compose.Net.Unity;
 
 internal record OnLayoutRectChangedModifierImpl(Action<RelativeLayoutBounds> OnLayoutRectChanged)
-    : ModifierNodeElement<OnLayoutRectChangedModifierImpl.LayoutRectNode>
+    : UnityModifierElement<OnLayoutRectChangedModifierImpl.LayoutRectNode>
 {
     public override LayoutRectNode Create() => new(OnLayoutRectChanged);
     public override void Update(LayoutRectNode node) => node.Update(OnLayoutRectChanged);

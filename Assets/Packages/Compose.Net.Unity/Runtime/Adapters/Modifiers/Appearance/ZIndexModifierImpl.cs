@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record ZIndexModifierImpl(float ZIndex)
-    : ModifierNodeElement<ZIndexModifierImpl.ZIndexNode>, IAppearanceModifier
+    : UnityModifierElement<ZIndexModifierImpl.ZIndexNode>, IAppearanceModifier
 {
     public override ZIndexNode Create() => new(ZIndex);
     public override void Update(ZIndexNode node) => node.Update(ZIndex);

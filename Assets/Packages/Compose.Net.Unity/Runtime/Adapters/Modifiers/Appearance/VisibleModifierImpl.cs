@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record VisibleModifierImpl(bool Visible)
-    : ModifierNodeElement<VisibleModifierImpl.VisibleNode>, IAppearanceModifier
+    : UnityModifierElement<VisibleModifierImpl.VisibleNode>, IAppearanceModifier
 {
     public override VisibleNode Create() => new(Visible);
     public override void Update(VisibleNode node) => node.Update(Visible);

@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record AlphaModifierImpl(float Alpha)
-    : ModifierNodeElement<AlphaModifierImpl.AlphaNode>, IAppearanceModifier
+    : UnityModifierElement<AlphaModifierImpl.AlphaNode>, IAppearanceModifier
 {
     public override AlphaNode Create() => new(Alpha);
     public override void Update(AlphaNode node) => node.Update(Alpha);

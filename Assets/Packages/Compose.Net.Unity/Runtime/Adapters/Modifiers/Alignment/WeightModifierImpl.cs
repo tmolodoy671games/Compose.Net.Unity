@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record WeightModifierImpl(float Weight, bool FillSpace = true) : ModifierNodeElement<WeightModifierImpl.WeightNode>
+internal record WeightModifierImpl(float Weight, bool FillSpace = true) : UnityModifierElement<WeightModifierImpl.WeightNode>
 {
     public override WeightNode Create() => new(Weight, FillSpace);
     public override void Update(WeightNode node) => node.Update(Weight, FillSpace);

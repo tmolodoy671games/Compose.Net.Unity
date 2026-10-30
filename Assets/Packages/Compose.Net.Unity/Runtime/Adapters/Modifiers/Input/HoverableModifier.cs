@@ -11,7 +11,7 @@ namespace Compose.Net.Unity;
 internal record HoverableModiferImpl(
     IMutableInteractionSource InteractionSource,
     bool Enabled
-) : ModifierNodeElement<HoverableModiferImpl.HoverableNode>
+) : UnityModifierElement<HoverableModiferImpl.HoverableNode>
 {
     public override HoverableNode Create() => new(InteractionSource, Enabled);
     public override void Update(HoverableNode node) => node.Update(InteractionSource, Enabled);
@@ -142,7 +142,7 @@ public static partial class VisualElementExtensions
     internal static bool IsUnderPointer(this VisualElement element)
     {
         var pointer = UnityEngine.InputSystem.Pointer.current;
-        if (pointer == null || element.panel == null)
+        if (pointer == null || element.panel == null || element.panel.contextType != ContextType.Player)
             return false;
         var position = pointer.position.ReadValue();
         position.y = UnityEngine.Screen.height - position.y;

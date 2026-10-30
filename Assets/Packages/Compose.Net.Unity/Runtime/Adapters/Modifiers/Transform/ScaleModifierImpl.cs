@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record ScaleModifierImpl(float ScaleX, float ScaleY) : ModifierNodeElement<ScaleModifierImpl.ScaleNode>
+internal record ScaleModifierImpl(float ScaleX, float ScaleY) : UnityModifierElement<ScaleModifierImpl.ScaleNode>
 {
     public override ScaleNode Create() => new(ScaleX, ScaleY);
     public override void Update(ScaleNode node) => node.Update(ScaleX, ScaleY);

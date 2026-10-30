@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record SizeModifierImpl(Dp Width, Dp Height)
-    : ModifierNodeElement<SizeModifierImpl.SizeNode>, IAppearanceModifier
+    : UnityModifierElement<SizeModifierImpl.SizeNode>, IAppearanceModifier
 {
     public override SizeNode Create() => new(Width, Height);
     public override void Update(SizeNode node) => node.Update(Width, Height);

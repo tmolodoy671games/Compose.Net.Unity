@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record BackdropBlurModifierImpl(Dp Radius)
-    : ModifierNodeElement<BackdropBlurModifierImpl.BackdropBlurNode>, IAppearanceModifier
+    : UnityModifierElement<BackdropBlurModifierImpl.BackdropBlurNode>, IAppearanceModifier
 {
     public override BackdropBlurNode Create() => new(Radius.ToPx(UnityDensity.Current));
     public override void Update(BackdropBlurNode node) => node.Update(Radius.ToPx(UnityDensity.Current));

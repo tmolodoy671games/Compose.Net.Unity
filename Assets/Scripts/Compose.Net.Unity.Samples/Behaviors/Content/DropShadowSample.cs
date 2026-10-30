@@ -1,5 +1,4 @@
-﻿using Compose.Net;
-using SharpExtensions;
+﻿using SharpExtensions;
 
 // ReSharper disable ArrangeNamespaceBody
 
@@ -29,14 +28,15 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     Spacer(
                         Modifier
                             .Size(100.Dp())
-                            .Background(Color.Gray)
-                            .DropShadow(
+                            .Background(Color.White)
+                            .InnerShadow(
                                 shape: RoundedCornerShape(0.Dp()),
                                 shadow: Shadow(
                                     radius: AnimateFloatAsState(32 * hasShadow.Value.ToInt(), tween).Value.Dp(),
                                     spread: 10.Dp(),
-                                    color: AnimateColorAsState(hasShadow.Value ? Color.Black : new Color(), tween).Value
-                                    ,
+                                    color: AnimateColorAsState(
+                                            hasShadow.Value ? Color.Black : Color.Black with { Alpha = 0 }, tween)
+                                        .Value,
                                     offset: new Offset()
                                 )
                             )

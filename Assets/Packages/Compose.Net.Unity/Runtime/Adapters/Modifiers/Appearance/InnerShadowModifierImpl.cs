@@ -7,7 +7,7 @@ namespace Compose.Net.Unity;
 internal record InnerShadowModifierImpl(
     Shape Shape,
     Compose.Net.Shadow Shadow
-) : ModifierNodeElement<InnerShadowModifierImpl.InnerShadowNode>, IForegroundShadowModifier
+) : UnityModifierElement<InnerShadowModifierImpl.InnerShadowNode>
 {
     public override InnerShadowNode Create() => new(Shape, Shadow);
     public override void Update(InnerShadowNode node) => node.Update(Shape, Shadow);

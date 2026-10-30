@@ -11,7 +11,7 @@ namespace Compose.Net.Unity;
 /// Offset pushed by a subscription, so it changes without recomposition (e.g. pager scroll).
 /// </summary>
 internal record ObservedOffsetModifierImpl(Func<Action<Offset>, IDisposable> Subscribe)
-    : ModifierNodeElement<ObservedOffsetModifierImpl.ObservedOffsetNode>
+    : UnityModifierElement<ObservedOffsetModifierImpl.ObservedOffsetNode>
 {
     public override ObservedOffsetNode Create() => new(Subscribe);
     public override void Update(ObservedOffsetNode node) => node.Update(Subscribe);

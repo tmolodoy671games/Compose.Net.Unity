@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record TransformOriginModifierImpl(Dp X, Dp Y)
-    : ModifierNodeElement<TransformOriginModifierImpl.TransformOriginNode>
+    : UnityModifierElement<TransformOriginModifierImpl.TransformOriginNode>
 {
     public override TransformOriginNode Create() => new(X, Y);
     public override void Update(TransformOriginNode node) => node.Update(X, Y);

@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record ClipModifierImpl(Shape Shape)
-    : ModifierNodeElement<ClipModifierImpl.ClipNode>, IAppearanceModifier
+    : UnityModifierElement<ClipModifierImpl.ClipNode>, IAppearanceModifier
 {
     public override ClipNode Create() => new(Shape);
     public override void Update(ClipNode node) => node.Update(Shape);

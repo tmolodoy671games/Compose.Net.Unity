@@ -26,6 +26,43 @@ public sealed class PointerInputKaspressoTests
     }
 
     [Test]
+    public async Task DragContinuesOutsideElementAndEndsOnRelease()
+    {
+        using var driver = new UnityComposeTestDriver();
+        var element = new VisualElement();
+        element.style.width = 80;
+        element.style.height = 80;
+        driver.Root.Add(element);
+        await driver.WaitForIdleAsync(default);
+        using var source = new CancellationTokenSource();
+        var deltas = new List<float>();
+        var ended = 0;
+        var cancelled = 0;
+        var task = Input(element, source.Token).DetectHorizontalDragGestures(
+            (_, delta) => deltas.Add(delta),
+            onDragEnd: () => ended++, onDragCancel: () => cancelled++);
+        Down(element);
+        Move(driver.Root, new Vector2(40, 30));
+        Move(driver.Root, new Vector2(160, 30));
+        Move(driver.Root, new Vector2(200, 30));
+        using (var up = PointerUpEvent.GetPooled(new Event
+               { type = EventType.MouseUp, button = 0, mousePosition = new Vector2(200, 30) }))
+            driver.Root.SendEvent(up);
+        Assert.That(deltas, Is.EqualTo(new[] { 20f, 120f, 40f }));
+        Assert.That(ended, Is.EqualTo(1));
+        Assert.That(cancelled, Is.Zero);
+        source.Cancel();
+        Assert.CatchAsync<OperationCanceledException>(async () => await task);
+    }
+
+    private static void Move(VisualElement root, Vector2 position)
+    {
+        using var evt = PointerMoveEvent.GetPooled(new Event
+            { type = EventType.MouseDrag, button = 0, mousePosition = position });
+        root.SendEvent(evt);
+    }
+
+    [Test]
     public async Task PassesFollowTreeOrderAndShareConsumption()
     {
         using var driver = new UnityComposeTestDriver();

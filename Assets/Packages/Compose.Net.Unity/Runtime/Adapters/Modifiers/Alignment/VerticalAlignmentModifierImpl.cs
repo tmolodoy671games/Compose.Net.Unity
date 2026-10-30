@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using SharpExtensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record VerticalAlignModifierImpl(Alignment.Vertical Align)
-    : ModifierNodeElement<VerticalAlignModifierImpl.VerticalAlignNode>
+    : UnityModifierElement<VerticalAlignModifierImpl.VerticalAlignNode>
 {
     public override VerticalAlignNode Create() => new(Align);
     public override void Update(VerticalAlignNode node) => node.Update(Align);

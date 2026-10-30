@@ -28,6 +28,12 @@ Adjacent padding, offset and size operations are combined, and zero padding or
 offset does not create a boundary. An exact size already imposed by an earlier
 modifier takes precedence over later size requests.
 
+Chain collection, normalization, target selection and node reconciliation live
+entirely in the Unity adapter. `UnityModifierElement` uses the existing
+`IModifier.Flatten` / `Fill` / `Apply` / `Revert` contracts; the composer has no
+native layout planner or wrapper-specific callbacks. The adapter owns its modifier
+nodes through the platform-independent `IModifier.Node.Attach` / `Detach` lifecycle.
+
 Wrappers are reused when only values change and removed when their boundary is
 no longer needed. Parent layout data (weight, alignment and positioning) applies
 to the outer element. `UnityReusableComposeNode.VisualElement` remains the

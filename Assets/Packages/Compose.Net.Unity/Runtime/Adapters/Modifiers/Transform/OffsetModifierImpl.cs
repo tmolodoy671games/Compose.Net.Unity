@@ -6,7 +6,7 @@ using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 
 namespace Compose.Net.Unity;
 
-internal record OffsetModifierImpl(Dp X, Dp Y) : ModifierNodeElement<OffsetModifierImpl.OffsetNode>
+internal record OffsetModifierImpl(Dp X, Dp Y) : UnityModifierElement<OffsetModifierImpl.OffsetNode>
 {
     public virtual bool Equals(OffsetModifierImpl? other) =>
         other != null && X.Equals(other.X) && Y.Equals(other.Y);

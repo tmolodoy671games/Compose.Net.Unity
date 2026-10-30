@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record RotateModifierImpl(float Degrees) : ModifierNodeElement<RotateModifierImpl.RotateNode>
+internal record RotateModifierImpl(float Degrees) : UnityModifierElement<RotateModifierImpl.RotateNode>
 {
     public override RotateNode Create() => new(Degrees);
     public override void Update(RotateNode node) => node.Update(Degrees);

@@ -153,8 +153,12 @@ internal sealed partial class PointerEventDispatcher
         where T : PointerEventBase<T>, new()
     {
         var position = new Offset(evt.position.x, evt.position.y);
-        var change = new PointerInputChange(new PointerId(evt.pointerId), evt.timestamp, position,
-            evt.pressedButtons != 0, evt.pressure, evt.timestamp, position, evt.pressedButtons != 0,
+        var id = new PointerId(evt.pointerId);
+        // UI Toolkit's synthesized enter/leave events can omit pressedButtons.
+        // Crossing a boundary must not end a press tracked by down/up/cancel.
+        var pressed = _pressed.ContainsKey(id) || evt.pressedButtons != 0;
+        var change = new PointerInputChange(id, evt.timestamp, position,
+            pressed, evt.pressure, evt.timestamp, position, pressed,
             false, evt.pointerType.ToPointerType(), Offset.Zero, evt);
         Dispatch(new() { (change, evt.target as VisualElement ?? _root) }, type,
             new PointerButtons(evt.pressedButtons), Modifiers(evt.modifiers));

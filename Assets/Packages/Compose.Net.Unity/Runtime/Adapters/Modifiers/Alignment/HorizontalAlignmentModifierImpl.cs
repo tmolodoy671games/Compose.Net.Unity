@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using SharpExtensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record HorizontalAlignModifierImpl(Alignment.Horizontal Align)
-    : ModifierNodeElement<HorizontalAlignModifierImpl.HorizontalAlignNode>
+    : UnityModifierElement<HorizontalAlignModifierImpl.HorizontalAlignNode>
 {
     public override HorizontalAlignNode Create() => new(Align);
     public override void Update(HorizontalAlignNode node) => node.Update(Align);

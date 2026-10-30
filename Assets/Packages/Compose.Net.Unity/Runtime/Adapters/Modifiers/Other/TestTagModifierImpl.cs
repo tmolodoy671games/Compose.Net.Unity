@@ -1,9 +1,9 @@
-﻿using Compose.Net;
+using Compose.Net;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers.Other;
 
-internal record TestTagModifierImpl(string Tag) : ModifierNodeElement<TestTagModifierImpl.TestTagNode>
+internal record TestTagModifierImpl(string Tag) : UnityModifierElement<TestTagModifierImpl.TestTagNode>
 {
     public override TestTagNode Create() => new(Tag);
     public override void Update(TestTagNode node) => node.Update(Tag);

@@ -12,7 +12,7 @@ public interface IDrawModifier : IAppearanceModifier
 }
 
 public abstract record DrawUnityModifier(int DrawIndex = -1)
-    : ModifierNodeElement<DrawUnityModifier.DrawNode>, IDrawModifier
+    : UnityModifierElement<DrawUnityModifier.DrawNode>, IDrawModifier
 {
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
 

@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine.UIElements;
 
@@ -11,7 +11,7 @@ internal record PositionModifierImpl(
     Dp Bottom,
     Dp Left,
     Dp Right
-) : ModifierNodeElement<PositionModifierImpl.PositionNode>
+) : UnityModifierElement<PositionModifierImpl.PositionNode>
 {
     public override PositionNode Create() => new(Top, Bottom, Left, Right);
     public override void Update(PositionNode node) => node.Update(Top, Bottom, Left, Right);

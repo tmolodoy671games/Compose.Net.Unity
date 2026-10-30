@@ -9,7 +9,7 @@ public interface IContentContainerUnityModifier : IAppearanceModifier
 {
 }
 
-public abstract record ContentContainerUnityModifier<TNode> : ModifierNodeElement<TNode>, IContentContainerUnityModifier
+public abstract record ContentContainerUnityModifier<TNode> : UnityModifierElement<TNode>, IContentContainerUnityModifier
     where TNode : ContentContainerUnityModifier<TNode>.ContentContainerNodeBase
 {
     public override object GetTarget(IReusableComposeNode node) => node;

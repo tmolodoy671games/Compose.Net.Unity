@@ -8,7 +8,7 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 namespace Compose.Net.Unity;
 
 internal record OnGloballyPositionedModifierImpl(Action<ILayoutCoordinates> OnGloballyPositioned)
-    : ModifierNodeElement<OnGloballyPositionedModifierImpl.PositionNode>
+    : UnityModifierElement<OnGloballyPositionedModifierImpl.PositionNode>
 {
     public override PositionNode Create() => new(OnGloballyPositioned);
     public override void Update(PositionNode node) => node.Update(OnGloballyPositioned);

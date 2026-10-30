@@ -11,7 +11,7 @@ internal record SizeInModifierImpl(
     Dp MaxWidth,
     Dp MinHeight,
     Dp MaxHeight
-) : ModifierNodeElement<SizeInModifierImpl.SizeInNode>, IAppearanceModifier
+) : UnityModifierElement<SizeInModifierImpl.SizeInNode>, IAppearanceModifier
 {
     public override SizeInNode Create() => new(MinWidth, MaxWidth, MinHeight, MaxHeight);
     public override void Update(SizeInNode node) => node.Update(MinWidth, MaxWidth, MinHeight, MaxHeight);

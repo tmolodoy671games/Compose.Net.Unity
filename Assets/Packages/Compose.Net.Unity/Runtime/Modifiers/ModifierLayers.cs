@@ -19,7 +19,7 @@ public partial class UnityReusableComposeNode
     public VisualElement LayoutElement => _modifierWrappers.Count == 0
         ? VisualElement : _modifierWrappers[0].VisualElement;
 
-    bool IModifierChainHost.PrepareModifierChain(IMutableStableList<IModifier> modifiers)
+    private bool PrepareModifierChain(IMutableStableList<IModifier> modifiers)
     {
         Coalesce(modifiers);
         _pendingModifierLayers.Clear();
@@ -57,7 +57,12 @@ public partial class UnityReusableComposeNode
             // A later operation needs its own bounds only when an existing operation
             // must keep the pre-padding/pre-offset bounds. Plain padding/size/offset
             // chains continue to share the original element.
-            if (!parentData && ((offset && visualBounds) || (padding && bounds && observesBounds)))
+            // Native clipping, pointer handling and foreground indication can use
+            // the padded element itself. They do not need a separate content box.
+            var needsPaddingBoundary = modifier is IAppearanceModifier && !parentData && !size &&
+                modifier is not ClipModifierImpl and not IDrawOnModifier and not HoverableModiferImpl &&
+                !IsPointerInput(modifier);
+            if (!parentData && ((offset && visualBounds) || (padding && bounds && needsPaddingBoundary)))
             {
                 _pendingLayerNames.Add($"Compose.Modifier.{modifier.GetType().Name.Replace("ModifierImpl", "")}.{layer}");
                 layer++;
@@ -70,7 +75,10 @@ public partial class UnityReusableComposeNode
             if (modifier is PaddingModifierImpl inset)
             {
                 modifier = inset with { Type = bounds ? PaddingType.Padding : PaddingType.Margin };
-                padding |= bounds;
+                // Size constraints alone do not paint an outer box. Native
+                // padding can share that element with a later background/input.
+                // Split only if an earlier visual operation needs outer bounds.
+                padding |= visualBounds;
                 width.Inset(Value(inset.Left) + Value(inset.Right));
                 height.Inset(Value(inset.Top) + Value(inset.Bottom));
             }
@@ -96,7 +104,11 @@ public partial class UnityReusableComposeNode
             if (modifier is DrawUnityModifier draw)
                 modifier = draw with { DrawIndex = drawIndex++ };
             if (observesBounds || size) bounds = true;
-            if (observesBounds && !size) visualBounds = true;
+            // Measurement and input observe the element; they do not paint an
+            // outer box that must stay behind when a later offset moves it.
+            // Opacity/visibility also travel with the content on the same element.
+            if (modifier is IAppearanceModifier and not AlphaModifierImpl and not VisibleModifierImpl &&
+                !parentData && !size) visualBounds = true;
             modifiers[i] = modifier;
             // Parent data belongs to the child as seen by its parent, regardless
             // of where it appears in the modifier chain.
@@ -118,7 +130,7 @@ public partial class UnityReusableComposeNode
         return changed;
     }
 
-    void IModifierChainHost.CommitModifierChain()
+    private void CommitModifierChain()
     {
         // All modifier nodes have detached before this runs. In particular, scroll
         // content containers and parent-data styles have already been restored.
@@ -135,8 +147,6 @@ public partial class UnityReusableComposeNode
         foreach (var wrapper in _modifierWrappers)
         {
             wrapper.VisualElement.Clear();
-            wrapper.VisualElement.style.flexGrow = 0;
-            wrapper.VisualElement.style.alignSelf = Align.FlexStart;
         }
         while (_modifierWrappers.Count > _pendingLayerNames.Count)
         {
@@ -146,7 +156,7 @@ public partial class UnityReusableComposeNode
         }
         while (_modifierWrappers.Count < _pendingLayerNames.Count)
         {
-            var element = new ComposeModifierWrapper();
+            var element = new Wrapper();
             var wrapper = new UnityReusableComposeNode(element);
             element.SetReusableComposeNode(this);
             _modifierWrappers.Add(wrapper);
@@ -168,7 +178,7 @@ public partial class UnityReusableComposeNode
         }
     }
 
-    object IModifierChainHost.GetModifierTarget(IModifierNodeElement modifier, int index)
+    private object GetModifierTarget(IModifierNodeElement modifier, int index)
     {
         var layer = _modifierLayers[index];
         var target = layer < _modifierWrappers.Count ? _modifierWrappers[layer] : this;
@@ -180,12 +190,14 @@ public partial class UnityReusableComposeNode
         VerticalAlignModifierImpl or PositionModifierImpl or FloatModifierImpl or
         ZIndexModifierImpl or TestTagModifierImpl;
 
-    private static bool IsInputOrCoordinates(IModifier modifier)
+    private static bool IsInputOrCoordinates(IModifier modifier) =>
+        modifier is HoverableModiferImpl or OnSizeChangedImpl or OnPlacedModifierImpl or
+            OnLayoutRectChangedModifierImpl or OnGloballyPositionedModifierImpl || IsPointerInput(modifier);
+
+    private static bool IsPointerInput(IModifier modifier)
     {
         var type = modifier.GetType();
-        return modifier is HoverableModiferImpl or OnSizeChangedImpl or OnPlacedModifierImpl or
-            OnLayoutRectChangedModifierImpl or OnGloballyPositionedModifierImpl ||
-            type.IsGenericType && type.GetGenericTypeDefinition() == typeof(PointerInputModifierImpl<>);
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(PointerInputModifierImpl<>);
     }
 
     private static float Value(Dp value) => value.IsUnspecified ? 0 :
@@ -248,17 +260,94 @@ public partial class UnityReusableComposeNode
             _max = Math.Max(0, _max - amount);
         }
     }
+    private readonly List<IModifierNodeElement> _appliedUnityModifiers = new();
+    private readonly List<IModifier.Node> _unityModifierNodes = new();
+
+    internal void ApplyUnityModifiers(IModifier[] descriptions)
+    {
+        var next = MutableStableListOf<IModifier>();
+        foreach (var description in descriptions) next.Add(description);
+        var changed = PrepareModifierChain(next);
+        foreach (var modifier in next)
+            if (modifier is not IModifierNodeElement)
+                throw new NotSupportedException($"Unity modifier {modifier.GetType().Name} must implement IModifierNodeElement");
+
+        if (changed)
+        {
+            DetachUnityModifiers();
+            CommitModifierChain();
+        }
+
+        var oldCount = _appliedUnityModifiers.Count;
+        var newCount = next.Size;
+        var prefix = 0;
+        while (prefix < oldCount && prefix < newCount &&
+               _appliedUnityModifiers[prefix].GetType() == next[prefix].GetType()) prefix++;
+        var suffix = 0;
+        while (suffix < oldCount - prefix && suffix < newCount - prefix &&
+               _appliedUnityModifiers[oldCount - suffix - 1].GetType() == next[newCount - suffix - 1].GetType()) suffix++;
+
+        var retained = new List<IModifier.Node>(newCount);
+        try
+        {
+            for (var i = oldCount - suffix - 1; i >= prefix; i--)
+                DisposeUnityModifier(_unityModifierNodes[i]);
+            for (var i = 0; i < newCount; i++)
+            {
+                var element = (IModifierNodeElement)next[i];
+                var oldIndex = i < prefix ? i : i >= newCount - suffix ? oldCount - (newCount - i) : -1;
+                IModifier.Node node;
+                if (oldIndex >= 0)
+                {
+                    node = _unityModifierNodes[oldIndex];
+                    if (!Equals(_appliedUnityModifiers[oldIndex], element)) element.Update(node);
+                }
+                else
+                {
+                    node = element.Create();
+                    retained.Add(node);
+                    node.Attach(GetModifierTarget(element, i));
+                    continue;
+                }
+                retained.Add(node);
+            }
+        }
+        catch
+        {
+            foreach (var node in retained) DisposeUnityModifier(node);
+            DetachUnityModifiers();
+            throw;
+        }
+        _unityModifierNodes.Clear();
+        _unityModifierNodes.AddRange(retained);
+        _appliedUnityModifiers.Clear();
+        foreach (var modifier in next) _appliedUnityModifiers.Add((IModifierNodeElement)modifier);
+    }
+
+    internal void ClearUnityModifiers()
+    {
+        DetachUnityModifiers();
+        var empty = MutableStableListOf<IModifier>();
+        if (PrepareModifierChain(empty)) CommitModifierChain();
+    }
+
+    private void DetachUnityModifiers()
+    {
+        for (var i = _unityModifierNodes.Count - 1; i >= 0; i--)
+            DisposeUnityModifier(_unityModifierNodes[i]);
+        _unityModifierNodes.Clear();
+        _appliedUnityModifiers.Clear();
+    }
+
+    private static void DisposeUnityModifier(IModifier.Node node)
+    {
+        try { node.Detach(); }
+        finally { node.Dispose(); }
+    }
 }
 
 /// <summary>Created only at a modifier boundary that cannot share native bounds.</summary>
-internal sealed class ComposeModifierWrapper : VisualElement
+internal sealed class Wrapper : VisualElement
 {
-    public ComposeModifierWrapper()
-    {
-        pickingMode = UnityEngine.UIElements.PickingMode.Ignore;
-        AddToClassList("compose-modifier-wrapper");
-        style.flexDirection = FlexDirection.Column;
-        style.alignItems = Align.Stretch;
-        style.alignSelf = Align.FlexStart;
-    }
+    public Wrapper() => pickingMode = UnityEngine.UIElements.PickingMode.Ignore;
 }

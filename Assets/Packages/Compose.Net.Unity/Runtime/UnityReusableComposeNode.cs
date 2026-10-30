@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -11,7 +11,7 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 
 namespace Compose.Net.Unity;
 
-public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierChainHost
+public partial class UnityReusableComposeNode : IReusableComposeNode
 {
     public readonly VisualElement VisualElement;
     private AnchorManager? _anchorManager;
@@ -31,12 +31,8 @@ public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierC
     private DrawOn? _drawOnInstance;
     private DrawOn? _drawOn;
 
-    private Shadow? _foregroundShadow;
-    private Shadow? _foregroundShadowInstance;
-
     private int _contentContainerRefCount;
     private int _drawBehindRefCount;
-    private int _foregroundShadowRefCount;
 
     public UnityReusableComposeNode(VisualElement visualElement) : this(visualElement, false)
     {
@@ -46,6 +42,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierC
 
     public void Dispose()
     {
+        DetachUnityModifiers();
         foreach (var wrapper in _modifierWrappers)
             wrapper.Dispose();
         foreach (var entry in VisualElement.UserData().Values)
@@ -240,56 +237,6 @@ public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierC
         _drawOn = null;
     }
 
-    public VisualElement AcquireForegroundShadow()
-    {
-        SetupForegroundShadow();
-        _foregroundShadowRefCount++;
-        return _foregroundShadow!;
-    }
-
-    public void ReleaseForegroundShadow()
-    {
-        if (_foregroundShadowRefCount <= 0)
-            return;
-        _foregroundShadowRefCount--;
-        if (_foregroundShadowRefCount == 0)
-            RemoveForegroundShadow();
-    }
-
-    public VisualElement SetupForegroundShadow()
-    {
-        if (_foregroundShadow != null)
-            return _foregroundShadow;
-        _foregroundShadowInstance ??= new Shadow
-        {
-            pickingMode = UnityEngine.UIElements.PickingMode.Ignore,
-            style =
-            {
-                position = Position.Absolute,
-                top = 0,
-                bottom = 0,
-                left = 0,
-                right = 0,
-            }
-        };
-        _foregroundShadow = _foregroundShadowInstance;
-        VisualElement.Insert(ForegroundShadowIndex(), _foregroundShadow);
-        SyncDrawOnTop();
-        return _foregroundShadow;
-    }
-
-    public void RemoveForegroundShadow()
-    {
-        if (_foregroundShadow == null)
-            return;
-        if (VisualElement.GetOrNull(ForegroundShadowIndex()) == _foregroundShadow)
-            VisualElement.RemoveAt(ForegroundShadowIndex());
-        else
-            VisualElement.Remove(_foregroundShadow);
-        _foregroundShadow = null;
-        SyncDrawOnTop();
-    }
-
     public VisualElement AcquireDrawBehind()
     {
         SetupDrawBehind();
@@ -416,14 +363,6 @@ public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierC
     {
         return VisualElement.GetType().Name;
     }
-
-    private int ForegroundShadowIndex()
-    {
-        var index = VisualElement.childCount;
-        if (_drawOn != null)
-            index--;
-        return index;
-    }
 }
 
 public static class ReusableComposeNodeExtensions
@@ -465,9 +404,5 @@ internal class DrawOn : VisualElement
 }
 
 internal class DrawBehind : VisualElement
-{
-}
-
-internal class Shadow : VisualElement
 {
 }

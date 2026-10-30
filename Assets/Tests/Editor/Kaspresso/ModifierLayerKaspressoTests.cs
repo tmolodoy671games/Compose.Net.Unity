@@ -14,6 +14,86 @@ public partial class ModifierLayerKaspressoTests
     [SetUp]
     public void Reset() { _mode.Value = 0; _offset.Value = 10; _show.Value = true; }
 
+    [Test]
+    public async Task PaddedClickableTextUsesTheTextElement()
+    {
+        using var driver = new UnityComposeTestDriver();
+        driver.SetContent(ClickableTextContent);
+        var item = driver.Root.Q<TextElement>("item");
+        Assert.That(item, Is.Not.Null);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
+        var baseline = new Compose.Net.Unity.Text();
+        Assert.That(item.style.paddingLeft.value.value - baseline.style.paddingLeft.value.value, Is.EqualTo(8));
+        Assert.That(item.resolvedStyle.backgroundColor, Is.EqualTo(new UnityEngine.Color(70f / 255, 130f / 255, 180f / 255)));
+        Assert.That(item.style.alignSelf.keyword, Is.EqualTo(StyleKeyword.Null));
+        _show.Value = false;
+        await driver.WaitForIdleAsync(CancellationToken.None);
+        Assert.That(driver.Root.Q<TextElement>("item"), Is.SameAs(item));
+        Assert.That(item.text, Is.EqualTo("enabled: false"));
+    }
+
+    [Composable]
+    private void ClickableTextContent() => Column(horizontalAlignment: Alignment.CenterHorizontally,
+        content: () => Text(_show.Value ? "enabled: true" : "enabled: false", color: Color.White,
+            modifier: Modifier.Background(Color.SteelBlue).Padding(all: 8.Dp()).Clip()
+                .Clickable(() => _show.Value = !_show.Value).TestTag("item")));
+
+    [Test]
+    public async Task FirstDragSurvivesOffsetBecomingNonzero()
+    {
+        _offset.Value = 0;
+        using var driver = new UnityComposeTestDriver();
+        driver.SetContent(DraggableContent);
+        var item = driver.Root.Q("item");
+        var parent = item.parent;
+        var detached = 0;
+        item.RegisterCallback<DetachFromPanelEvent>(_ => detached++);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
+        Assert.That(item.layout.width, Is.EqualTo(60).Within(.1));
+        Assert.That(item.layout.height, Is.EqualTo(60).Within(.1));
+
+        void Send(UnityEngine.EventType type, float x)
+        {
+            var native = new UnityEngine.Event { type = type, button = 0,
+                mousePosition = new UnityEngine.Vector2(x, item.worldBound.center.y) };
+            if (type == UnityEngine.EventType.MouseDown)
+            {
+                using var evt = PointerDownEvent.GetPooled(native);
+                evt.target = item;
+                item.SendEvent(evt);
+            }
+            else if (type == UnityEngine.EventType.MouseUp)
+            {
+                using var evt = PointerUpEvent.GetPooled(native);
+                driver.Root.SendEvent(evt);
+            }
+            else
+            {
+                using var evt = PointerMoveEvent.GetPooled(native);
+                driver.Root.SendEvent(evt);
+            }
+        }
+        var start = item.worldBound.center.x;
+        Send(UnityEngine.EventType.MouseDown, start);
+        Send(UnityEngine.EventType.MouseDrag, start + 20);
+        await driver.WaitForIdleAsync(CancellationToken.None);
+        var first = _offset.Value;
+        Assert.That(first, Is.GreaterThan(0));
+        Assert.That(item.parent, Is.SameAs(parent));
+        Assert.That(detached, Is.Zero);
+        Send(UnityEngine.EventType.MouseDrag, start + 40);
+        await driver.WaitForIdleAsync(CancellationToken.None);
+        Assert.That(_offset.Value, Is.GreaterThan(first));
+        Assert.That(detached, Is.Zero);
+        Send(UnityEngine.EventType.MouseUp, start + 40);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
+    }
+
+    [Composable]
+    private void DraggableContent() => Column(content: () => Spacer(Modifier.Size(60.Dp())
+        .Padding(top: 16.Dp()).Offset(x: _offset.Value.Dp()).Background(Color.MediumSeaGreen)
+        .Draggable(Orientation.Horizontal, delta => _offset.Value += delta).TestTag("item")));
+
     [TestCase(0)]
     [TestCase(1)]
     [TestCase(2)]
@@ -26,7 +106,7 @@ public partial class ModifierLayerKaspressoTests
         _mode.Value = mode;
         using var driver = new UnityComposeTestDriver();
         driver.SetContent(SimpleContent);
-        Assert.That(driver.Root.Query(className: "compose-modifier-wrapper").ToList(), Is.Empty);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
         var item = driver.Root.Q("item");
         if (mode == 2)
             Assert.That(item.resolvedStyle.translate.x, Is.EqualTo(30).Within(.1));
@@ -41,7 +121,7 @@ public partial class ModifierLayerKaspressoTests
         using var driver = new UnityComposeTestDriver();
         driver.SetContent(Content);
         var wrapper = driver.Root.Q("item");
-        Assert.That(driver.Root.Query(className: "compose-modifier-wrapper").ToList().Count, Is.EqualTo(1));
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList().Count, Is.EqualTo(1));
         Assert.That(wrapper.resolvedStyle.translate.x, Is.EqualTo(0));
         Assert.That(wrapper.layout.width, Is.EqualTo(80).Within(.1));
         Assert.That(wrapper.layout.height, Is.EqualTo(40).Within(.1));
@@ -69,17 +149,17 @@ public partial class ModifierLayerKaspressoTests
         Assert.That(content.resolvedStyle.backgroundColor.b, Is.EqualTo(1));
         _mode.Value = 0;
         await driver.WaitForIdleAsync(CancellationToken.None);
-        Assert.That(driver.Root.Query(className: "compose-modifier-wrapper").ToList(), Is.Empty);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
         Assert.That(driver.Root.Q("item"), Is.SameAs(content));
         Assert.That(content.resolvedStyle.translate.x, Is.EqualTo(0));
         _mode.Value = 5;
         await driver.WaitForIdleAsync(CancellationToken.None);
         await driver.SizeAsync("item", 100, 60);
-        Assert.That(driver.Root.Query(className: "compose-modifier-wrapper").ToList().Count, Is.EqualTo(1));
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList().Count, Is.EqualTo(1));
         _show.Value = false;
         await driver.WaitForIdleAsync(CancellationToken.None);
         Assert.That(driver.Root.Q("item"), Is.Null);
-        Assert.That(driver.Root.Query(className: "compose-modifier-wrapper").ToList(), Is.Empty);
+        Assert.That(driver.Root.Query().Where(e => e.GetType().Name == "Wrapper").ToList(), Is.Empty);
     }
 
     [Test]

@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record BlurModifierImpl(Dp Radius)
-    : ModifierNodeElement<BlurModifierImpl.BlurNode>, IAppearanceModifier
+    : UnityModifierElement<BlurModifierImpl.BlurNode>, IAppearanceModifier
 {
     public override BlurNode Create() => new(Radius.ToPx(UnityDensity.Current));
     public override void Update(BlurNode node) => node.Update(Radius.ToPx(UnityDensity.Current));

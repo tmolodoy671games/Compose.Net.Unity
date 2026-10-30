@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record FloatModifierImpl(bool Enabled) : ModifierNodeElement<FloatModifierImpl.FloatNode>
+internal record FloatModifierImpl(bool Enabled) : UnityModifierElement<FloatModifierImpl.FloatNode>
 {
     public override FloatNode Create() => new(Enabled);
     public override void Update(FloatNode node) => node.Update(Enabled);

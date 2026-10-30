@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record ObservedSizeModifierImpl(Func<Action<Size>, IDisposable> Subscribe)
-    : ModifierNodeElement<ObservedSizeModifierImpl.SizeNode>
+    : UnityModifierElement<ObservedSizeModifierImpl.SizeNode>
 {
     public override SizeNode Create() => new(Subscribe);
     public override void Update(SizeNode node) => node.Update(Subscribe);
