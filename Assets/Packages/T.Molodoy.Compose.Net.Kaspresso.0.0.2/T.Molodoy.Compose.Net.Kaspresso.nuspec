@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>T.Molodoy.Compose.Net.Kaspresso</id>
+    <version>0.0.2</version>
+    <authors>T. Molodoy</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <description>A small Kaspresso-inspired UI testing DSL for Compose.Net.</description>
+    <repository type="git" commit="e558c5e2bb1ed1e710434da8aba620c76550edfc" />
+    <dependencies>
+      <group targetFramework=".NETStandard2.1" />
+    </dependencies>
+  </metadata>
+</package>
