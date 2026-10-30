@@ -67,10 +67,9 @@ public partial class ClickIndicationKaspressoTests
         var draw = callback.Target.GetType().GetProperty("OnDraw")?.GetValue(callback.Target) as Delegate
             ?? callback.Target.GetType().GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                 .Select(field => field.GetValue(callback.Target)).OfType<Action<IDrawScope>>().Single();
-        var scope = DispatchProxy.Create<IDrawScope, RippleDrawRecorder>();
-        var recorder = (RippleDrawRecorder)(object)scope;
+        var recorder = new RippleDrawRecorder();
         recorder.DrawSize = new Size(layer.layout.width, layer.layout.height);
-        ((Action<IDrawScope>)draw)(scope);
+        ((Action<IDrawScope>)draw)(recorder);
         return recorder;
     }
 
@@ -265,26 +264,34 @@ public partial class ClickIndicationKaspressoTests
 
 // Records commands from the callback actually installed in DrawOn, without adding
 // composable state reads or wrapping the indication under test.
-public class RippleDrawRecorder : DispatchProxy
+public sealed class RippleDrawRecorder : IDrawScope
 {
     internal Size DrawSize;
     internal float HoverAlpha;
     internal float PressAlpha;
     internal float PressRadius;
+    public Size Size => DrawSize;
+    public Offset Center => new(DrawSize.Width / 2, DrawSize.Height / 2);
 
-    protected override object Invoke(MethodInfo method, object[] args)
-    {
-        if (method.Name == "get_Size") return DrawSize;
-        if (method.Name == "get_Center") return new Offset(DrawSize.Width / 2, DrawSize.Height / 2);
-        if (method.Name == "DrawRect") HoverAlpha = (float)args[3];
-        if (method.Name == "DrawCircle")
-        {
-            PressAlpha = (float)args[3];
-            PressRadius = ((Optional<float>)args[1]).GetOrDefault(0);
-        }
-        if (method.ReturnType == typeof(void)) return null;
-        throw new NotSupportedException(method.Name);
-    }
+    public void DrawLine(Compose.Net.Color color, Offset start, Offset end, float strokeWidth = 1, StrokeCap strokeCap = StrokeCap.Butt, float alpha = 1f) {  }
+    public void DrawLine(IBrush brush, Offset start, Offset end, float strokeWidth = 1, StrokeCap strokeCap = StrokeCap.Butt, float alpha = 1f) {  }
+    public void DrawRect(Compose.Net.Color color, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) { HoverAlpha = alpha; }
+    public void DrawRect(IBrush brush, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) { HoverAlpha = alpha; }
+    public void DrawRoundRect(Compose.Net.Color color, Offset topLeft = default, Size size = default, float cornerRadius = 0f, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawRoundRect(IBrush brush, Offset topLeft = default, Size size = default, float cornerRadius = 0f, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawShape(Compose.Net.Color color, Offset topLeft = default, Size size = default, Shape shape = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawShape(IBrush brush, Offset topLeft = default, Size size = default, Shape shape = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawCircle(Compose.Net.Color color, Optional<float> radius = default, Optional<Offset> center = default, float alpha = 1f, DrawStyle? style = null) { PressAlpha = alpha; PressRadius = radius.GetOrDefault(0); }
+    public void DrawCircle(IBrush brush, Optional<float> radius = default, Optional<Offset> center = default, float alpha = 1f, DrawStyle? style = null) { PressAlpha = alpha; PressRadius = radius.GetOrDefault(0); }
+    public void DrawOval(Compose.Net.Color color, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawOval(IBrush brush, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawArc(Compose.Net.Color color, float startAngle, float sweepAngle, bool useCenter, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawArc(IBrush brush, float startAngle, float sweepAngle, bool useCenter, Offset topLeft = default, Size size = default, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawPath(IPath path, Compose.Net.Color color, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawPath(IPath path, IBrush brush, float alpha = 1f, DrawStyle? style = null) {  }
+    public void DrawImage(IImageBitmap image, Offset topLeft = default, float alpha = 1, Size size = default, DrawStyle? style = null) {  }
+    public void DrawPoints(StableCollections.IStableList<Offset> points, PointMode pointMode, Compose.Net.Color color, float strokeWidth = 0.01f, StrokeCap strokeCap = StrokeCap.Butt, float alpha = 1f) {  }
+    public void DrawPoints(StableCollections.IStableList<Offset> points, PointMode pointMode, IBrush brush, float strokeWidth = 0.01f, StrokeCap strokeCap = StrokeCap.Butt, float alpha = 1f) {  }
 }
 
 internal partial class RippleProbe : IIndication
