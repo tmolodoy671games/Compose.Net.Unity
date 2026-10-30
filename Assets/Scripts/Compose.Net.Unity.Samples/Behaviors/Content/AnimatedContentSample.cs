@@ -38,6 +38,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                             .TogetherWith(SlideOutVertically(tween, it => -it)),
                         modifier: Modifier
                             .Clickable(() => state.Value *= 10)
+                            .AnimateContentSize(tween)
                             .Background(Color.LightBlue)
                             .Padding(horizontal: 16.Dp(), vertical: 8.Dp())
                             .Clip(RoundedCornerShape(8.Dp()))

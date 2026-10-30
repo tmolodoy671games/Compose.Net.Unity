@@ -1,9 +1,7 @@
 ﻿// ReSharper disable CheckNamespace
 
 using Compose.Net;
-using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -13,68 +11,82 @@ internal record DropShadowModifierImpl(
     Compose.Net.Shadow Shadow
 ) : ModifierNodeElement<DropShadowModifierImpl.DropShadowNode>, IAppearanceModifier
 {
-    public override DropShadowNode Create() => new(Shadow);
-    public override void Update(DropShadowNode node) => node.Update(Shadow);
-    public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
+    public override DropShadowNode Create() => new(Shape, Shadow);
+    public override void Update(DropShadowNode node) => node.Update(Shape, Shadow);
+    public override object GetTarget(IReusableComposeNode node) => node;
 
-    internal sealed class DropShadowNode(Compose.Net.Shadow shadow) : IModifier.Node
+    internal sealed class DropShadowNode(Shape shape, Compose.Net.Shadow shadow)
+        : BoxShadowNode(shape, shadow, inset: false);
+}
+
+// Each modifier owns a separate box so shadows can coexist and use independent corner radii.
+internal abstract class BoxShadowNode(Shape shape, Compose.Net.Shadow shadow, bool inset) : IModifier.Node
+{
+    private Shape _shape = shape;
+    private Compose.Net.Shadow _shadow = shadow;
+    private UnityReusableComposeNode? _node;
+    private VisualElement? _shadowElement;
+
+    public override void OnAttach()
     {
-        private Compose.Net.Shadow _shadow = shadow;
-        private VisualElement? _element;
-
-        public override void OnAttach()
+        _node = (UnityReusableComposeNode)Target;
+        var host = inset ? _node.AcquireForegroundShadow() : _node.AcquireDrawBehind();
+        _shadowElement = new VisualElement
         {
-            _element = (VisualElement)Target;
-            if (_shadow.Color.Alpha > 0f)
-                Init(_element, _shadow);
-        }
-
-        internal void Update(Compose.Net.Shadow next)
-        {
-            if (_element == null)
+            pickingMode = UnityEngine.UIElements.PickingMode.Ignore,
+            style =
             {
-                _shadow = next;
-                return;
+                position = Position.Absolute,
+                top = 0,
+                bottom = 0,
+                left = 0,
+                right = 0,
             }
+        };
+        host.Add(_shadowElement);
+        Apply();
+    }
 
-            if (_shadow.Color.Alpha > 0f)
-                Revert(_element, _shadow);
-            _shadow = next;
-            if (_shadow.Color.Alpha > 0f)
-                Init(_element, _shadow);
-        }
+    internal void Update(Shape nextShape, Compose.Net.Shadow nextShadow)
+    {
+        if (_shape == nextShape && _shadow == nextShadow)
+            return;
+        _shape = nextShape;
+        _shadow = nextShadow;
+        Apply();
+    }
 
-        public override void OnDetach()
+    public override void OnDetach()
+    {
+        _shadowElement?.RemoveFromHierarchy();
+        _shadowElement = null;
+        if (_node != null)
         {
-            if (_element != null && _shadow.Color.Alpha > 0f)
-                Revert(_element, _shadow);
-            _element = null;
+            if (inset)
+                _node.ReleaseForegroundShadow();
+            else
+                _node.ReleaseDrawBehind();
         }
+        _node = null;
+    }
 
-        private static void Init(
-            VisualElement shadowElement,
-            Compose.Net.Shadow shadow
-        )
+    private void Apply()
+    {
+        if (_shadowElement == null)
+            return;
+        var style = _shadowElement.style;
+        var density = UnityDensity.Current;
+        style.borderTopLeftRadius = _shape.TopLeft.ToLength(density);
+        style.borderTopRightRadius = _shape.TopRight.ToLength(density);
+        style.borderBottomLeftRadius = _shape.BottomLeft.ToLength(density);
+        style.borderBottomRightRadius = _shape.BottomRight.ToLength(density);
+        style.boxShadow = new BoxShadow
         {
-            var shadowFilter = new FilterFunction(FilterFunctionType.DropShadow);
-            shadowFilter.AddParameter(new FilterParameter(shadow.Offset.X));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
-            shadowElement.style.AddFilters(shadowFilter);
-        }
-
-        private static void Revert(
-            VisualElement shadowElement,
-            Compose.Net.Shadow shadow
-        )
-        {
-            var shadowFilter = new FilterFunction(FilterFunctionType.DropShadow);
-            shadowFilter.AddParameter(new FilterParameter(shadow.Offset.X));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Offset.Y));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Radius.ToPx(UnityDensity.Current)));
-            shadowFilter.AddParameter(new FilterParameter(shadow.Color.ToUnityColor()));
-            shadowElement.style.RemoveFilters(shadowFilter);
-        }
+            inset = inset,
+            offset = _shadow.Offset.ToVector2(),
+            blurRadius = _shadow.Radius.ToPx(density),
+            spreadRadius = _shadow.Spread.ToPx(density),
+            color = _shadow.Color.ToUnityColor(),
+        };
     }
 }
