@@ -171,9 +171,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         fontSize: 18.Sp(),
                         modifier: Modifier
                             .Padding(top: 12.Dp())
+                            .Clickable(() => dark.Value = !dark.Value)
                             .Background(Color.Black with { Alpha = 0.25f }, RoundedCornerShape(12.Dp()))
                             .Padding(horizontal: 20.Dp(), vertical: 12.Dp())
-                            .Clickable(() => dark.Value = !dark.Value)
                     );
                 }
             );
@@ -219,9 +219,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                 fontSize: 16.Sp(),
                                 modifier: Modifier
                                     .Padding(right: 12.Dp())
+                                    .Clickable(() => backStack.RemoveLastOrNull())
                                     .Background(Color.Black with { Alpha = 0.25f }, RoundedCornerShape(10.Dp()))
                                     .Padding(horizontal: 16.Dp(), vertical: 8.Dp())
-                                    .Clickable(() => backStack.RemoveLastOrNull())
                             );
 
                             Text(
@@ -260,6 +260,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 contentAlignment: Alignment.Center,
                 modifier: Modifier
                     .Padding(top: 12.Dp())
+                    .Clickable(onClick, indication: null, interactionSource: null)
                     .SharedBounds(
                         shared.RememberSharedContentState(containerKey),
                         animated,
@@ -268,8 +269,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         boundsTransform: (_, _) => tween
                     )
                     .Background(color, RoundedCornerShape(16.Dp()))
-                    .Padding(horizontal: 24.Dp(), vertical: 16.Dp())
-                    .Clickable(onClick, indication: null, interactionSource: null),
+                    .Padding(horizontal: 24.Dp(), vertical: 16.Dp()),
                 content: () => Text(
                     text,
                     color: Color.White,

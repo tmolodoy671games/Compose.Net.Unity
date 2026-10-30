@@ -9,7 +9,7 @@ namespace Compose.Net.Unity;
 
 internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, float ScrollMultiplier,
     bool ReverseScrolling, bool UserScrollEnabled, IMutableInteractionSource? InteractionSource,
-    IFlingBehavior? FlingBehavior = null)
+    IFlingBehavior? FlingBehavior = null, IOverscrollEffect? OverscrollEffect = null)
     : ContentContainerUnityModifier<HorizontalScrollModifierImpl.HorizontalScrollNode>
 {
     public override HorizontalScrollNode Create() => new(this);
@@ -27,9 +27,11 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
         private StyleEnum<Align> _alignItems;
         private StyleEnum<Justify> _justify;
         private int _pointer = -1;
-        private float _lastPointer, _velocity, _lastTime;
+        private VisualElement? _capturedChild;
+        private float _lastPointer, _startPointer, _velocity, _lastTime;
         private CancellationTokenSource? _fling;
         private IScrollState State => _options.State;
+        private IOverscrollDisplacement? VisualEffect => _options.OverscrollEffect as IOverscrollDisplacement;
 
         internal void Update(HorizontalScrollModifierImpl next)
         {
@@ -45,6 +47,8 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
             if (ContentContainer == null) return;
             var position = _options.ReverseScrolling ? State.MaxValue - State.Value : State.Value;
             if (float.IsNaN(position) || float.IsInfinity(position)) position = 0;
+            var displacement = VisualEffect?.Displacement.X ?? 0;
+            position -= displacement * (_options.ReverseScrolling ? -1 : 1);
             ContentContainer.style.translate = new Vector2(-position, 0);
         }
 
@@ -72,6 +76,7 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
             contentContainer.style.alignItems = element.style.alignItems;
             contentContainer.style.justifyContent = element.style.justifyContent;
             State.Changed += Render;
+            if (VisualEffect != null) VisualEffect.Changed += Render;
             _geometry = _ => Measure();
             element.RegisterCallback(_geometry);
             contentContainer.RegisterCallback(_geometry);
@@ -86,10 +91,11 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
                 evt.StopPropagation();
             };
             element.RegisterCallback(_wheel);
-            element.RegisterCallback<PointerDownEvent>(OnDown);
-            element.RegisterCallback<PointerMoveEvent>(OnMove);
-            element.RegisterCallback<PointerUpEvent>(OnUp);
-            element.RegisterCallback<PointerCancelEvent>(OnCancel);
+            element.RegisterCallback<PointerDownEvent>(OnDown, TrickleDown.TrickleDown);
+            element.RegisterCallback<PointerMoveEvent>(OnMove, TrickleDown.TrickleDown);
+            element.RegisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
+            element.RegisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
+            element.RegisterCallback<PointerCaptureEvent>(OnCapture);
             element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
             element.PickingMode().Increment();
             element.Clip().Increment();
@@ -102,7 +108,7 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
             _fling?.Cancel();
             State.ScrollTo(State.Value);
             _pointer = evt.pointerId;
-            _lastPointer = evt.position.x;
+            _startPointer = _lastPointer = evt.position.x;
             _lastTime = Time.realtimeSinceStartup;
             _velocity = 0;
         }
@@ -111,13 +117,14 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
         {
             if (evt.pointerId != _pointer || Element == null) return;
             var position = evt.position.x;
+            if (!Element.HasPointerCapture(_pointer) && Math.Abs(position - _startPointer) < 5) return;
             var delta = (_lastPointer - position) * (_options.ReverseScrolling ? -1 : 1);
             if (Math.Abs(delta) < .001f) return;
             var now = Time.realtimeSinceStartup;
             _velocity = delta / Math.Max(.001f, now - _lastTime);
             _lastTime = now;
             _lastPointer = position;
-            if (ScrollBy(delta) == 0) return;
+            if (ScrollWithOverscroll(delta) == 0) return;
             Element.CapturePointer(_pointer);
             evt.StopPropagation();
         }
@@ -130,17 +137,65 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
             if (!dragged) return;
             evt.StopPropagation();
             if (Time.realtimeSinceStartup - _lastTime > .1f) _velocity = 0;
+            StartFling(_velocity);
+        }
+
+        private void OnCancel(PointerCancelEvent evt)
+        {
+            if (evt.pointerId != _pointer) return;
+            ReleasePointer();
+            if (_options.OverscrollEffect?.IsInProgress == true) StartFling(0);
+        }
+
+        private void OnCapture(PointerCaptureEvent evt)
+        {
+            if ((_pointer >= 0 && evt.pointerId != _pointer) || evt.target is not VisualElement target || target == Element) return;
+            UntrackCapturedChild();
+            _capturedChild = target;
+            // Captured pointer events skip ancestors in UI Toolkit. Listen on the
+            // capturing child until the scroll gesture takes over its capture.
+            target.RegisterCallback<PointerMoveEvent>(OnMove, TrickleDown.TrickleDown);
+            target.RegisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
+            target.RegisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
+        }
+
+        private void UntrackCapturedChild()
+        {
+            if (_capturedChild == null) return;
+            _capturedChild.UnregisterCallback<PointerMoveEvent>(OnMove, TrickleDown.TrickleDown);
+            _capturedChild.UnregisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
+            _capturedChild.UnregisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
+            _capturedChild = null;
+        }
+
+        private void OnCaptureOut(PointerCaptureOutEvent evt)
+        {
+            if (evt.target == _capturedChild) UntrackCapturedChild();
+            if (evt.target != Element || evt.pointerId != _pointer) return;
+            _pointer = -1;
+            if (_options.OverscrollEffect?.IsInProgress == true) StartFling(0);
+        }
+
+        private void StartFling(float velocity)
+        {
+            _fling?.Cancel();
+            _velocity = velocity;
             var cancellation = _fling = new CancellationTokenSource();
             _ = Fling(cancellation);
         }
-
-        private void OnCancel(PointerCancelEvent evt) { if (evt.pointerId == _pointer) ReleasePointer(); }
-        private void OnCaptureOut(PointerCaptureOutEvent evt) { if (evt.pointerId == _pointer) _pointer = -1; }
         private void ReleasePointer()
         {
             var pointer = _pointer;
             _pointer = -1;
             if (pointer >= 0) Element?.ReleasePointer(pointer);
+        }
+
+        private float ScrollWithOverscroll(float pixels)
+        {
+            var effect = _options.OverscrollEffect;
+            if (effect == null) return ScrollBy(pixels);
+            return effect.ApplyToScroll(new Offset(pixels, 0), NestedScrollSource.UserInput,
+                delta => new Offset(ScrollBy(delta.X), 0)).X;
         }
 
         public float ScrollBy(float pixels)
@@ -154,25 +209,10 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
         {
             try
             {
-                if (_options.FlingBehavior != null)
-                    await _options.FlingBehavior.PerformFling(this, _velocity, cancellation.Token);
+                if (_options.OverscrollEffect is { } effect)
+                    await effect.ApplyToFling(new Velocity(_velocity, 0), async velocity => velocity - await PerformFling(velocity, cancellation.Token), cancellation.Token);
                 else
-                {
-
-                    var last = Time.realtimeSinceStartup;
-                    var velocity = _velocity;
-                    while (Math.Abs(velocity) > 1)
-                    {
-                        await ComposeFunctions.NextFrame(cancellation.Token);
-                        var now = Time.realtimeSinceStartup;
-                        cancellation.Token.ThrowIfCancellationRequested();
-                        var dt = now - last;
-                        last = now;
-                        var delta = velocity * (1 - (float)Math.Exp(-6 * dt)) / 6;
-                        if (Math.Abs(ScrollBy(delta) - delta) > .01f) break;
-                        velocity *= (float)Math.Exp(-6 * dt);
-                    }
-                }
+                    await PerformFling(new Velocity(_velocity, 0), cancellation.Token);
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
             finally
@@ -182,20 +222,46 @@ internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, f
             }
         }
 
+        private async Task<Velocity> PerformFling(Velocity initialVelocity, CancellationToken token)
+        {
+            if (_options.FlingBehavior != null)
+            {
+                var remaining = await _options.FlingBehavior.PerformFling(this, initialVelocity.X, token);
+                return new Velocity(remaining, 0);
+            }
+
+            var last = Time.realtimeSinceStartup;
+            var velocity = initialVelocity.X;
+            while (Math.Abs(velocity) > 1)
+            {
+                await ComposeFunctions.NextFrame(token);
+                var now = Time.realtimeSinceStartup;
+                token.ThrowIfCancellationRequested();
+                var dt = now - last;
+                last = now;
+                var delta = velocity * (1 - (float)Math.Exp(-6 * dt)) / 6;
+                if (Math.Abs(ScrollBy(delta) - delta) > .01f) return new Velocity(velocity, 0);
+                velocity *= (float)Math.Exp(-6 * dt);
+            }
+            return Velocity.Zero;
+        }
         protected override void RevertFromContainer(UnityReusableComposeNode node, VisualElement element, VisualElement contentContainer)
         {
             if (!_options.Enabled) return;
             _fling?.Cancel();
             ReleasePointer();
             State.Changed -= Render;
+            if (VisualEffect != null) VisualEffect.Changed -= Render;
             element.UnregisterCallback(_geometry!);
             contentContainer.UnregisterCallback(_geometry!);
             element.UnregisterCallback(_wheel!);
-            element.UnregisterCallback<PointerDownEvent>(OnDown);
-            element.UnregisterCallback<PointerMoveEvent>(OnMove);
-            element.UnregisterCallback<PointerUpEvent>(OnUp);
-            element.UnregisterCallback<PointerCancelEvent>(OnCancel);
+            element.UnregisterCallback<PointerDownEvent>(OnDown, TrickleDown.TrickleDown);
+            element.UnregisterCallback<PointerMoveEvent>(OnMove, TrickleDown.TrickleDown);
+            element.UnregisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
+            element.UnregisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
+            element.UnregisterCallback<PointerCaptureEvent>(OnCapture);
             element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+            UntrackCapturedChild();
             element.PickingMode().Decrement();
             element.Clip().Decrement();
             contentContainer.style.translate = _translate;

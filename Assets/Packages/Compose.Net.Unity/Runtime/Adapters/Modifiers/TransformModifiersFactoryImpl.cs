@@ -16,7 +16,8 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
         IScrollState state,
         bool enabled,
         IFlingBehavior? flingBehavior,
-        bool reverseScrolling
+        bool reverseScrolling,
+        IOverscrollEffect? overscrollEffect = null
     )
     {
         return new VerticalScrollModifierImpl(
@@ -26,7 +27,8 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
             ReverseScrolling: reverseScrolling,
             UserScrollEnabled: enabled,
             InteractionSource: state.InteractionSource as IMutableInteractionSource,
-            FlingBehavior: flingBehavior
+            FlingBehavior: flingBehavior,
+            OverscrollEffect: overscrollEffect
         );
     }
 
@@ -34,7 +36,8 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
         IScrollState state,
         bool enabled,
         IFlingBehavior? flingBehavior,
-        bool reverseScrolling
+        bool reverseScrolling,
+        IOverscrollEffect? overscrollEffect = null
     )
     {
         return new HorizontalScrollModifierImpl(
@@ -44,7 +47,8 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
             ReverseScrolling: reverseScrolling,
             UserScrollEnabled: enabled,
             InteractionSource: state.InteractionSource as IMutableInteractionSource,
-            FlingBehavior: flingBehavior
+            FlingBehavior: flingBehavior,
+            OverscrollEffect: overscrollEffect
         );
     }
 }

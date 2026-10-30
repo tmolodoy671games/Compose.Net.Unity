@@ -47,9 +47,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                     Box(
                                         contentAlignment: Alignment.Center,
                                         modifier: cardModifier
+                                            .Clickable(() => expanded.Value = false)
                                             .FillMaxSize()
                                             .Background(Color.DodgerBlue)
-                                            .Clickable(() => expanded.Value = false)
                                     )
                                 )
                                 {
@@ -61,10 +61,10 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                 Box(
                                     contentAlignment: Alignment.Center,
                                     modifier: cardModifier
+                                        .Clickable(() => expanded.Value = true)
                                         .Size(400.Dp(), 120.Dp())
                                         .Clip(RoundedCornerShape(24.Dp()))
-                                        .Background(Color.DodgerBlue)
-                                        .Clickable(() => expanded.Value = true),
+                                        .Background(Color.DodgerBlue),
                                     content: () => Text("Открыть", color: Color.White, fontSize: 48.Sp())
                                 );
                             }
