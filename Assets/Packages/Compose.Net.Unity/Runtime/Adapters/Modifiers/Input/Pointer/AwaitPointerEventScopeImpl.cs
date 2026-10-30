@@ -1,108 +1,69 @@
-﻿using System.Collections.Generic;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Compose.Net;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers.Input.Pointer;
 
-internal sealed class AwaitPointerEventScopeImpl : IAwaitPointerEventScope
+internal sealed class AwaitPointerEventScopeImpl : IAwaitPointerEventScope, IDisposable
 {
-    private readonly VisualElement _element;
-    private readonly Queue<IPointerInputChange> _pending = new();
-    private TaskCompletionSource<IPointerInputChange>? _waiter;
+    private PointerEventDispatcher? _dispatcher;
+    private readonly Compose.Net.PointerEventDispatcher _events;
+    private readonly Compose.Net.PointerEventDispatcher.EventScope _scope;
+    private readonly CancellationTokenRegistration _registration;
+    private bool _disposed;
 
     public AwaitPointerEventScopeImpl(VisualElement element, CancellationToken token)
     {
-        _element = element;
-        Token = token;
-
-        _element.RegisterCallback<PointerDownEvent>(OnDown);
-        _element.RegisterCallback<PointerMoveEvent>(OnMove);
-        _element.RegisterCallback<PointerUpEvent>(OnUp);
-        _element.RegisterCallback<PointerCancelEvent>(OnCancel);
-        token.Register(Cancel);
+        Element = element;
+        _events = new Compose.Net.PointerEventDispatcher(() => Size, () => ExtendedTouchPadding);
+        _scope = _events.CreateScope(token);
+        _dispatcher = PointerEventDispatcher.Register(this);
+        element.RegisterCallback<AttachToPanelEvent>(OnAttach);
+        element.RegisterCallback<DetachFromPanelEvent>(OnDetach);
+        _registration = token.Register(Dispose);
     }
 
-    public Size Size => _element.contentRect.size.ToSize();
-    public CancellationToken Token { get; }
-    public VisualElement Element => _element;
+    public Size Size => Element.contentRect.size.ToSize();
+    public Size ExtendedTouchPadding => new(
+        Math.Max(0f, ViewConfiguration.Default.MinimumTouchTargetSize.Width - Size.Width) / 2f,
+        Math.Max(0f, ViewConfiguration.Default.MinimumTouchTargetSize.Height - Size.Height) / 2f);
+    public CancellationToken Token => _scope.Token;
+    public VisualElement Element { get; }
+    public Compose.Net.PointerEvent CurrentEvent => _scope.CurrentEvent;
+    public Task<Compose.Net.PointerEvent> AwaitPointerEvent(PointerEventPass pass = PointerEventPass.Main) => _scope.AwaitPointerEvent(pass);
+    public Task<T> WithTimeout<T>(long timeMillis, Func<IAwaitPointerEventScope, Task<T>> block) => _scope.WithTimeout(timeMillis, block);
+    public Task<T?> WithTimeoutOrNull<T>(long timeMillis, Func<IAwaitPointerEventScope, Task<T>> block) => _scope.WithTimeoutOrNull(timeMillis, block);
 
-    public Task<IPointerInputChange> AwaitFirstDown()
+    internal void Dispatch(Compose.Net.PointerEvent evt, PointerEventPass pass)
     {
-        return Wait(downOnly: true);
+        if (!_disposed) _events.Dispatch(evt, pass);
     }
 
-    public Task<IPointerInputChange> AwaitPointerInputChange()
+    private void OnAttach(AttachToPanelEvent evt)
     {
-        return Wait(downOnly: false);
+        if (evt.target != Element || _disposed) return;
+        _dispatcher?.Remove(this);
+        _dispatcher = PointerEventDispatcher.Register(this);
     }
 
-    private async Task<IPointerInputChange> Wait(bool downOnly)
+    private void OnDetach(DetachFromPanelEvent evt)
     {
-        while (true)
-        {
-            var change = await Next();
-            if (!downOnly || change.ChangedToPressed())
-                return change;
-        }
+        if (evt.target != Element) return;
+        _dispatcher?.Remove(this);
+        _dispatcher = null;
     }
 
-    private Task<IPointerInputChange> Next()
+    public void Dispose()
     {
-        Token.ThrowIfCancellationRequested();
-        if (_pending.Count > 0)
-            return Task.FromResult(_pending.Dequeue());
-
-        // UI Toolkit pools events. Resume on the dispatching UI thread while the event
-        // (and its target/local coordinates) is still valid.
-        _waiter = new TaskCompletionSource<IPointerInputChange>();
-        return _waiter.Task;
-    }
-
-    private void OnDown(PointerDownEvent evt)
-    {
-        _element.CapturePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnMove(PointerMoveEvent evt)
-    {
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnUp(PointerUpEvent evt)
-    {
-        _element.ReleasePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnCancel(PointerCancelEvent evt)
-    {
-        _element.ReleasePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void Push(IPointerInputChange change)
-    {
-        if (_waiter != null)
-        {
-            var waiter = _waiter;
-            _waiter = null;
-            waiter.TrySetResult(change);
-            return;
-        }
-
-        _pending.Enqueue(change);
-    }
-
-    private void Cancel()
-    {
-        _element.UnregisterCallback<PointerDownEvent>(OnDown);
-        _element.UnregisterCallback<PointerMoveEvent>(OnMove);
-        _element.UnregisterCallback<PointerUpEvent>(OnUp);
-        _element.UnregisterCallback<PointerCancelEvent>(OnCancel);
-        _waiter?.TrySetCanceled(Token);
+        if (_disposed) return;
+        _disposed = true;
+        Element.UnregisterCallback<AttachToPanelEvent>(OnAttach);
+        Element.UnregisterCallback<DetachFromPanelEvent>(OnDetach);
+        _dispatcher?.Remove(this);
+        _dispatcher = null;
+        _scope.Dispose();
+        _registration.Dispose();
     }
 }

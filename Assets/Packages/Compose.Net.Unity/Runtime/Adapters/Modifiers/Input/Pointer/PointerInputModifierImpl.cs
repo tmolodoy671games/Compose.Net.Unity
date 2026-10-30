@@ -15,17 +15,18 @@ internal record PointerInputModifierImpl<T>(
     Func<IPointerInputScope, Task> Body
 ) : ModifierNodeElement<PointerInputModifierImpl<T>.PointerNode>
 {
-    public override PointerNode Create() => new(Body);
-    public override void Update(PointerNode node) => node.Update(Body);
+    public override PointerNode Create() => new(Key, Body);
+    public override void Update(PointerNode node) => node.Update(Key, Body);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
     public virtual bool Equals(PointerInputModifierImpl<T>? other) =>
-        other != null && EqualityUtils.Equals(Key, other.Key);
+        other != null && EqualityUtils.Equals(Key, other.Key) && Body.Method == other.Body.Method;
 
-    public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Key!);
+    public override int GetHashCode() => HashCode.Combine(Key, Body.Method);
 
-    internal sealed class PointerNode(Func<IPointerInputScope, Task> body) : IModifier.Node
+    internal sealed class PointerNode(T key, Func<IPointerInputScope, Task> body) : IModifier.Node
     {
+        private T _key = key;
         private Func<IPointerInputScope, Task> _body = body;
         private CancellationTokenSource? _source;
         private VisualElement? _element;
@@ -37,12 +38,12 @@ internal record PointerInputModifierImpl<T>(
             StartBody();
         }
 
-        internal void Update(Func<IPointerInputScope, Task> next)
+        internal void Update(T key, Func<IPointerInputScope, Task> next)
         {
-            if (ReferenceEquals(_body, next))
-                return;
+            var restart = !EqualityUtils.Equals(_key, key) || _body.Method != next.Method;
+            _key = key;
             _body = next;
-            if (_element != null)
+            if (restart && _element != null)
                 StartBody();
         }
 

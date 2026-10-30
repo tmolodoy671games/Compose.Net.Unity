@@ -40,7 +40,7 @@ internal record PointerInputChange(
             PreviousPressed: false,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
-            ScrollDelta: evt.deltaPosition.ToOffset(),
+            ScrollDelta: Offset.Zero,
             Event: evt
         );
     }
@@ -58,7 +58,7 @@ internal record PointerInputChange(
             PreviousPressed: evt.pressedButtons != 0,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
-            ScrollDelta: evt.deltaPosition.ToOffset(),
+            ScrollDelta: Offset.Zero,
             Event: evt
         );
     }
@@ -76,7 +76,7 @@ internal record PointerInputChange(
             PreviousPressed: true,
             IsInitiallyConsumed: false,
             Type: evt.pointerType.ToPointerType(),
-            ScrollDelta: evt.deltaPosition.ToOffset(),
+            ScrollDelta: Offset.Zero,
             Event: evt
         );
     }
@@ -92,19 +92,20 @@ internal record PointerInputChange(
             PreviousUptimeMillis: (Time.time - evt.deltaTime).ToLongTime(),
             PreviousPosition: (evt.localPosition - evt.deltaPosition).ToOffset(),
             PreviousPressed: true,
-            IsInitiallyConsumed: false,
+            IsInitiallyConsumed: true,
             Type: evt.pointerType.ToPointerType(),
-            ScrollDelta: evt.deltaPosition.ToOffset(),
+            ScrollDelta: Offset.Zero,
             Event: evt,
             IsCancelled: true
         );
     }
 
-    public bool IsConsumed { get; private set; }
+    internal sealed class Consumption { public bool Value; }
+    internal Consumption Consumed { get; init; } = new() { Value = IsInitiallyConsumed };
+    public bool IsConsumed => Consumed.Value;
 
     public void Consume()
     {
-        IsConsumed = true;
-        Event.StopPropagation();
+        Consumed.Value = true;
     }
 }

@@ -20,10 +20,14 @@ internal class PointerInputScopeImpl : IPointerInputScope
     }
 
     public Size Size => _element.contentRect.size.ToSize();
+    public Size ExtendedTouchPadding => new(
+        Math.Max(0f, ViewConfiguration.Default.MinimumTouchTargetSize.Width - Size.Width) / 2f,
+        Math.Max(0f, ViewConfiguration.Default.MinimumTouchTargetSize.Height - Size.Height) / 2f);
     public CancellationToken Token { get; }
 
-    public Task AwaitPointerEventScope(Func<IAwaitPointerEventScope, Task> block)
+    public async Task AwaitPointerEventScope(Func<IAwaitPointerEventScope, Task> block)
     {
-        return block(new AwaitPointerEventScopeImpl(_element, Token));
+        using var scope = new AwaitPointerEventScopeImpl(_element, Token);
+        await block(scope);
     }
 }
