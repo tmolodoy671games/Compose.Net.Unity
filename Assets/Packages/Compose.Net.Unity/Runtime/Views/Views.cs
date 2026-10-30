@@ -62,21 +62,18 @@ public class Box : VisualElement, ILayout
     private const string ShrinkKey = "Compose.Net.Unity_BoxPreviousShrink";
     private const string ShiftKey = "Compose.Net.Unity_BoxShift";
 
-    private const float PullTolerance = 0.5f;
+    private const string StackMarginKey = "Compose.Net.Unity_BoxStackMargin";
     private const float ShiftTolerance = 0.01f;
 
     private readonly EventCallback<GeometryChangedEvent> _onGeometryChanged;
-    private readonly VisualElement _pull = new BoxPull();
     private Alignment _contentAlignment = Alignment.TopLeft;
     private Box? _contentLayout;
-    private float _pullValue;
 
     public Box()
     {
         style.flexDirection = FlexDirection.Column;
         style.alignItems = Align.FlexStart;
         style.justifyContent = Justify.FlexStart;
-        Add(_pull);
         _onGeometryChanged = evt =>
         {
             if (evt.target == this || !IsAbsolute((VisualElement)evt.target))
@@ -141,13 +138,13 @@ public class Box : VisualElement, ILayout
         data[ShrinkKey] = null;
         child.style.alignSelf = StyleKeyword.Null;
         SetShift(child, 0f);
+        SetStackMargin(child, 0f);
         Arrange();
     }
 
     private void Arrange()
     {
         ApplyMinimums();
-        KeepPullLast();
 
         VisualElement? single = null;
         var stackedCount = 0;
@@ -160,6 +157,7 @@ public class Box : VisualElement, ILayout
                 // A child that became absolute (Float, animateContentSize) is out of the stack:
                 // drop the shift applied while it was stacked.
                 SetShift(child, 0f);
+                SetStackMargin(child, 0f);
                 continue;
             }
 
@@ -179,7 +177,7 @@ public class Box : VisualElement, ILayout
     // Nothing to overlap: plain flex alignment of the container is enough.
     private void ArrangeSingle(VisualElement? child)
     {
-        SetPull(0f);
+        if (child != null) SetStackMargin(child, 0f);
         var alignment = child != null ? AlignmentOf(child) : _contentAlignment;
         SetContainerAlignment(alignment.ToAlign(), alignment.ToJustify());
         if (child == null)
@@ -189,13 +187,13 @@ public class Box : VisualElement, ILayout
         SetShift(child, 0f);
     }
 
-    // Two or more children are stacked on top of each other: the pull collapses the column
-    // to the tallest child and every child is shifted to its own vertical position.
+    // Keep one tallest child in flow. Compensate the other children with their own
+    // margins, so the Box measures the maximum height without a synthetic spacer.
     private void ArrangeStack()
     {
         SetContainerAlignment(Align.FlexStart, Justify.FlexStart);
 
-        var sumHeight = 0f;
+        VisualElement? tallest = null;
         var maxHeight = 0f;
         foreach (var child in Children())
         {
@@ -208,11 +206,16 @@ public class Box : VisualElement, ILayout
             if (!HasLayout(child))
                 continue;
             var outerHeight = OuterHeight(child);
-            sumHeight += outerHeight;
-            maxHeight = Mathf.Max(maxHeight, outerHeight);
+            if (tallest == null || outerHeight > maxHeight)
+            {
+                tallest = child;
+                maxHeight = outerHeight;
+            }
         }
 
-        SetPull(maxHeight - sumHeight);
+        foreach (var child in Children())
+            if (IsStacked(child) && HasLayout(child))
+                SetStackMargin(child, child == tallest ? 0f : OuterHeight(child));
 
         if (float.IsNaN(contentRect.height))
             return;
@@ -228,26 +231,6 @@ public class Box : VisualElement, ILayout
         }
     }
 
-    // Children are inserted by index, so the spacer must stay after every in-flow child.
-    // Elements appended after it (draw-on-top layers) are absolute and do not matter.
-    private void KeepPullLast()
-    {
-        if (_pull.parent != this)
-        {
-            Add(_pull);
-            return;
-        }
-
-        for (var i = IndexOf(_pull) + 1; i < childCount; i++)
-        {
-            if (IsStacked(this[i]))
-            {
-                _pull.BringToFront();
-                return;
-            }
-        }
-    }
-
     private void SetContainerAlignment(Align align, Justify justify)
     {
         if (style.alignItems != align)
@@ -256,14 +239,36 @@ public class Box : VisualElement, ILayout
             style.justifyContent = justify;
     }
 
-    private void SetPull(float pull)
+    private sealed class StackMargin(StyleLength original, float natural)
     {
-        if (Mathf.Abs(_pullValue - pull) <= PullTolerance)
-            return;
-        _pullValue = pull;
-        _pull.style.marginTop = pull;
+        public readonly StyleLength Original = original;
+        public readonly float Natural = natural;
+        public float Correction;
     }
 
+    private static void SetStackMargin(VisualElement child, float correction)
+    {
+        var data = child.UserData();
+        var previous = data.GetOrNull(StackMarginKey) as StackMargin;
+        if (previous == null)
+        {
+            if (Mathf.Abs(correction) <= ShiftTolerance) return;
+            previous = new StackMargin(child.style.marginBottom, child.resolvedStyle.marginBottom);
+            data[StackMarginKey] = previous;
+        }
+        if (Mathf.Abs(previous.Correction - correction) <= ShiftTolerance) return;
+        var natural = child.style.marginBottom.keyword == StyleKeyword.Undefined
+            ? child.style.marginBottom.value.value + previous.Correction
+            : child.resolvedStyle.marginBottom + previous.Correction;
+        if (Mathf.Abs(correction) <= ShiftTolerance)
+        {
+            child.style.marginBottom = Mathf.Abs(natural - previous.Natural) <= ShiftTolerance
+                ? previous.Original : new StyleLength(natural);
+            data[StackMarginKey] = null;
+        }
+        else child.style.marginBottom = natural - correction;
+        previous.Correction = correction;
+    }
     private static void SetShift(VisualElement child, float shift)
     {
         var data = child.UserData();
@@ -290,8 +295,13 @@ public class Box : VisualElement, ILayout
     private static bool HasLayout(VisualElement child) =>
         !float.IsNaN(child.layout.height) && !float.IsNaN(child.layout.y);
 
-    private static float OuterHeight(VisualElement child) =>
-        child.layout.height + child.resolvedStyle.marginTop + child.resolvedStyle.marginBottom;
+    private static float OuterHeight(VisualElement child)
+    {
+        var margin = child.resolvedStyle.marginBottom;
+        if (child.UserData().GetOrNull(StackMarginKey) is StackMargin stack)
+            margin = child.style.marginBottom.value.value + stack.Correction;
+        return child.layout.height + child.resolvedStyle.marginTop + margin;
+    }
 
     private static float Bias(Justify justify) => justify switch
     {
@@ -299,17 +309,6 @@ public class Box : VisualElement, ILayout
         Justify.FlexEnd => 1f,
         _ => 0f,
     };
-}
-
-internal class BoxPull : VisualElement
-{
-    public BoxPull()
-    {
-        pickingMode = UnityEngine.UIElements.PickingMode.Ignore;
-        style.flexShrink = 0;
-        style.width = 0;
-        style.height = 0;
-    }
 }
 
 public class Spacer : VisualElement

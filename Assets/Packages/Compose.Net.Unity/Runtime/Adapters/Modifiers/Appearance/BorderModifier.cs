@@ -31,18 +31,10 @@ internal record BorderModifierImpl(
 
     protected override void OnAttached(VisualElement element)
     {
-        var width = BorderWidth.ToPx(UnityDensity.Current);
-        element.style.borderTopWidth = width;
-        element.style.borderBottomWidth = width;
-        element.style.borderLeftWidth = width;
-        element.style.borderRightWidth = width;
+        // Compose borders paint inside their bounds without consuming content space.
     }
 
     protected override void OnDetached(VisualElement element)
     {
-        element.style.borderTopWidth = StyleKeyword.Null;
-        element.style.borderBottomWidth = StyleKeyword.Null;
-        element.style.borderLeftWidth = StyleKeyword.Null;
-        element.style.borderRightWidth = StyleKeyword.Null;
     }
 }

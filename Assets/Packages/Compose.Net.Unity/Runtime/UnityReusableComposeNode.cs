@@ -11,7 +11,7 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 
 namespace Compose.Net.Unity;
 
-public class UnityReusableComposeNode : IReusableComposeNode
+public partial class UnityReusableComposeNode : IReusableComposeNode, IModifierChainHost
 {
     public readonly VisualElement VisualElement;
     private AnchorManager? _anchorManager;
@@ -46,6 +46,8 @@ public class UnityReusableComposeNode : IReusableComposeNode
 
     public void Dispose()
     {
+        foreach (var wrapper in _modifierWrappers)
+            wrapper.Dispose();
         foreach (var entry in VisualElement.UserData().Values)
         {
             if (entry is IDisposable disposable and not IReusableComposeNode)
@@ -63,7 +65,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
 
     public void Remove(IReusableComposeNode child)
     {
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = child.LayoutElement();
         (ContentContainer as ILayout)?.Untrack(childVisualElement);
         ContentContainer.Remove(childVisualElement);
         SyncDrawOnTop();
@@ -71,7 +73,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
 
     public void FastRemove(int index, IReusableComposeNode child)
     {
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = child.LayoutElement();
         if (childVisualElement.parent != ContentContainer)
             return;
         (ContentContainer as ILayout)?.Untrack(childVisualElement);
@@ -88,8 +90,8 @@ public class UnityReusableComposeNode : IReusableComposeNode
     {
         if (_drawBehind != null)
             index++;
-        ContentContainer.Insert(index, child.VisualElement());
-        (ContentContainer as ILayout)?.Track(child.VisualElement());
+        ContentContainer.Insert(index, child.LayoutElement());
+        (ContentContainer as ILayout)?.Track(child.LayoutElement());
         SyncDrawOnTop();
     }
 
@@ -97,7 +99,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
     {
         if (_drawBehind != null)
             index++;
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = child.LayoutElement();
         var parent = ContentContainer;
         if (parent.GetOrNull(index) != childVisualElement)
         {
@@ -120,8 +122,8 @@ public class UnityReusableComposeNode : IReusableComposeNode
     }
 
     public bool IsRoot { get; }
-    public IReusableComposeNode? Parent => VisualElement.parent?.GetReusableComposeNode();
-    public int IndexInParent => VisualElement.parent.IndexOf(VisualElement);
+    public IReusableComposeNode? Parent => LayoutElement.parent?.GetReusableComposeNode();
+    public int IndexInParent => LayoutElement.parent?.IndexOf(LayoutElement) ?? -1;
     public AnchorManager? AnchorManager => _anchorManager;
 
     public void InsertDrawOnTop(int index, Action<MeshGenerationContext> content)
@@ -365,8 +367,8 @@ public class UnityReusableComposeNode : IReusableComposeNode
         var children = VisualElement.Children().ToPersistentStableList();
         foreach (var child in children)
         {
-            // The Box spacer and DrawOn belong to the element itself, not to its content.
-            if (child is BoxPull || child == _drawOn)
+            // DrawOn belongs to the element itself, not to its content.
+            if (child == _drawOn)
                 continue;
             (VisualElement as ILayout)?.Untrack(child);
             child.parent.Remove(child);
@@ -377,7 +379,7 @@ public class UnityReusableComposeNode : IReusableComposeNode
         (VisualElement as ILayout)?.Track(_contentContainerInstance);
         foreach (var child in children)
         {
-            if (child is BoxPull || child == _drawOn)
+            if (child == _drawOn)
                 continue;
             _contentContainerInstance.Add(child);
             (_contentContainerInstance as ILayout)?.Track(child);
@@ -394,8 +396,6 @@ public class UnityReusableComposeNode : IReusableComposeNode
         var children = _contentContainer.Children().ToPersistentStableList();
         foreach (var child in children)
         {
-            if (child is BoxPull)
-                continue;
             (_contentContainer as ILayout)?.Untrack(child);
             child.parent.Remove(child);
         }
@@ -404,8 +404,6 @@ public class UnityReusableComposeNode : IReusableComposeNode
         VisualElement.Remove(_contentContainer);
         foreach (var child in children)
         {
-            if (child is BoxPull)
-                continue;
             VisualElement.Add(child);
             (VisualElement as ILayout)?.Track(child);
         }
@@ -430,6 +428,9 @@ public class UnityReusableComposeNode : IReusableComposeNode
 
 public static class ReusableComposeNodeExtensions
 {
+    public static VisualElement LayoutElement(this IReusableComposeNode node)
+        => node.CastTo<UnityReusableComposeNode>().LayoutElement;
+
     public static VisualElement VisualElement(this IReusableComposeNode node)
     {
         return node.CastTo<UnityReusableComposeNode>().VisualElement;

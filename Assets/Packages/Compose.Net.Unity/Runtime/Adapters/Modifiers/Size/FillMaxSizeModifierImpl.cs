@@ -23,8 +23,8 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
             _element = (VisualElement)Target;
             _originalWidth = _element.style.width;
             _originalHeight = _element.style.height;
-            if (_width > 0) _element.style.width = new Length(_width * 100, LengthUnit.Percent);
-            if (_height > 0) _element.style.height = new Length(_height * 100, LengthUnit.Percent);
+            if (_width >= 0) _element.style.width = new Length(_width * 100, LengthUnit.Percent);
+            if (_height >= 0) _element.style.height = new Length(_height * 100, LengthUnit.Percent);
         }
 
         internal void Update(float nextWidth, float nextHeight)
@@ -32,11 +32,11 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
             if (_element != null)
             {
                 if (_width != nextWidth)
-                    _element.style.width = nextWidth > 0
+                    _element.style.width = nextWidth >= 0
                         ? new Length(nextWidth * 100, LengthUnit.Percent)
                         : _originalWidth;
                 if (_height != nextHeight)
-                    _element.style.height = nextHeight > 0
+                    _element.style.height = nextHeight >= 0
                         ? new Length(nextHeight * 100, LengthUnit.Percent)
                         : _originalHeight;
             }

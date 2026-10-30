@@ -2,6 +2,7 @@
 using System;
 using Compose.Net;
 using UnityEngine.UIElements;
+using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 
 namespace Compose.Net.Unity;
 
@@ -26,23 +27,27 @@ internal record OffsetModifierImpl(Dp X, Dp Y) : ModifierNodeElement<OffsetModif
         {
             _element = (VisualElement)Target;
             _element.usageHints |= UsageHints.DynamicTransform;
-            _element.style.translate = new Translate(_x, _y);
+            Change(_x, _y);
         }
 
         internal void Update(float nx, float ny)
         {
             if (_x == nx && _y == ny) return;
+            Change(nx - _x, ny - _y);
             _x = nx;
             _y = ny;
-            if (_element != null)
-                _element.style.translate = new Translate(nx, ny);
         }
 
         public override void OnDetach()
         {
-            if (_element != null)
-                _element.style.translate = StyleKeyword.None;
+            Change(-_x, -_y);
             _element = null;
+        }
+
+        private void Change(float x, float y)
+        {
+            if (_element != null)
+                _element.style.translate = _element.style.translate.Add(new Translate(x, y));
         }
     }
 }
