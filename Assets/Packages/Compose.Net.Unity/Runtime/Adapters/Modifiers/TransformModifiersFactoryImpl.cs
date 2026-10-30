@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Compose.Net;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
@@ -15,38 +15,36 @@ internal class TransformModifiersFactoryImpl : ITransformModifiersFactory
     public IModifier VerticalScroll(
         IScrollState state,
         bool enabled,
-        float scrollMultiplier,
-        bool reverseScrolling,
-        bool userScrollEnabled,
-        IMutableInteractionSource? interactionSource
+        IFlingBehavior? flingBehavior,
+        bool reverseScrolling
     )
     {
         return new VerticalScrollModifierImpl(
-            Enabled: enabled,
+            Enabled: true,
             State: state,
-            ScrollMultiplier: scrollMultiplier,
+            ScrollMultiplier: 40,
             ReverseScrolling: reverseScrolling,
-            UserScrollEnabled: userScrollEnabled,
-            InteractionSource: interactionSource
+            UserScrollEnabled: enabled,
+            InteractionSource: state.InteractionSource as IMutableInteractionSource,
+            FlingBehavior: flingBehavior
         );
     }
 
     public IModifier HorizontalScroll(
         IScrollState state,
         bool enabled,
-        float scrollMultiplier,
-        bool reverseScrolling,
-        bool userScrollEnabled,
-        IMutableInteractionSource? interactionSource
+        IFlingBehavior? flingBehavior,
+        bool reverseScrolling
     )
     {
         return new HorizontalScrollModifierImpl(
-            Enabled: enabled,
+            Enabled: true,
             State: state,
-            ScrollMultiplier: scrollMultiplier,
+            ScrollMultiplier: 40,
             ReverseScrolling: reverseScrolling,
-            UserScrollEnabled: userScrollEnabled,
-            InteractionSource: interactionSource
+            UserScrollEnabled: enabled,
+            InteractionSource: state.InteractionSource as IMutableInteractionSource,
+            FlingBehavior: flingBehavior
         );
     }
 }

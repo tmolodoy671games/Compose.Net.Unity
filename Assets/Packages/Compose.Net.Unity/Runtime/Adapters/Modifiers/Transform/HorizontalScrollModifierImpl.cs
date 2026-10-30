@@ -1,144 +1,209 @@
-﻿// ReSharper disable CheckNamespace
-
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Compose.Net;
-using SharpExtensions;
-using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record HorizontalScrollModifierImpl(
-    IScrollState State,
-    bool Enabled,
-    float ScrollMultiplier,
-    bool ReverseScrolling,
-    bool UserScrollEnabled,
-    IMutableInteractionSource? InteractionSource
-) : ContentContainerUnityModifier<HorizontalScrollModifierImpl.HorizontalScrollNode>
+internal record HorizontalScrollModifierImpl(IScrollState State, bool Enabled, float ScrollMultiplier,
+    bool ReverseScrolling, bool UserScrollEnabled, IMutableInteractionSource? InteractionSource,
+    IFlingBehavior? FlingBehavior = null)
+    : ContentContainerUnityModifier<HorizontalScrollModifierImpl.HorizontalScrollNode>
 {
-    public override HorizontalScrollNode Create() => new(
-        State,
-        Enabled,
-        ScrollMultiplier,
-        ReverseScrolling,
-        UserScrollEnabled,
-        InteractionSource
-    );
+    public override HorizontalScrollNode Create() => new(this);
+    public override void Update(HorizontalScrollNode node) => node.Update(this);
 
-    public override void Update(HorizontalScrollNode node) => node.Update(
-        State,
-        Enabled,
-        ScrollMultiplier,
-        ReverseScrolling,
-        UserScrollEnabled,
-        InteractionSource
-    );
-
-    internal sealed class HorizontalScrollNode(
-        IScrollState state,
-        bool enabled,
-        float scrollMultiplier,
-        bool reverseScrolling,
-        bool userScrollEnabled,
-        IMutableInteractionSource? interactionSource
-    ) : ContentContainerNodeBase
+    internal sealed class HorizontalScrollNode(HorizontalScrollModifierImpl options) : ContentContainerNodeBase, IScrollScope
     {
-        private IScrollState _state = state;
-        private bool _enabled = enabled;
-        private float _scrollMultiplier = scrollMultiplier;
-        private bool _reverseScrolling = reverseScrolling;
-        private bool _userScrollEnabled = userScrollEnabled;
-        private IMutableInteractionSource? _interactionSource = interactionSource;
+        private HorizontalScrollModifierImpl _options = options;
+        private EventCallback<WheelEvent>? _wheel;
+        private EventCallback<GeometryChangedEvent>? _geometry;
+        private StyleTranslate _translate;
+        private StyleFloat _shrink;
+        private StyleEnum<Align> _align;
+        private StyleEnum<FlexDirection> _direction;
+        private StyleEnum<Align> _alignItems;
+        private StyleEnum<Justify> _justify;
+        private int _pointer = -1;
+        private float _lastPointer, _velocity, _lastTime;
+        private CancellationTokenSource? _fling;
+        private IScrollState State => _options.State;
 
-        private EventCallback<WheelEvent>? _wheelCallback;
-        private EventCallback<GeometryChangedEvent>? _onElementGeometryChanged;
-        private EventCallback<GeometryChangedEvent>? _onGeometryChanged;
-
-        internal void Update(
-            IScrollState nextState,
-            bool nextEnabled,
-            float nextScrollMultiplier,
-            bool nextReverseScrolling,
-            bool nextUserScrollEnabled,
-            IMutableInteractionSource? nextInteractionSource
-        )
+        internal void Update(HorizontalScrollModifierImpl next)
         {
-            if (Element != null && ContentContainer != null && _enabled)
+            if (Element != null && ContentContainer != null)
                 RevertFromContainer(UnityNode!, Element, ContentContainer);
-            _state = nextState;
-            _enabled = nextEnabled;
-            _scrollMultiplier = nextScrollMultiplier;
-            _reverseScrolling = nextReverseScrolling;
-            _userScrollEnabled = nextUserScrollEnabled;
-            _interactionSource = nextInteractionSource;
-            if (Element != null && ContentContainer != null && _enabled)
+            _options = next;
+            if (Element != null && ContentContainer != null)
                 ApplyToContainer(UnityNode!, Element, ContentContainer);
         }
 
-        protected override void ApplyToContainer(
-            UnityReusableComposeNode node,
-            VisualElement element,
-            VisualElement contentContainer
-        )
+        private void Render()
         {
-            if (!_enabled)
-                return;
-            _onGeometryChanged = evt =>
-            {
-                var el = evt.VisualElement();
-                _state.ContentSize = el.contentRect.width;
-            };
-            _onElementGeometryChanged = evt =>
-            {
-                var el = evt.VisualElement();
-                _state.ViewportSize = el.contentRect.width;
-            };
-            _wheelCallback = evt =>
-            {
-                evt.StopPropagation();
-                var offset = -evt.delta.x - evt.delta.y;
-                if (offset.AlmostEquals(0f))
-                    return;
-                var multiplier = _reverseScrolling ? -1 : 1;
-                offset *= -multiplier * _scrollMultiplier;
-                _state.SmoothScrollBy(offset);
-                _interactionSource?.Emit(new IScrollInteraction.Scroll(offset));
-            };
-            var containerStyle = contentContainer.style;
-            contentContainer.RegisterCallback(_onGeometryChanged);
-            containerStyle.translate = new Vector2(-_state.Value, 0);
-            containerStyle.flexShrink = 0;
-            containerStyle.flexDirection = FlexDirection.Row;
-            element.Clip().Increment();
-            element.RegisterCallback(_onElementGeometryChanged);
-            element.PickingMode().Increment();
-            if (_userScrollEnabled)
-                element.RegisterCallback(_wheelCallback, TrickleDown.TrickleDown);
+            if (ContentContainer == null) return;
+            var position = _options.ReverseScrolling ? State.MaxValue - State.Value : State.Value;
+            if (float.IsNaN(position) || float.IsInfinity(position)) position = 0;
+            ContentContainer.style.translate = new Vector2(-position, 0);
         }
 
-        protected override void RevertFromContainer(
-            UnityReusableComposeNode node,
-            VisualElement element,
-            VisualElement contentContainer
-        )
+        private void Measure()
         {
-            if (!_enabled)
-                return;
-            var containerStyle = contentContainer.style;
-            contentContainer.UnregisterCallback(_onGeometryChanged!);
-            containerStyle.translate = containerStyle.translate.CompareAndSetNull(new Vector2(-_state.Value, 0));
-            containerStyle.flexShrink = containerStyle.flexShrink.CompareAndSetNull(0);
-            containerStyle.flexDirection = containerStyle.flexDirection.CompareAndSetNull(FlexDirection.Row);
-            element.Clip().Decrement();
-            element.UnregisterCallback(_onElementGeometryChanged!);
+            if (Element == null || ContentContainer == null) return;
+            if (float.IsNaN(Element.contentRect.width) || Element.contentRect.width <= 0) return;
+            State.ViewportSize = Element.contentRect.width;
+            State.ContentSize = ContentContainer.layout.width;
+            Render();
+        }
+
+        protected override void ApplyToContainer(UnityReusableComposeNode node, VisualElement element, VisualElement contentContainer)
+        {
+            if (!_options.Enabled) return;
+            _translate = contentContainer.style.translate;
+            _shrink = contentContainer.style.flexShrink;
+            _align = contentContainer.style.alignSelf;
+            _direction = contentContainer.style.flexDirection;
+            _alignItems = contentContainer.style.alignItems;
+            _justify = contentContainer.style.justifyContent;
+            contentContainer.style.flexShrink = 0;
+            contentContainer.style.alignSelf = Align.Stretch;
+            contentContainer.style.flexDirection = element is Row ? FlexDirection.Row : FlexDirection.Column;
+            contentContainer.style.alignItems = element.style.alignItems;
+            contentContainer.style.justifyContent = element.style.justifyContent;
+            State.Changed += Render;
+            _geometry = _ => Measure();
+            element.RegisterCallback(_geometry);
+            contentContainer.RegisterCallback(_geometry);
+            _wheel = evt =>
+            {
+                if (!_options.UserScrollEnabled) return;
+                var delta = (Math.Abs(evt.delta.x) > .001f ? evt.delta.x : evt.delta.y) * _options.ScrollMultiplier * (_options.ReverseScrolling ? -1 : 1);
+                if (Math.Abs(delta) < .001f || (delta > 0 ? !State.CanScrollForward : !State.CanScrollBackward)) return;
+                _fling?.Cancel();
+                State.SmoothScrollBy(delta);
+                _options.InteractionSource?.TryEmit(new IScrollInteraction.Scroll(delta));
+                evt.StopPropagation();
+            };
+            element.RegisterCallback(_wheel);
+            element.RegisterCallback<PointerDownEvent>(OnDown);
+            element.RegisterCallback<PointerMoveEvent>(OnMove);
+            element.RegisterCallback<PointerUpEvent>(OnUp);
+            element.RegisterCallback<PointerCancelEvent>(OnCancel);
+            element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+            element.PickingMode().Increment();
+            element.Clip().Increment();
+            Measure();
+        }
+
+        private void OnDown(PointerDownEvent evt)
+        {
+            if (!_options.UserScrollEnabled || evt.button != 0 || _pointer >= 0 || State.MaxValue <= 0) return;
+            _fling?.Cancel();
+            State.ScrollTo(State.Value);
+            _pointer = evt.pointerId;
+            _lastPointer = evt.position.x;
+            _lastTime = Time.realtimeSinceStartup;
+            _velocity = 0;
+        }
+
+        private void OnMove(PointerMoveEvent evt)
+        {
+            if (evt.pointerId != _pointer || Element == null) return;
+            var position = evt.position.x;
+            var delta = (_lastPointer - position) * (_options.ReverseScrolling ? -1 : 1);
+            if (Math.Abs(delta) < .001f) return;
+            var now = Time.realtimeSinceStartup;
+            _velocity = delta / Math.Max(.001f, now - _lastTime);
+            _lastTime = now;
+            _lastPointer = position;
+            if (ScrollBy(delta) == 0) return;
+            Element.CapturePointer(_pointer);
+            evt.StopPropagation();
+        }
+
+        private void OnUp(PointerUpEvent evt)
+        {
+            if (evt.pointerId != _pointer) return;
+            var dragged = Element != null && Element.HasPointerCapture(_pointer);
+            ReleasePointer();
+            if (!dragged) return;
+            evt.StopPropagation();
+            if (Time.realtimeSinceStartup - _lastTime > .1f) _velocity = 0;
+            var cancellation = _fling = new CancellationTokenSource();
+            _ = Fling(cancellation);
+        }
+
+        private void OnCancel(PointerCancelEvent evt) { if (evt.pointerId == _pointer) ReleasePointer(); }
+        private void OnCaptureOut(PointerCaptureOutEvent evt) { if (evt.pointerId == _pointer) _pointer = -1; }
+        private void ReleasePointer()
+        {
+            var pointer = _pointer;
+            _pointer = -1;
+            if (pointer >= 0) Element?.ReleasePointer(pointer);
+        }
+
+        public float ScrollBy(float pixels)
+        {
+            var consumed = State.DispatchRawDelta(pixels);
+            if (consumed != 0) _options.InteractionSource?.TryEmit(new IScrollInteraction.Scroll(consumed));
+            return consumed;
+        }
+
+        private async Task Fling(CancellationTokenSource cancellation)
+        {
+            try
+            {
+                if (_options.FlingBehavior != null)
+                    await _options.FlingBehavior.PerformFling(this, _velocity, cancellation.Token);
+                else
+                {
+
+                    var last = Time.realtimeSinceStartup;
+                    var velocity = _velocity;
+                    while (Math.Abs(velocity) > 1)
+                    {
+                        await ComposeFunctions.NextFrame(cancellation.Token);
+                        var now = Time.realtimeSinceStartup;
+                        cancellation.Token.ThrowIfCancellationRequested();
+                        var dt = now - last;
+                        last = now;
+                        var delta = velocity * (1 - (float)Math.Exp(-6 * dt)) / 6;
+                        if (Math.Abs(ScrollBy(delta) - delta) > .01f) break;
+                        velocity *= (float)Math.Exp(-6 * dt);
+                    }
+                }
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+            finally
+            {
+                if (ReferenceEquals(_fling, cancellation)) _fling = null;
+                cancellation.Dispose();
+            }
+        }
+
+        protected override void RevertFromContainer(UnityReusableComposeNode node, VisualElement element, VisualElement contentContainer)
+        {
+            if (!_options.Enabled) return;
+            _fling?.Cancel();
+            ReleasePointer();
+            State.Changed -= Render;
+            element.UnregisterCallback(_geometry!);
+            contentContainer.UnregisterCallback(_geometry!);
+            element.UnregisterCallback(_wheel!);
+            element.UnregisterCallback<PointerDownEvent>(OnDown);
+            element.UnregisterCallback<PointerMoveEvent>(OnMove);
+            element.UnregisterCallback<PointerUpEvent>(OnUp);
+            element.UnregisterCallback<PointerCancelEvent>(OnCancel);
+            element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
             element.PickingMode().Decrement();
-            if (_userScrollEnabled)
-                element.UnregisterCallback(_wheelCallback!, TrickleDown.TrickleDown);
-            _wheelCallback = null;
-            _onElementGeometryChanged = null;
-            _onGeometryChanged = null;
+            element.Clip().Decrement();
+            contentContainer.style.translate = _translate;
+            contentContainer.style.flexShrink = _shrink;
+            contentContainer.style.alignSelf = _align;
+            contentContainer.style.flexDirection = _direction;
+            contentContainer.style.alignItems = _alignItems;
+            contentContainer.style.justifyContent = _justify;
         }
     }
 }
