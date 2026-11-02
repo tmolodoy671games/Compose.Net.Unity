@@ -1,0 +1,5 @@
+{
+  "name": "Compose.Net.Unity.Samples.Editor",
+  "references": ["Compose.Net.Unity", "Compose.Net.Unity.Samples"],
+  "includePlatforms": ["Editor"]
+}

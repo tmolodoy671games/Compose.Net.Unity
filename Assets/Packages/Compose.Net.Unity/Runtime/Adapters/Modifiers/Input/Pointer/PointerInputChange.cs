@@ -80,23 +80,13 @@ internal record PointerInputChange(
         );
     }
 
-    public static IPointerInputChange Create(PointerCancelEvent evt)
-    {
-        return new PointerInputChange(
-            Id: new PointerId(evt.pointerId),
-            UptimeMillis: evt.timestamp,
-            Position: evt.localPosition.ToOffset(),
-            Pressed: evt.pressedButtons != 0,
-            Pressure: evt.pressure,
-            PreviousUptimeMillis: (Time.time - evt.deltaTime).ToLongTime(),
-            PreviousPosition: (evt.localPosition - evt.deltaPosition).ToOffset(),
-            PreviousPressed: evt.pressedButtons != 0,
-            IsInitiallyConsumed: false,
-            Type: evt.pointerType.ToPointerType(),
-            ScrollDelta: evt.deltaPosition.ToOffset(),
-            Event: evt
-        );
-    }
+    // A cancellation is neither a down nor an up; gesture detectors see an
+    // unpressed change without a release transition and can cancel the gesture.
+    public static IPointerInputChange Create(PointerCancelEvent evt) => Cancel(evt.pointerId, evt);
+
+    public static IPointerInputChange Cancel(int pointerId, EventBase evt) => new PointerInputChange(
+        new PointerId(pointerId), evt.timestamp, Offset.Zero, false, 0,
+        evt.timestamp, Offset.Zero, false, false, PointerType.Mouse, Offset.Zero, evt);
 
     public bool IsConsumed { get; private set; }
 
@@ -105,4 +95,4 @@ internal record PointerInputChange(
         IsConsumed = true;
         Event.StopPropagation();
     }
-}
+}

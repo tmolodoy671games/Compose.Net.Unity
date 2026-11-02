@@ -142,7 +142,7 @@ public static partial class VisualElementExtensions
     internal static bool IsUnderPointer(this VisualElement element)
     {
         var pointer = UnityEngine.InputSystem.Pointer.current;
-        if (pointer == null || element.panel == null)
+        if (pointer == null || element.panel == null || element.panel.contextType != ContextType.Player)
             return false;
         var position = pointer.position.ReadValue();
         position.y = UnityEngine.Screen.height - position.y;

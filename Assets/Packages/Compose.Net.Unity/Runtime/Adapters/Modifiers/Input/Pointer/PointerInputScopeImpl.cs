@@ -19,11 +19,12 @@ internal class PointerInputScopeImpl : IPointerInputScope
         Token = token;
     }
 
-    public Size Size => _element.contentRect.size.ToSize();
+    public Size Size => _element.layout.size.ToSize();
     public CancellationToken Token { get; }
 
-    public Task AwaitPointerEventScope(Func<IAwaitPointerEventScope, Task> block)
+    public async Task AwaitPointerEventScope(Func<IAwaitPointerEventScope, Task> block)
     {
-        return block(new AwaitPointerEventScopeImpl(_element, Token));
+        using var scope = new AwaitPointerEventScopeImpl(_element, Token);
+        await block(scope);
     }
 }
