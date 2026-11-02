@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -18,6 +18,9 @@ internal record HorizontalScrollModifierImpl(
     IMutableInteractionSource? InteractionSource
 ) : ContentContainerUnityModifier<HorizontalScrollModifierImpl.HorizontalScrollNode>
 {
+    // State identity is stable; capture its value so modifier equality observes scrolling.
+    private float ScrollValue { get; } = State.Value;
+
     public override HorizontalScrollNode Create() => new(
         State,
         Enabled,

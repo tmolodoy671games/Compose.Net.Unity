@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -11,7 +11,7 @@ using TimeUtils = Compose.Net.Unity.Runtime.Adapters.Utils.TimeUtils;
 
 namespace Compose.Net.Unity;
 
-public class UnityReusableComposeNode : IReusableComposeNode
+public partial class UnityReusableComposeNode : IReusableComposeNode
 {
     public readonly VisualElement VisualElement;
     private AnchorManager? _anchorManager;

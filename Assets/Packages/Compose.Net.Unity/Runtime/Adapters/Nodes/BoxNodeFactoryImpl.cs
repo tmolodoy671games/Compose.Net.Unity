@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Nodes;
 
@@ -6,7 +6,12 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
 {
     public IReusableComposeNode CreateNode(string? type = null)
     {
-        return new UnityReusableComposeNode(CreateBox(type));
+        return type switch
+        {
+            NodeTypes.AnimatedContent => new AnimatedContentLayoutNode(new AnimatedContent()),
+            NodeTypes.AnimatedContentItem => new AnimatedContentItemNode(new AnimatedContentItem()),
+            _ => new UnityReusableComposeNode(CreateBox(type))
+        };
     }
 
     public void Apply(IReusableComposeNode node, Alignment alignment)
@@ -27,14 +32,6 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
         NodeTypes.PagerItem => new PagerItem(),
         _ => new Box { name = type },
     };
-}
-
-internal class AnimatedContent : Box
-{
-}
-
-internal class AnimatedContentItem : Box
-{
 }
 
 internal class AnimatedVisibility : Box
