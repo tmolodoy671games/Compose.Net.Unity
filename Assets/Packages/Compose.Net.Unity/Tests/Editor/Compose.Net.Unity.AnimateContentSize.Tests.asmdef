@@ -1,0 +1,21 @@
+{
+  "name": "Compose.Net.Unity.AnimateContentSize.Tests",
+  "references": [
+    "Compose.Net.Unity",
+    "Unity.UI.TestFramework.Runtime",
+    "Unity.UI.TestFramework.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Compose.Net.dll",
+    "nunit.framework.dll",
+    "Sharp Extensions.dll"
+  ],
+  "autoReferenced": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

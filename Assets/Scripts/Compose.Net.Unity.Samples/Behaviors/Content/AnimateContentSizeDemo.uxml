@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:ScrollView name="animate-size-scroll" mode="Vertical" style="flex-grow: 1; background-color: rgb(11, 15, 24);">
+        <ComposeView name="compose-view" style="flex-shrink: 0;" />
+    </ui:ScrollView>
+</ui:UXML>

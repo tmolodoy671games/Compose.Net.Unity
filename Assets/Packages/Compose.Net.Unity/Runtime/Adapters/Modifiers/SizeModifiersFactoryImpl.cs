@@ -1,4 +1,5 @@
-﻿using Compose.Net;
+using System;
+using Compose.Net;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Modifiers;
 
@@ -19,8 +20,8 @@ internal class SizeModifiersFactoryImpl : ISizeModifiersFactory
         return new SizeModifierImpl(width, height);
     }
 
-    public IModifier AnimateContentSize(AnimationSpec animationSpec)
+    public IModifier AnimateContentSize(AnimationSpec animationSpec, Alignment alignment, Action<Size, Size>? finishedListener)
     {
-        return new AnimateContentSizeModifierImpl(animationSpec);
+        return new AnimateContentSizeModifierImpl(animationSpec, alignment, finishedListener);
     }
 }

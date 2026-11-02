@@ -1,40 +1,47 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
-using SharpExtensions;
-using StableCollections;
+using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.UIElements.Experimental;
 
 namespace Compose.Net.Unity;
 
+[AiGenerated]
 internal record AnimateContentSizeModifierImpl(
-    AnimationSpec AnimationSpec
+    AnimationSpec AnimationSpec,
+    Alignment Alignment,
+    Action<Size, Size>? FinishedListener
 ) : ContentContainerUnityModifier<AnimateContentSizeModifierImpl.AnimateContentSizeNode>
 {
-    public override AnimateContentSizeNode Create() => new(AnimationSpec);
+    public override AnimateContentSizeNode Create() => new(AnimationSpec, Alignment, FinishedListener);
 
-    public override void Update(AnimateContentSizeNode node) => node.Update(AnimationSpec);
+    public override void Update(AnimateContentSizeNode node) => node.Update(AnimationSpec, Alignment, FinishedListener);
 
-    internal sealed class AnimateContentSizeNode(AnimationSpec animationSpec) : ContentContainerNodeBase
+    internal sealed class AnimateContentSizeNode(
+        AnimationSpec animationSpec,
+        Alignment alignment,
+        Action<Size, Size>? finishedListener
+    ) : ContentContainerNodeBase
     {
         private AnimationSpec _animationSpec = animationSpec;
-        private EventCallback<GeometryChangedEvent>? _callback;
+        private Alignment _alignment = alignment;
+        private Action<Size, Size>? _finishedListener = finishedListener;
+        private ValueAnimation<Vector2>? _animation;
+        private Vector2? _targetSize;
+        private StyleLength _width, _height, _left, _top;
+        private StyleEnum<Position> _position;
+        private StyleFloat _flexShrink;
 
-        internal void Update(AnimationSpec next)
+        internal void Update(AnimationSpec spec, Alignment nextAlignment, Action<Size, Size>? listener)
         {
-            if (_animationSpec == next)
-                return;
-            if (ContentContainer != null)
-            {
-                RevertFromContainer(UnityNode!, Element!, ContentContainer);
-                _animationSpec = next;
-                ApplyToContainer(UnityNode!, Element!, ContentContainer);
-            }
-            else
-                _animationSpec = next;
+            // Parameter updates must not restart a running animation.
+            _animationSpec = spec;
+            _alignment = nextAlignment;
+            _finishedListener = listener;
+            AlignContent();
         }
 
         protected override void ApplyToContainer(
@@ -43,58 +50,118 @@ internal record AnimateContentSizeModifierImpl(
             VisualElement contentContainer
         )
         {
-            var key = new ReferenceKey(this);
-            _callback = e =>
-            {
-                var content = e.VisualElement();
-                content.style.position = Position.Absolute;
-                var targetWidth = content.resolvedStyle.width
-                                  + content.resolvedStyle.marginLeft
-                                  + content.resolvedStyle.marginRight
-                                  + content.resolvedStyle.borderLeftWidth
-                                  + content.resolvedStyle.borderRightWidth
-                                  + content.parent.resolvedStyle.paddingLeft
-                                  + content.parent.resolvedStyle.paddingRight;
-                var targetHeight = content.resolvedStyle.height
-                                   + content.resolvedStyle.marginTop
-                                   + content.resolvedStyle.marginBottom
-                                   + content.resolvedStyle.borderTopWidth
-                                   + content.resolvedStyle.borderBottomWidth
-                                   + content.parent.resolvedStyle.paddingTop
-                                   + content.parent.resolvedStyle.paddingBottom;
-                var targetSize = new Vector2(targetWidth, targetHeight);
-                var previousRecord = content.UserData().GetOrNull(key)?.CastToOrNull<AnimationRecord>();
-                if (previousRecord != null && previousRecord.TargetSize == targetSize)
-                    return;
-                previousRecord?.Animation.Stop();
-                var initialWidth = content.parent.resolvedStyle.width;
-                var initialHeight = content.parent.resolvedStyle.height;
-                content.UserData()[key] = new AnimationRecord(
-                    TargetSize: targetSize,
-                    Animation: content.parent.experimental.animation.Start(
-                        0,
-                        1,
-                        _animationSpec.TotalDuration.TotalMilliseconds.ToFloat().ToInt(),
-                        (_, progress) =>
-                        {
-                            progress = _animationSpec.GetProgress(_animationSpec.TotalDuration * progress);
-                            content.parent.style.width = Mathf.LerpUnclamped(
-                                initialWidth,
-                                targetWidth,
-                                progress
-                            );
-
-                            content.parent.style.height = Mathf.LerpUnclamped(
-                                initialHeight,
-                                targetHeight,
-                                progress
-                            );
-                        }
-                    ).KeepAlive()
-                );
-            };
+            _width = element.style.width;
+            _height = element.style.height;
+            _left = contentContainer.style.left;
+            _top = contentContainer.style.top;
+            _position = contentContainer.style.position;
+            _flexShrink = contentContainer.style.flexShrink;
             contentContainer.style.flexShrink = 0;
-            contentContainer.RegisterCallback(_callback);
+            contentContainer.RegisterCallback<GeometryChangedEvent>(OnContentGeometryChanged);
+            element.RegisterCallback<GeometryChangedEvent>(OnElementGeometryChanged);
+            element.Clip().Increment();
+        }
+
+        private void OnContentGeometryChanged(GeometryChangedEvent evt)
+        {
+            if (evt.target != ContentContainer || Element == null || ContentContainer == null)
+                return;
+
+            var content = ContentContainer.resolvedStyle;
+            var outer = Element.resolvedStyle;
+            // UI Toolkit layout sizes already include the content's padding and borders.
+            var target = evt.newRect.size + new Vector2(
+                content.marginLeft + content.marginRight + outer.paddingLeft + outer.paddingRight
+                + outer.borderLeftWidth + outer.borderRightWidth,
+                content.marginTop + content.marginBottom + outer.paddingTop + outer.paddingBottom
+                + outer.borderTopWidth + outer.borderBottomWidth
+            );
+            if (!float.IsFinite(target.x) || !float.IsFinite(target.y))
+                return;
+
+            if (_targetSize == null)
+            {
+                // The first measurement establishes the size without an enter animation.
+                _targetSize = target;
+                Element.style.width = target.x;
+                Element.style.height = target.y;
+                ContentContainer.style.position = Position.Absolute;
+            }
+            else if (_targetSize.Value != target)
+            {
+                AnimateTo(target);
+            }
+            AlignContent();
+        }
+
+        private void AnimateTo(Vector2 target)
+        {
+            StopAnimation();
+            var element = Element!;
+            var initial = new Vector2(element.resolvedStyle.width, element.resolvedStyle.height);
+            _targetSize = target;
+            var spec = _animationSpec;
+            if (spec.TotalDuration <= TimeSpan.Zero)
+            {
+                element.style.width = target.x;
+                element.style.height = target.y;
+                _finishedListener?.Invoke(ToSize(initial), ToSize(target));
+                return;
+            }
+
+            // UI Toolkit owns interpolation, frame updates, and recycling. Ease also accounts
+            // for the spec's delay; using Start's default OutQuad here would apply easing twice.
+            _animation = element.experimental.animation.Size(target, (int)Math.Min(int.MaxValue, spec.TotalDuration.TotalMilliseconds))
+                .Ease(progress => spec.Duration <= TimeSpan.Zero
+                    ? (progress < 1f ? 0f : 1f)
+                    : spec.GetProgress(spec.TotalDuration * progress))
+                .OnCompleted(() =>
+                {
+                    _animation = null;
+                    _finishedListener?.Invoke(ToSize(initial), ToSize(target));
+                });
+            _animation.from = initial;
+        }
+
+        private void OnElementGeometryChanged(GeometryChangedEvent evt)
+        {
+            if (evt.target == Element)
+                AlignContent();
+        }
+
+        private void AlignContent()
+        {
+            if (_targetSize == null || Element == null || ContentContainer == null)
+                return;
+            var outer = Element.resolvedStyle;
+            var content = ContentContainer.resolvedStyle;
+            var horizontal = _alignment.ToAlign() switch
+            {
+                Align.Center => 0.5f,
+                Align.FlexEnd => 1f,
+                _ => 0f
+            };
+            var vertical = _alignment.ToJustify() switch
+            {
+                Justify.Center => 0.5f,
+                Justify.FlexEnd => 1f,
+                _ => 0f
+            };
+            ContentContainer.style.left = outer.paddingLeft
+                + (Element.contentRect.width - content.width - content.marginLeft - content.marginRight) * horizontal;
+            ContentContainer.style.top = outer.paddingTop
+                + (Element.contentRect.height - content.height - content.marginTop - content.marginBottom) * vertical;
+        }
+
+        private void StopAnimation()
+        {
+            var animation = _animation;
+            _animation = null;
+            if (animation == null)
+                return;
+            // Stop invokes OnCompleted too. An interruption is not a successful completion.
+            animation.onAnimationCompleted = null;
+            animation.Stop();
         }
 
         protected override void RevertFromContainer(
@@ -103,15 +170,19 @@ internal record AnimateContentSizeModifierImpl(
             VisualElement contentContainer
         )
         {
-            contentContainer.style.flexShrink = 1;
-            if (_callback != null)
-                contentContainer.UnregisterCallback(_callback);
-            _callback = null;
+            StopAnimation();
+            contentContainer.UnregisterCallback<GeometryChangedEvent>(OnContentGeometryChanged);
+            element.UnregisterCallback<GeometryChangedEvent>(OnElementGeometryChanged);
+            element.style.width = _width;
+            element.style.height = _height;
+            contentContainer.style.left = _left;
+            contentContainer.style.top = _top;
+            contentContainer.style.position = _position;
+            contentContainer.style.flexShrink = _flexShrink;
+            element.Clip().Decrement();
+            _targetSize = null;
         }
 
-        private record AnimationRecord(
-            ValueAnimation<float> Animation,
-            Vector2 TargetSize
-        );
+        private static Size ToSize(Vector2 size) => new(size.x, size.y);
     }
 }
