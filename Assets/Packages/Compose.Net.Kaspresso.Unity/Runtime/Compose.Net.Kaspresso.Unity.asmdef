@@ -1,0 +1,16 @@
+{
+  "name": "Compose.Net.Kaspresso.Unity",
+  "rootNamespace": "Compose.Net.Kaspresso.Unity",
+  "references": [
+    "Unity.UI.TestFramework.Runtime"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Compose.Net.Kaspresso.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "noEngineReferences": false
+}
