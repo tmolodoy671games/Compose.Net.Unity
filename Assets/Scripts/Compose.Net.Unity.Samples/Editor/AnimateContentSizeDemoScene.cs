@@ -25,11 +25,24 @@ public static class AnimateContentSizeDemoScene
             Undo.RegisterCreatedObjectUndo(go, "Add AnimateContentSize demo");
             go.transform.SetParent(root, false);
         }
-        var document = go.GetComponent<UIDocument>() ?? Undo.AddComponent<UIDocument>(go);
-        document.panelSettings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/Settings/Panel Settings.asset");
-        document.visualTreeAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
+        var settings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/Settings/Panel Settings.asset");
+        var asset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
             "Assets/Scripts/Compose.Net.Unity.Samples/Behaviors/Content/AnimateContentSizeDemo.uxml");
-        document.sortingOrder = 10;
+        var renderer = go.GetComponent<PanelRenderer>();
+        var document = go.GetComponent<UIDocument>();
+        if (renderer != null || document == null)
+        {
+            renderer ??= Undo.AddComponent<PanelRenderer>(go);
+            renderer.panelSettings = settings;
+            renderer.visualTreeAsset = asset;
+            renderer.sortingOrder = 10;
+        }
+        else
+        {
+            document.panelSettings = settings;
+            document.visualTreeAsset = asset;
+            document.sortingOrder = 10;
+        }
         if (go.GetComponent<AnimateContentSizeDemo>() == null) Undo.AddComponent<AnimateContentSizeDemo>(go);
         go.name = "AnimateContentSizeDemo";
         go.SetActive(true);

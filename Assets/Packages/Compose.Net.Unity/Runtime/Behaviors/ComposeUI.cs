@@ -27,13 +27,17 @@ public abstract partial class ComposeUI : MonoBehaviour
     {
         EnablePanelRenderer();
         EnableUiDocument();
+        // PanelRenderer retains its tree on disable and does not reload it on re-enable.
+        // A callback registered while that tree is detached is not invoked immediately.
+        _composeView?.SetContent(ApplicationUtils.IsPlaying ? Content : Preview);
     }
 
     private void OnDisable()
     {
         _composeView?.Dispose();
-        _composeView = null;
         DisablePanelRenderer();
+        // UIDocument destroys its tree; PanelRenderer reuses the same ComposeView.
+        if (!GetComponent<PanelRenderer>()) _composeView = null;
     }
 
     private void EnablePanelRenderer()
@@ -56,15 +60,20 @@ public abstract partial class ComposeUI : MonoBehaviour
         int version
     )
     {
-        _composeView = root.Q<ComposeView>();
-        _composeView?.SetContent(ApplicationUtils.IsPlaying ? Content : Preview);
+        SetComposeView(root.Q<ComposeView>());
     }
 
     private void EnableUiDocument()
     {
         var document = GetComponent<UIDocument>();
         if (!document) return;
-        _composeView = document.rootVisualElement?.Q<ComposeView>();
+        SetComposeView(document.rootVisualElement?.Q<ComposeView>());
+    }
+
+    private void SetComposeView(ComposeView? view)
+    {
+        if (!ReferenceEquals(_composeView, view)) _composeView?.Dispose();
+        _composeView = view;
         _composeView?.SetContent(ApplicationUtils.IsPlaying ? Content : Preview);
     }
 }

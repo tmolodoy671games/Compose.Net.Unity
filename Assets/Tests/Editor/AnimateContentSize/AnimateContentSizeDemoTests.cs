@@ -15,9 +15,9 @@ namespace Compose.Net.Unity.Samples.Tests;
 [AiGenerated]
 public sealed partial class AnimateContentSizeDemoTests : UITestFixture
 {
-    private ComposeView _view;
-    private ScrollView _scroll;
-    private AnimateContentSizeDemoState _state;
+    private ComposeView _view = null!;
+    private ScrollView _scroll = null!;
+    private AnimateContentSizeDemoState _state = null!;
 
     [SetUp]
     public void Mount()

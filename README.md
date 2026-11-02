@@ -19,3 +19,10 @@ git@github.com:tmolodoy671games/Unity-Compose.git?path=/Assets/Packages/Compose.
 ```
 
 The package appears as **Compose.Net.Unity** in Package Manager.
+
+## File-scoped namespaces
+
+For MonoBehaviour and ScriptableObject imports with `namespace Example;`, see
+[Unity namespace support](Tools/UnityNamespaceSupport/README.md). The repository
+includes a reversible patch for Unity’s MonoScript source generator and regression
+tests that check actual script imports.
