@@ -7,15 +7,15 @@ internal record SolidColorBrushImpl(Color Color) : IBrush
 {
     public void Apply(IDrawScope drawScope, Rect rect, float alpha, DrawStyle style)
     {
-        var context = drawScope.Context();
+        var painter = drawScope.Painter();
         switch (style)
         {
             case DrawStyle.Fill:
-                context.painter2D.fillColor = Color.ToUnityColor();
+                painter.fillColor = Color.ToUnityColor();
                 break;
             case DrawStyle.Stroke strokeStyle:
-                context.painter2D.strokeColor = Color.ToUnityColor();
-                context.painter2D.lineWidth = strokeStyle.Width;
+                painter.strokeColor = Color.ToUnityColor();
+                painter.lineWidth = strokeStyle.Width;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(style));

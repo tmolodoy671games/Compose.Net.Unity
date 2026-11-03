@@ -49,7 +49,7 @@ internal record TextureImageBitmapImpl(
     public void SetImage(IDrawScope drawScope)
     {
         if (Texture is Texture2D texture2D)
-            drawScope.Context().painter2D.fillTexture = texture2D;
+            drawScope.Painter().fillTexture = texture2D;
     }
 }
 
@@ -60,7 +60,7 @@ internal record Texture2DImageBitmapImpl(
     public Size Size => new(Texture.width, Texture.height);
 
     public void SetImage(IReusableComposeNode imageNode) => imageNode.VisualElement<Image>().image = Texture;
-    public void SetImage(IDrawScope drawScope) => drawScope.Context().painter2D.fillTexture = Texture;
+    public void SetImage(IDrawScope drawScope) => drawScope.Painter().fillTexture = Texture;
 }
 
 internal record SpriteImageBitmapImpl(
@@ -70,7 +70,7 @@ internal record SpriteImageBitmapImpl(
     public Size Size => new(Sprite.rect.width, Sprite.rect.height);
 
     public void SetImage(IReusableComposeNode imageNode) => imageNode.VisualElement<Image>().sprite = Sprite;
-    public void SetImage(IDrawScope drawScope) => drawScope.Context().painter2D.fillTexture = Sprite.texture;
+    public void SetImage(IDrawScope drawScope) => drawScope.Painter().fillTexture = Sprite.texture;
 }
 
 internal record VectorImageBitmapImpl(

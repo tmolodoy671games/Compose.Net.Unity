@@ -12,7 +12,7 @@ public sealed partial class OrbitScreenTests
     {
         yield return Settle(); Click("nav.Settings"); yield return Settle();
         var slider = (Slider)Find("settings.material-opacity");
-        Assert.That(slider.value, Is.EqualTo(.15f).Within(.001f));
+        Assert.That(slider.value, Is.EqualTo(.5f).Within(.001f));
         var track = slider.Q(className: "unity-base-slider__tracker");
         var thumb = slider.Q(className: "unity-base-slider__dragger");
         var destination = new Vector2(track.worldBound.xMin + track.worldBound.width * .7f, thumb.worldBound.center.y);

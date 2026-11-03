@@ -36,7 +36,8 @@ public class ComposeUnityAdapter : IComposeAdapter
         return frameRate;
     }
 
-    public IDensity Density => global::Compose.Net.Density.Default;
+    // Keep one boxed density instead of allocating on every layout/draw read.
+    public IDensity Density { get; } = global::Compose.Net.Density.Default;
     public ComposeInvalidator? ComposeInvalidatorInstance => ComposeInvalidatorHolder.ComposeInvalidator;
     public IModifiersFactory ModifiersFactory { get; } = new ModifiersFactoryImpl();
     public IReusableNodeFactory NodeFactory { get; } = new ReusableNodeFactoryImpl();

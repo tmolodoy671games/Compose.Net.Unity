@@ -13,6 +13,10 @@ namespace Compose.Net.Unity;
 internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope
 {
     private MeshGenerationContext _context;
+    private readonly GradientDrawCache _painter;
+    internal GradientDrawCache Painter => _painter;
+    internal void BeginFrame() => _painter.BeginFrame();
+    internal void EndFrame() => _painter.EndFrame();
     private readonly PathDrawerImpl _drawer;
     private readonly Action<Texture2D> _consumeTexture2D;
     private Size _size;
@@ -20,8 +24,10 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     public UnityDrawScope(MeshGenerationContext context)
     {
         _context = context;
-        _drawer = new PathDrawerImpl(_context.painter2D);
-        _consumeTexture2D = it => _context.painter2D.fillTexture = it;
+        _painter = new GradientDrawCache(context);
+        _drawer = new PathDrawerImpl(_painter);
+        context.visualElement.RegisterCallback<DetachFromPanelEvent>(_ => _painter.Dispose());
+        _consumeTexture2D = it => _painter.fillTexture = it;
     }
 
     public void DrawMesh(ReadOnlySpan<Offset> positions, ReadOnlySpan<Color> colors,
@@ -47,6 +53,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     public void Update(MeshGenerationContext context)
     {
         _context = context;
+        _painter.Update(context);
     }
 
     public Offset Center
@@ -90,7 +97,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         float alpha
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
         var c = color.ToUnityColor();
         c.a *= alpha;
         painter.strokeColor = c;
@@ -123,6 +130,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: min,
             Size: (max - min).ToSize()
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, Stroke(strokeWidth));
         DrawLineImpl(
             start: start,
@@ -139,7 +147,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         StrokeCap strokeCap
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
 
         painter.lineWidth = strokeWidth;
         painter.lineCap = strokeCap.ToUnityLineCap();
@@ -181,6 +189,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: topLeft,
             Size: size.GetOrDefault(Size)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawRectImpl(
             topLeft: topLeft,
@@ -195,7 +204,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style = null
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
         var resolvedSize = size.GetOrDefault(Size);
         var rect = new UnityEngine.Rect(
             topLeft.X,
@@ -249,6 +258,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: topLeft,
             Size: size.GetOrDefault(Size)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawRoundRectImpl(
             topLeft: topLeft,
@@ -289,6 +299,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: topLeft,
             Size: size.GetOrDefault(Size)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawRoundRectImpl(
             topLeft: topLeft,
@@ -305,7 +316,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
 
         var resolvedSize = size.GetOrDefault(Size);
 
@@ -405,6 +416,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: resolvedCenter - new Offset(resolvedRadius, resolvedRadius),
             Size: new Size(resolvedRadius, resolvedRadius)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawCircleImpl(radius, center, style);
     }
@@ -415,7 +427,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
         painter.BeginPath();
         painter.Arc(
             center.GetOrDefault(Center).ToVector2(),
@@ -460,6 +472,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: topLeft,
             Size: size.GetOrDefault(Size)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawOvalImpl(
             topLeft: topLeft,
@@ -474,7 +487,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
         var resolvedSize = size.GetOrDefault(
             new Size(
                 Size.Width - topLeft.X,
@@ -544,6 +557,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             Offset: topLeft,
             Size: size.GetOrDefault(Size)
         );
+        _painter.UseNative();
         brush.Apply(this, contentRect, alpha, style ?? Fill);
         DrawArcImpl(
             startAngle: startAngle,
@@ -564,7 +578,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style
     )
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
 
         var resolvedSize = size.GetOrDefault(
             new Size(
@@ -618,6 +632,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         DrawStyle? style = null
     )
     {
+        _painter.UseNative();
         brush.Apply(this, new Rect(), alpha, style ?? Fill);
         DrawPathImpl(path, style);
     }
@@ -629,7 +644,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     {
         // Scopes survive repaint and shared-transition captures. Each path must
         // start fresh on the current context, not the painter from construction.
-        _drawer.Begin(_context.painter2D);
+        _drawer.Begin(_painter);
         path.Apply(_drawer);
         Draw(style);
     }
@@ -674,6 +689,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
             PointMode.Polygon => Fill,
             _ => throw new ArgumentOutOfRangeException(nameof(pointMode), pointMode, null)
         };
+        _painter.UseNative();
         brush.Apply(this, new Rect(), alpha, style);
         DrawPointsImpl(points, pointMode, strokeWidth, strokeCap);
     }
@@ -688,7 +704,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         if (points.Size == 0)
             return;
 
-        var painter = _context.painter2D;
+        var painter = _painter;
         painter.lineWidth = strokeWidth;
         painter.lineCap = strokeCap.ToUnityLineCap();
 
@@ -712,7 +728,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     }
 
     private static void DrawPoints(
-        Painter2D painter,
+        GradientDrawCache painter,
         IStableList<Offset> points
     )
     {
@@ -734,7 +750,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     #region DrawPointLines
 
     private static void DrawPointLines(
-        Painter2D painter,
+        GradientDrawCache painter,
         IStableList<Offset> points
     )
     {
@@ -748,7 +764,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     }
 
     private static void DrawPointPolygon(
-        Painter2D painter,
+        GradientDrawCache painter,
         IStableList<Offset> points
     )
     {
@@ -777,6 +793,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     )
     {
         var drawSize = size.GetOrDefault(image.Size);
+        _painter.UseNative();
         image.SetImage(this);
         DrawRectImpl(
             topLeft: topLeft,
@@ -789,7 +806,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 
     private void Draw(DrawStyle? style)
     {
-        var painter = _context.painter2D;
+        var painter = _painter;
         if (painter == null)
             return;
         switch (style ?? Fill)
@@ -809,7 +826,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     private void ApplyColor(Color color, float alpha, DrawStyle? style)
     {
         color = color with { Alpha = color.Alpha * alpha };
-        var painter = _context.painter2D;
+        var painter = _painter;
         switch (style ?? Fill)
         {
             case DrawStyle.Fill:
@@ -828,6 +845,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 public static partial class DrawScopeExtensions
 {
     public static MeshGenerationContext Context(this IDrawScope scope) => scope.CastTo<UnityDrawScope>().Context;
+    internal static GradientDrawCache Painter(this IDrawScope scope) => scope.CastTo<UnityDrawScope>().Painter;
 }
 
 public static partial class VisualElementExtensions

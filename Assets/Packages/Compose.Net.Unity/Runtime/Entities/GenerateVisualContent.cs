@@ -57,14 +57,20 @@ internal class GenerateVisualContent
     internal void Invoke(MeshGenerationContext context)
     {
         _drawObserver ??= new DrawStateObserver(_element.MarkDirtyRepaint);
-        _drawObserver.Observe(() =>
+        var scope = (UnityDrawScope)context.DrawScope();
+        scope.BeginFrame();
+        try
         {
-            foreach (var generateVisualContent in _generateVisualContent)
-                generateVisualContent?.Invoke(context);
-            // Native content belongs above backgrounds and below overlays.
-            _originalGenerateVisualContent?.Invoke(context);
-            _onTop?.Invoke(context);
-        });
+            _drawObserver.Observe(() =>
+            {
+                foreach (var generateVisualContent in _generateVisualContent)
+                    generateVisualContent?.Invoke(context);
+                // Native content belongs above backgrounds and below overlays.
+                _originalGenerateVisualContent?.Invoke(context);
+                _onTop?.Invoke(context);
+            });
+        }
+        finally { scope.EndFrame(); }
     }
 }
 
