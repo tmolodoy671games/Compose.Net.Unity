@@ -1,11 +1,10 @@
 // ReSharper disable ArrangeNamespaceBody
 
 using Compose.Net;
-using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Samples.Behaviors.Content
 {
-    internal partial class SharedTransitionLayoutSample : ComposeUI
+    public partial class SharedTransitionLayoutSample : ComposeUI
     {
         [Composable]
         protected override void Content()
@@ -20,9 +19,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         }
 
         [Composable]
-        private static void Layout()
+        private static void Layout() => Screen(Remember(static () => MutableStateOf(-1)));
+
+        [Composable]
+        public static void Screen(IMutableState<int> selected)
         {
-            var selected = Remember(static () => MutableStateOf(-1));
             var tween = Tween(500);
             SharedTransitionLayout(
                 modifier: Modifier.FillMaxSize(),
@@ -69,14 +70,15 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     .Size(200.Dp())
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a, boundsTransform: (_, _) => Tween(500))
                     .Background(color, RoundedCornerShape(24.Dp()))
-                    .Clickable(() => selected.Value = index, indication: null, interactionSource: null),
+                    .Clickable(() => selected.Value = index)
+                    .TestTag($"shared-sample.thumb.{index}"),
                 content: () => Text(
                     $"#{index}",
                     color: Color.White,
                     fontSize: 48.Sp(),
-                    modifier: Modifier
+                    modifier: Modifier.TestTag($"shared-sample.text.thumb.{index}")
                         .SharedBounds(s.RememberSharedContentState($"text {index}"), a,
-                            enter: IEnterTransition.None, exit: IExitTransition.None,
+                            enter: FadeIn(Tween(500)), exit: FadeOut(Tween(500)),
                             boundsTransform: (_, _) => Tween(500))
                 )
             );
@@ -91,14 +93,15 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     .FillMaxSize()
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a, boundsTransform: (_, _) => Tween(500))
                     .Background(color)
-                    .Clickable(() => selected.Value = -1, indication: null, interactionSource: null),
+                    .Clickable(() => selected.Value = -1)
+                    .TestTag($"shared-sample.detail.{index}"),
                 content: () => Text(
                     $"#{index}",
                     color: Color.White,
                     fontSize: 128.Sp(),
-                    modifier: Modifier.Padding(all: 32.Dp())
+                    modifier: Modifier.Padding(all: 32.Dp()).TestTag($"shared-sample.text.detail.{index}")
                         .SharedBounds(s.RememberSharedContentState($"text {index}"), a,
-                            enter: IEnterTransition.None, exit: IExitTransition.None,
+                            enter: FadeIn(Tween(500)), exit: FadeOut(Tween(500)),
                             boundsTransform: (_, _) => Tween(500))
                 )
             );

@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-/// <summary>A single native grid cell: all children overlap and contribute their intrinsic size.</summary>
+/// <summary>Native flex layout for one child; one overlapping grid cell for multiple children.</summary>
 public class Box : VisualElement, ILayout
 {
     [Flags] internal enum AnimatedConstraints { Width = 1, Height = 2, MaxWidth = 4, MaxHeight = 8 }
@@ -18,7 +18,7 @@ public class Box : VisualElement, ILayout
     private readonly EventCallback<GeometryChangedEvent> _geometry;
     private IVisualElementScheduledItem? _refresh;
     private Alignment _alignment = Alignment.TopStart;
-    private bool _propagate, _refreshing;
+    private bool _propagate, _refreshing, _grid;
     private Box? _contentLayout;
     // Lazy items are measured without a maximum on their scrolling axis. A native ListView
     // slot's estimated extent is placement data, not an incoming content constraint.
@@ -52,7 +52,8 @@ public class Box : VisualElement, ILayout
 
     public Box()
     {
-        style.display = DisplayStyle.Grid;
+        style.display = DisplayStyle.Flex;
+        style.flexDirection = FlexDirection.Column;
         // A zero track minimum lets incoming max constraints shrink a large child or wrap text.
         style.gridTemplateColumns = Track(false);
         style.gridTemplateRows = Track(false);
@@ -81,8 +82,7 @@ public class Box : VisualElement, ILayout
         set
         {
             _alignment = value;
-            style.justifyItems = value.ToAlign();
-            style.alignItems = Vertical(value);
+            RefreshConstraints();
             if (_contentLayout != null) _contentLayout.ContentAlignment = value;
         }
     }
@@ -130,9 +130,10 @@ public class Box : VisualElement, ILayout
         _children.Remove(child);
         child.UnregisterCallback(_geometry);
         previous.Restore(child);
+        RefreshConstraints();
     }
 
-    // Only the Compose constraint handoff needs a bridge. Grid performs measurement, overlap,
+    // Only the Compose constraint handoff needs a bridge. Native layout performs measurement, overlap,
     // alignment, resize and picking; no per-frame loop, synthetic spacer or transform offset.
     internal enum BoundProperty { MinWidth, MaxWidth, MinHeight, MaxHeight }
 
@@ -176,6 +177,11 @@ public class Box : VisualElement, ILayout
         _refreshing = true;
         try
         {
+            _grid = _children.Count > 1;
+            style.display = _grid ? DisplayStyle.Grid : DisplayStyle.Flex;
+            style.justifyItems = _alignment.ToAlign();
+            style.alignItems = _grid ? Vertical(_alignment) : _alignment.ToAlign();
+            style.justifyContent = _grid ? Justify.FlexStart : _alignment.ToJustify();
             var maxWidth = Maximum(this, true);
             var maxHeight = Maximum(this, false);
             var minWidth = _propagate ? Minimum(this, true, maxWidth) : 0;
@@ -185,7 +191,8 @@ public class Box : VisualElement, ILayout
                 var child = pair.Key; var previous = pair.Value;
                 if (child.parent != this) continue;
                 var value = child.UserData().GetOrNull(DataKey) as ChildData;
-                previous.SetAlignment(child, value?.Alignment);
+                previous.SetAlignment(child, value?.Alignment, _grid);
+                if (!_grid && value?.Alignment is { } alignment) style.justifyContent = alignment.ToJustify();
                 previous.SetMatch(child, value?.Match == true, resolvedStyle);
                 if (value?.Match == true)
                 {
@@ -193,12 +200,12 @@ public class Box : VisualElement, ILayout
                     // Insets are the padding edge, while their constraints use the content box.
                     var width = Mathf.Max(0, Finite(contentRect.width));
                     var height = Mathf.Max(0, Finite(contentRect.height));
-                    previous.Constrain(child, width, width, height, height, false);
+                    previous.Constrain(child, width, width, height, height, false, _grid);
                 }
                 // animateContentSize makes the internal content layout absolute, but it still
                 // receives the Box constraints when measuring the next natural size.
                 else if (child.style.position != Position.Absolute || child == _contentLayout)
-                    previous.Constrain(child, minWidth, maxWidth, minHeight, maxHeight, true);
+                    previous.Constrain(child, minWidth, maxWidth, minHeight, maxHeight, true, _grid);
                 else previous.ClearConstraints(child);
                 (child as Box)?.RefreshConstraints();
             }
@@ -282,10 +289,10 @@ public class Box : VisualElement, ILayout
             if (property == BoundProperty.MinHeight) return ref _minHeight;
             return ref _maxHeight;
         }
-        internal void SetAlignment(VisualElement child, Alignment? alignment)
+        internal void SetAlignment(VisualElement child, Alignment? alignment, bool grid)
         {
             child.style.justifySelf = alignment == null ? _justify : alignment.ToAlign();
-            child.style.alignSelf = alignment == null ? _align : Vertical(alignment);
+            child.style.alignSelf = alignment == null ? _align : grid ? Vertical(alignment) : alignment.ToAlign();
         }
         internal void SetMatch(VisualElement child, bool match, IResolvedStyle box)
         {
@@ -304,10 +311,17 @@ public class Box : VisualElement, ILayout
             s.left = box.paddingLeft; s.right = box.paddingRight;
             s.top = box.paddingTop; s.bottom = box.paddingBottom;
         }
-        internal void Constrain(VisualElement child, float minW, float maxW, float minH, float maxH, bool fill)
+        internal void Constrain(VisualElement child, float minW, float maxW, float minH, float maxH, bool fill, bool measureText)
         {
             var s = child.style;
-            if (child is TextElement text && text.panel != null)
+            if (!measureText)
+            {
+                // Flex measures text itself. Drop any dimensions installed while this
+                // Box had multiple children and needed the grid intrinsic-size bridge.
+                s.width = _textWidth.Restore(s.width);
+                s.height = _textHeight.Restore(s.height);
+            }
+            if (measureText && child is TextElement text && text.panel != null)
             {
                 var authored = _textWidth.Authored(s.width);
                 if (authored.keyword is StyleKeyword.Null or StyleKeyword.Auto)

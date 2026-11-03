@@ -37,7 +37,8 @@ internal sealed class SharedTransitionRoot : ISharedTransitionRoot
     internal void Sort()
     {
         Overlay.BringToFront();
-        foreach (var item in Items.Where(item => item.InOverlay).OrderBy(item => item.Frame.ZIndex).ThenBy(item => item.Depth))
+        // With equal drawing order, the visible destination must receive input after a reversal.
+        foreach (var item in Items.Where(item => item.InOverlay).OrderBy(item => item.Frame.ZIndex).ThenBy(item => item.Depth).ThenBy(item => item.IsVisible))
             item.Layer.BringToFront();
     }
     public void Dispose()
@@ -60,11 +61,14 @@ internal sealed class SharedVisual : ISharedContentHost
     internal readonly VisualElement Layer = new() { name = "shared-transition-layer", pickingMode = UnityEngine.UIElements.PickingMode.Ignore, usageHints = UsageHints.DynamicTransform };
     internal VisualElement? Slot { get; private set; }
     internal SharedContentFrame Frame;
+    internal bool IsVisible => _content.IsVisible;
     internal bool InOverlay => Slot != null && Layer.parent == _root.Overlay;
     private LayoutStyle? _saved;
     private StyleLength _renderWidth, _renderHeight;
     private Vector2 _natural;
-    private bool _disposed, _hidden;
+    private SharedVisual? _layoutAncestor;
+    private Vector2 _offsetInAncestor;
+    private bool _disposed, _hidden, _restorePending;
     private StyleEnum<Visibility> _visibility;
     private readonly IVisualElementScheduledItem _measure;
     private SharedVisual? Parent
@@ -91,12 +95,30 @@ internal sealed class SharedVisual : ISharedContentHost
         _placement.style.position = Position.Absolute;
         _motion.style.left = _motion.style.top = 0;
         Layer.Add(_placement); _placement.Add(_motion);
+        // These are drawing bounds, not constraints for the content's natural layout.
+        // Box must measure scaled contents at their destination size, even while the
+        // overlay is smaller. UI Toolkit still performs their layout and transforms.
+        foreach (var wrapper in new[] { Layer, _placement, _motion })
+            Box.SetAnimatedConstraints(wrapper, Box.AnimatedConstraints.Width | Box.AnimatedConstraints.Height, true);
         TransitionNode = new UnityReusableComposeNode(_motion);
         _element.RegisterCallback<GeometryChangedEvent>(OnGeometry);
+        _element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
         // Ancestor scrolling/placement doesn't emit a GeometryChangedEvent on this element.
         _measure = _element.schedule.Execute(Measure).Every(16);
     }
     private void OnGeometry(GeometryChangedEvent _) => Measure();
+    private void OnCaptureOut(PointerCaptureOutEvent _)
+    {
+        if (_restorePending) _element.schedule.Execute(() => { if (_restorePending) End(); });
+    }
+    private bool HasCapturedPointer()
+    {
+        if (_element.panel is not { } panel) return false;
+        for (var id = 0; id < UnityEngine.UIElements.PointerId.maxPointers; id++)
+            if (panel.GetCapturingElement(id) is VisualElement captured &&
+                (captured == _element || _element.Contains(captured))) return true;
+        return false;
+    }
     private Vector2 PositionInRoot(VisualElement view)
     {
         var point = Vector2.zero;
@@ -115,6 +137,7 @@ internal sealed class SharedVisual : ISharedContentHost
     public void Measure()
     {
         if (_disposed || _element.panel == null) return;
+        if (_restorePending) End();
         if (_saved != null)
         {
             // Declarative changes during a transition become fresh target constraints.
@@ -125,13 +148,27 @@ internal sealed class SharedVisual : ISharedContentHost
         }
         else _natural = _element.layout.size;
         var position = PositionInRoot(Slot ?? _element);
+        if (_saved == null)
+        {
+            _layoutAncestor = Parent;
+            if (_layoutAncestor?._content.LayoutBounds is { } ancestorBounds)
+                _offsetInAncestor = position - new Vector2(ancestorBounds.Offset.X, ancestorBounds.Offset.Y);
+        }
+        else if (_layoutAncestor is { Slot: not null } ancestor &&
+                 ancestor._content.LayoutBounds is { } ancestorBounds)
+        {
+            // Reparenting/remeasuring a shared ancestor changes its live layout.
+            // Keep the child's natural local destination, and follow only the
+            // ancestor's natural root position, not its animated drawing bounds.
+            position = new Vector2(ancestorBounds.Offset.X, ancestorBounds.Offset.Y) + _offsetInAncestor;
+        }
         _content.Measure(new Rect(new Offset(position.x, position.y), new Size(_natural.x, _natural.y)));
     }
     public void Render(SharedContentFrame frame)
     {
         if (_disposed) return;
         Frame = frame;
-        if (frame.Active)
+        if (frame.Active || Slot != null && HasCapturedPointer())
         {
             Begin();
             var parent = frame.RenderInOverlay ? _root.Overlay : Slot!;
@@ -189,6 +226,7 @@ internal sealed class SharedVisual : ISharedContentHost
             var placeholder = frame.PlaceholderSize.CalculateSize(new Size(_natural.x, _natural.y), bounds.Size);
             Slot!.style.width = placeholder.Width; Slot.style.height = placeholder.Height;
             _root.Sort();
+            _restorePending = !frame.Active;
         }
         else End();
         if (frame.Hidden != _hidden)
@@ -200,15 +238,21 @@ internal sealed class SharedVisual : ISharedContentHost
     }
     private void Begin()
     {
+        _restorePending = false;
         if (Slot != null || _element.parent == null) return;
         var parent = _element.parent;
         var index = parent.IndexOf(_element);
+        var align = _element.style.alignSelf;
+        var justify = _element.style.justifySelf;
+        (parent as ILayout)?.Untrack(_element);
+        // Untrack first: Box may have temporarily assigned intrinsic text dimensions
+        // and incoming constraints. Restore the authored styles, not those overrides.
         _saved = new LayoutStyle(_element);
         Slot = new VisualElement { name = "shared-transition-placeholder", pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
         Slot.SetReusableComposeNode(_node);
         _saved.Apply(Slot);
+        Slot.style.alignSelf = align; Slot.style.justifySelf = justify;
         Slot.style.width = _natural.x; Slot.style.height = _natural.y;
-        (parent as ILayout)?.Untrack(_element);
         _element.RemoveFromHierarchy(); parent.Insert(index, Slot); (parent as ILayout)?.Track(Slot);
         _motion.Add(_element);
         _element.style.position = Position.Absolute;
@@ -219,9 +263,13 @@ internal sealed class SharedVisual : ISharedContentHost
         _element.style.maxWidth = _element.style.maxHeight = StyleKeyword.None;
         _element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(0, 0);
     }
-    private void End()
+    private void End(bool force = false)
     {
         if (Slot == null) return;
+        // Native reparenting releases pointer capture. Finish the current gesture
+        // before restoring the hierarchy; disposal still cancels input normally.
+        _restorePending = !force && HasCapturedPointer();
+        if (_restorePending) return;
         var slot = Slot; var parent = slot.parent; var index = parent?.IndexOf(slot) ?? 0;
         _element.RemoveFromHierarchy();
         (parent as ILayout)?.Untrack(slot); slot.RemoveFromHierarchy();
@@ -233,7 +281,8 @@ internal sealed class SharedVisual : ISharedContentHost
     {
         if (_disposed) return;
         _disposed = true; _measure.Pause(); _element.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
-        End(); if (_hidden) _element.style.visibility = _visibility;
+        _element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+        End(force: true); if (_hidden) _element.style.visibility = _visibility;
         _node.SharedVisual = null; _root.Items.Remove(this);
     }
     private sealed class LayoutStyle
