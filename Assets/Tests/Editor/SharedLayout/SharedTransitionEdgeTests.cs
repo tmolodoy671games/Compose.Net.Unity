@@ -117,6 +117,26 @@ public sealed partial class SharedLayoutDemoTests
             Flush(1100);
         }
     }
+    [TestCase(0,400)][TestCase(1,800)][TestCase(2,400)]
+    public void SampleReturnKeepsTweenWhenAnimationTicksBeforePlaceholderLayout(int index,int width)
+    {
+        MountNestedSample(index);panelSize=new Vector2(width,700);Flush();var expanded=E("shared-sample.detail."+index).worldBound;
+        MountNestedSample();panelSize=new Vector2(width,700);Flush();var collapsed=E("shared-sample.thumb."+index).worldBound;
+        for(var direction=0;direction<2;direction++)
+        {
+            _sampleSelection.Value=direction==0?index:-1;
+            for(var frame=0;frame<16;frame++)
+            {
+                for(var tick=0;tick<16;tick++) { _context.Drain();_adapter.Clock.Advance(1);_context.Drain();_adapter.Invalidator.Tick(); }
+                simulate.FrameUpdateMs(16);
+            }
+            var target=E("shared-sample."+(direction==0?"detail.":"thumb.")+index);
+            var start=direction==0?collapsed:expanded;var end=direction==0?expanded:collapsed;
+            var fraction=(target.worldBound.width-start.width)/(end.width-start.width);
+            Assert.That(fraction,Is.InRange(.35f,.65f),"Halfway through direction "+direction);
+            Flush(1500);
+        }
+    }
     [Test] public void NativeSharedTransitionsSurviveRepeatedInterruptionsAndDisposeAllLayers()
     {
         MountNested(true,threeLevels:true);var random=new System.Random(9217);

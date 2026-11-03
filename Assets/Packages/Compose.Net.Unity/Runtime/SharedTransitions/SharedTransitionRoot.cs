@@ -76,7 +76,7 @@ internal sealed class SharedVisual : ISharedContentHost
     private VisualElement? _layoutParent;
     private SharedVisual? _layoutAncestor;
     private Vector2 _offsetInAncestor;
-    private bool _disposed, _hidden, _restorePending;
+    private bool _disposed, _hidden, _restorePending, _slotMeasured;
     private StyleEnum<Visibility> _visibility;
     private readonly IVisualElementScheduledItem _measure;
     private SharedVisual? Parent
@@ -164,6 +164,7 @@ internal sealed class SharedVisual : ISharedContentHost
         else Box.SetAuthoredBound(element, property, value);
     }
     private void OnGeometry(GeometryChangedEvent _) => Measure();
+    private void OnSlotGeometry(GeometryChangedEvent _) { _slotMeasured = true; Measure(); }
     private void OnCaptureOut(PointerCaptureOutEvent _)
     {
         if (_restorePending) _element.schedule.Execute(() => { if (_restorePending) End(); });
@@ -203,6 +204,10 @@ internal sealed class SharedVisual : ISharedContentHost
             if (moved != null) current = moved.Slot!;
             if (current is AnimatedContentItem { Hidden: true }) return;
         }
+        // A new placeholder has no native position until its first layout. Frame callbacks
+        // can run several times before then; keep the measured destination instead of
+        // treating the temporary origin as an interruption of the bounds tween.
+        if (_saved != null && !_slotMeasured) return;
         if (_saved != null)
         {
             // Declarative changes during a transition become fresh target constraints.
@@ -361,7 +366,8 @@ internal sealed class SharedVisual : ISharedContentHost
         _saved.Apply(Slot);
         Slot.style.alignSelf = align; Slot.style.justifySelf = justify;
         UpdatePlaceholder(Frame.Bounds.Size);
-        Slot.RegisterCallback<GeometryChangedEvent>(OnGeometry);
+        _slotMeasured = false;
+        Slot.RegisterCallback<GeometryChangedEvent>(OnSlotGeometry);
         _element.RemoveFromHierarchy(); parent.Insert(index, Slot); (parent as ILayout)?.Track(Slot);
         _layoutParent = parent;
         _layoutParent.RegisterCallback<GeometryChangedEvent>(OnGeometry);
@@ -382,7 +388,7 @@ internal sealed class SharedVisual : ISharedContentHost
         _restorePending = !force && HasCapturedPointer();
         if (_restorePending) return;
         _layoutParent?.UnregisterCallback<GeometryChangedEvent>(OnGeometry); _layoutParent = null;
-        var slot = Slot; slot.UnregisterCallback<GeometryChangedEvent>(OnGeometry); var parent = slot.parent; var index = parent?.IndexOf(slot) ?? 0;
+        var slot = Slot; slot.UnregisterCallback<GeometryChangedEvent>(OnSlotGeometry); var parent = slot.parent; var index = parent?.IndexOf(slot) ?? 0;
         _element.RemoveFromHierarchy();
         (parent as ILayout)?.Untrack(slot); slot.RemoveFromHierarchy();
         _saved!.Apply(_element, restore: true); _saved = null; Slot = null;
