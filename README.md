@@ -64,3 +64,25 @@ Run **Compose.Net.Unity.SharedLayout.Tests** in the Edit Mode Test Runner. Tests
 in both directions, numeric geometry and timing, clipping, scale policies, parent opacity isolation,
 placeholder displacement, interrupted transitions, retention/disposal, configuration, scope isolation
 and actual pointer input to buttons and moving shared content.
+
+## PointerInputDemo
+
+Open **Assets/Scenes/PointerInputDemo.unity**, enable **Samples/PointerInputDemo** in SampleScene,
+or use **Tools > Compose.Net > Pointer Input Demo**. **Add Pointer Input Demo to Scene** adds
+or selects the component in the active scene. The gallery has 18 independent examples:
+raw mouse/touch/pen/wheel events, three passes, nested consumption, tap/double/long press,
+press release/cancel, free/axis/long-press drag, pan/zoom/rotation and panZoomLock, keyed restart,
+latest state without restart, enable/removal, independent siblings and scoped timeouts.
+Drag and transform cards include a moving/scaling/rotating marker and numeric readouts.
+
+The adapter uses UI Toolkit picking, capture, coordinate conversion and event callbacks.
+A PointerManipulator bridge adds Compose's Initial/Main/Final passes and shared consumption.
+Native trickle-down guards are honored before Compose dispatch. Snapshots own their data;
+no pooled native event is retained, and events are not queued when nobody is awaiting them.
+Callbacks resume synchronously to allow consumption before the next handler/pass.
+
+Run **Compose.Net.Unity.PointerInput.Tests** in the Edit Mode Test Runner: 45 event/gesture/
+gallery tests plus 3 native scene-host lifecycle tests. The suite uses real UI Toolkit panels,
+mouse/wheel/touch/pen events, capture, layout, nested elements and the actual demo screen.
+Also run **Compose.Net.Unity.Clickable.Tests** when changing input dispatch.
+See the Compose.Net repository README for the public API and migration details.

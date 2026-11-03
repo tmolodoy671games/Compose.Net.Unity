@@ -1,137 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Compose.Net;
-using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace Compose.Net.Unity.Runtime.Adapters.Modifiers.Input.Pointer;
+namespace Compose.Net.Unity;
 
 internal sealed class AwaitPointerEventScopeImpl : IAwaitPointerEventScope, IDisposable
 {
-    private readonly VisualElement _element;
-    private readonly Queue<IPointerInputChange> _pending = new();
-    private TaskCompletionSource<IPointerInputChange>? _waiter;
-    private readonly HashSet<int> _captured = new();
-    private readonly CancellationTokenRegistration _registration;
+    private readonly PointerInputScopeImpl _owner;
+    private readonly CancellationTokenRegistration _lifetime;
+    private readonly object _gate = new();
+    private TaskCompletionSource<PointerEvent>? _waiter;
+    private PointerEventPass _pass;
     private bool _disposed;
-
-    public AwaitPointerEventScopeImpl(VisualElement element, CancellationToken token)
-    {
-        _element = element;
-        Token = token;
-
-        _element.RegisterCallback<PointerDownEvent>(OnDown);
-        _element.RegisterCallback<PointerMoveEvent>(OnMove);
-        _element.RegisterCallback<PointerUpEvent>(OnUp);
-        _element.RegisterCallback<PointerCancelEvent>(OnCancel);
-        _element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
-        _registration = token.Register(Cancel);
-    }
-
-    public Size Size => _element.layout.size.ToSize();
+    public Size Size => _owner.Size;
+    public Size ExtendedTouchPadding => _owner.ExtendedTouchPadding;
+    public ViewConfiguration ViewConfiguration => _owner.ViewConfiguration;
     public CancellationToken Token { get; }
-    public VisualElement Element => _element;
+    public PointerEvent CurrentEvent => _owner.CurrentEvent;
 
-    public Task<IPointerInputChange> AwaitFirstDown()
-    {
-        return Wait(downOnly: true);
-    }
+    internal AwaitPointerEventScopeImpl(PointerInputScopeImpl owner, CancellationToken token)
+    { _owner = owner; Token = token; _lifetime = token.Register(Cancel); }
 
-    public Task<IPointerInputChange> AwaitPointerInputChange()
+    public Task<PointerEvent> AwaitPointerEvent(PointerEventPass pass = PointerEventPass.Main,
+        CancellationToken cancellationToken = default)
     {
-        return Wait(downOnly: false);
-    }
-
-    private async Task<IPointerInputChange> Wait(bool downOnly)
-    {
-        while (true)
+        Token.ThrowIfCancellationRequested(); cancellationToken.ThrowIfCancellationRequested();
+        if (pass < PointerEventPass.Initial || pass > PointerEventPass.Final) throw new ArgumentOutOfRangeException(nameof(pass));
+        TaskCompletionSource<PointerEvent> waiter;
+        lock (_gate)
         {
-            var change = await Next();
-            if (!downOnly || change.ChangedToPressed())
-                return change;
+            if (_disposed) throw new ObjectDisposedException(nameof(AwaitPointerEventScopeImpl));
+            if (_waiter != null) throw new InvalidOperationException("Use separate AwaitPointerEventScope blocks for concurrent listeners.");
+            // Deliberately inline: consumption must be visible to the next handler/pass.
+            waiter = _waiter = new TaskCompletionSource<PointerEvent>(); _pass = pass;
         }
+        return Wait(waiter, cancellationToken);
     }
-
-    private Task<IPointerInputChange> Next()
+    private async Task<PointerEvent> Wait(TaskCompletionSource<PointerEvent> waiter, CancellationToken token)
     {
-        Token.ThrowIfCancellationRequested();
-        if (_pending.Count > 0)
-            return Task.FromResult(_pending.Dequeue());
-
-        // Continue during UI dispatch so Consume can stop bubbling before
-        // an ancestor handles the same down/up.
-        _waiter = new TaskCompletionSource<IPointerInputChange>();
-        return _waiter.Task;
-    }
-
-    private void OnDown(PointerDownEvent evt)
-    {
-        if (!_element.enabledInHierarchy) return;
-        _captured.Add(evt.pointerId);
-        _element.CapturePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnMove(PointerMoveEvent evt)
-    {
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnUp(PointerUpEvent evt)
-    {
-        _captured.Remove(evt.pointerId);
-        _element.ReleasePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnCancel(PointerCancelEvent evt)
-    {
-        _captured.Remove(evt.pointerId);
-        _element.ReleasePointer(evt.pointerId);
-        Push(PointerInputChange.Create(evt));
-    }
-
-    private void OnCaptureOut(PointerCaptureOutEvent evt)
-    {
-        if (_captured.Remove(evt.pointerId))
-            Push(PointerInputChange.Cancel(evt.pointerId, evt));
-    }
-
-    public void Dispose()
-    {
-        Cancel();
-        _registration.Dispose();
-    }
-
-    private void Push(IPointerInputChange change)
-    {
-        if (_waiter != null)
+        using var registration = token.Register(() =>
         {
-            var waiter = _waiter;
-            _waiter = null;
-            waiter.TrySetResult(change);
-            return;
-        }
-
-        _pending.Enqueue(change);
+            lock (_gate) { if (ReferenceEquals(_waiter, waiter)) _waiter = null; }
+            waiter.TrySetCanceled();
+        });
+        return await waiter.Task;
     }
-
+    internal void Dispatch(PointerEvent evt, PointerEventPass pass)
+    {
+        TaskCompletionSource<PointerEvent>? waiter;
+        lock (_gate)
+        {
+            if (_disposed || pass != _pass) return;
+            waiter = _waiter; _waiter = null;
+        }
+        waiter?.TrySetResult(evt);
+    }
     private void Cancel()
     {
-        if (_disposed) return;
-        _disposed = true;
-        _element.UnregisterCallback<PointerDownEvent>(OnDown);
-        _element.UnregisterCallback<PointerMoveEvent>(OnMove);
-        _element.UnregisterCallback<PointerUpEvent>(OnUp);
-        _element.UnregisterCallback<PointerCancelEvent>(OnCancel);
-        _element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
-        foreach (var pointer in _captured)
-            _element.ReleasePointer(pointer);
-        _captured.Clear();
-        _pending.Clear();
-        _waiter?.TrySetCanceled();
-        _waiter = null;
+        TaskCompletionSource<PointerEvent>? waiter;
+        lock (_gate) { _disposed = true; waiter = _waiter; _waiter = null; }
+        waiter?.TrySetCanceled();
     }
+    public void Dispose() { Cancel(); _lifetime.Dispose(); }
 }
