@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 
 namespace Compose.Net.Unity.Runtime.Adapters.Nodes;
@@ -27,6 +27,7 @@ internal class ColumnNodeFactoryImpl : IColumnNodeFactory
         var column = node.VisualElement<Column>();
         column.style.alignItems = horizontalAlignment.ToAlign();
         column.style.justifyContent = verticalArrangement.ToJustify();
+        ((UnityReusableComposeNode)node).SyncScrollContentLayout();
     }
 }
 

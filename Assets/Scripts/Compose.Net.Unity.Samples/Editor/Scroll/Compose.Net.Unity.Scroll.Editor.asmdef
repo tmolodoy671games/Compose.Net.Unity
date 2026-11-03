@@ -1,0 +1,10 @@
+{
+  "name": "Compose.Net.Unity.Scroll.Editor",
+  "references": [
+    "Compose.Net.Unity",
+    "Compose.Net.Unity.Samples"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

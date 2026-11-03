@@ -1,4 +1,4 @@
-﻿using Compose.Net;
+using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using UnityEngine.UIElements;
 
@@ -29,6 +29,7 @@ internal class RowNodeFactoryImpl : IRowNodeFactory
         row.style.flexDirection = FlexDirection.Row;
         row.style.alignItems = (verticalAlignment ?? Alignment.Top).ToAlign();
         row.style.justifyContent = (horizontalArrangement ?? Arrangement.Left).ToJustify();
+        ((UnityReusableComposeNode)node).SyncScrollContentLayout();
     }
 }
 
