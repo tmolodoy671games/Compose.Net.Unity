@@ -16,6 +16,7 @@ public class Box : VisualElement, ILayout
     private const string DataKey = "Compose.Box.ParentData";
     private readonly Dictionary<VisualElement, ChildStyle> _children = new();
     private readonly EventCallback<GeometryChangedEvent> _geometry;
+    private IVisualElementScheduledItem? _refresh;
     private Alignment _alignment = Alignment.TopStart;
     private bool _propagate, _refreshing;
     private Box? _contentLayout;
@@ -56,9 +57,22 @@ public class Box : VisualElement, ILayout
         style.gridTemplateColumns = Track(false);
         style.gridTemplateRows = Track(false);
         ContentAlignment = Alignment.TopStart;
-        _geometry = _ => RefreshConstraints();
+        // A geometry notification belongs to an active layout pass. Re-entering measurement
+        // here makes pixel rounding feed back into Grid's parent/child constraints.
+        _geometry = evt =>
+        {
+            if (evt.oldRect.size != evt.newRect.size) ScheduleRefresh();
+        };
         RegisterCallback(_geometry);
-        RegisterCallback<AttachToPanelEvent>(_ => RefreshConstraints());
+        RegisterCallback<AttachToPanelEvent>(_ => ScheduleRefresh());
+        RegisterCallback<DetachFromPanelEvent>(_ => _refresh?.Pause());
+    }
+
+    private void ScheduleRefresh()
+    {
+        if (panel == null) return;
+        if (_refresh == null) _refresh = schedule.Execute(RefreshConstraints);
+        else _refresh.ExecuteLater(0);
     }
 
     public Alignment ContentAlignment
@@ -293,31 +307,29 @@ public class Box : VisualElement, ILayout
         internal void Constrain(VisualElement child, float minW, float maxW, float minH, float maxH, bool fill)
         {
             var s = child.style;
-            if (child is TextElement text)
+            if (child is TextElement text && text.panel != null)
             {
                 var authored = _textWidth.Authored(s.width);
                 if (authored.keyword is StyleKeyword.Null or StyleKeyword.Auto)
                 {
-                    // Native Grid measures auto-sized labels with margins at a different width
-                    // than it assigns them. Resolve the preferred width with UI Toolkit's own
-                    // text measurer so wrapping and the row's intrinsic height use one width.
-                    var preferred = text.MeasureTextSize(text.text, 0, VisualElement.MeasureMode.Undefined,
-                        0, VisualElement.MeasureMode.Undefined).x;
-                    if (float.IsFinite(preferred))
+                    // Ask UI Toolkit for both intrinsic dimensions under the incoming width.
+                    // Measuring again at its rounded preferred width can wrap a word onto an
+                    // extra line at fractional DPI, feeding a different height back into Grid.
+                    var insets = Insets(child, true);
+                    var available = Mathf.Max(0, maxW - child.resolvedStyle.marginLeft - child.resolvedStyle.marginRight);
+                    var bounded = float.IsFinite(available);
+                    var measured = text.MeasureTextSize(text.text, bounded ? Mathf.Max(0, available - insets) : 0,
+                        bounded ? VisualElement.MeasureMode.AtMost : VisualElement.MeasureMode.Undefined,
+                        0, VisualElement.MeasureMode.Undefined);
+                    if (float.IsFinite(measured.x) && float.IsFinite(measured.y))
                     {
-                        var insets = child.resolvedStyle.paddingLeft + child.resolvedStyle.paddingRight
-                            + child.resolvedStyle.borderLeftWidth + child.resolvedStyle.borderRightWidth;
-                        var available = Mathf.Max(0, maxW - child.resolvedStyle.marginLeft - child.resolvedStyle.marginRight);
-                        s.width = _textWidth.Apply(s.width, Mathf.Min(preferred + insets, available), available, true);
+                        // A measured glyph must fit in the assigned pixel-aligned content width.
+                        var pixelsPerPoint = text.panel.scaledPixelsPerPoint;
+                        var width = Mathf.Ceil(measured.x * pixelsPerPoint) / pixelsPerPoint + insets;
+                        s.width = _textWidth.Apply(s.width, Mathf.Min(width, available), available, true);
                         var authoredHeight = _textHeight.Authored(s.height);
                         if (authoredHeight.keyword is StyleKeyword.Null or StyleKeyword.Auto)
-                        {
-                            var measured = text.MeasureTextSize(text.text, Mathf.Max(0, s.width.value.value - insets),
-                                VisualElement.MeasureMode.Exactly, 0, VisualElement.MeasureMode.Undefined).y;
-                            var verticalInsets = child.resolvedStyle.paddingTop + child.resolvedStyle.paddingBottom
-                                + child.resolvedStyle.borderTopWidth + child.resolvedStyle.borderBottomWidth;
-                            if (float.IsFinite(measured)) s.height = _textHeight.Apply(s.height, Mathf.Min(measured + verticalInsets, maxH), maxH, true);
-                        }
+                            s.height = _textHeight.Apply(s.height, Mathf.Min(measured.y + Insets(child, false), maxH), maxH, true);
                     }
                 }
             }

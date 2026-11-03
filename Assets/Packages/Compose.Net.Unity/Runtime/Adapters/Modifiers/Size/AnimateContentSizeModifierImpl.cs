@@ -34,6 +34,8 @@ internal record AnimateContentSizeModifierImpl(
         private StyleLength _width, _height, _left, _top;
         private StyleEnum<Position> _position;
         private StyleFloat _flexShrink;
+        private StyleTranslate _translate;
+        private IVisualElementScheduledItem? _measurement;
 
         internal void Update(AnimationSpec spec, Alignment nextAlignment, Action<Size, Size>? listener)
         {
@@ -57,6 +59,7 @@ internal record AnimateContentSizeModifierImpl(
             _top = contentContainer.style.top;
             _position = contentContainer.style.position;
             _flexShrink = contentContainer.style.flexShrink;
+            _translate = contentContainer.style.translate;
             contentContainer.style.flexShrink = 0;
             contentContainer.RegisterCallback<GeometryChangedEvent>(OnContentGeometryChanged);
             element.RegisterCallback<GeometryChangedEvent>(OnElementGeometryChanged);
@@ -68,10 +71,24 @@ internal record AnimateContentSizeModifierImpl(
             if (evt.target != ContentContainer || Element == null || ContentContainer == null)
                 return;
 
+            if (evt.oldRect.size != evt.newRect.size)
+            {
+                // Coalesce measurements after layout. Size/position writes during this event
+                // otherwise restart the same layout pass, especially on fractional-DPI panels.
+                if (_measurement == null) _measurement = Element.schedule.Execute(MeasureContent);
+                else _measurement.ExecuteLater(0);
+            }
+            AlignContent();
+        }
+
+        private void MeasureContent()
+        {
+            if (Element?.panel == null || ContentContainer?.panel == null) return;
+
             var content = ContentContainer.resolvedStyle;
             var outer = Element.resolvedStyle;
             // UI Toolkit layout sizes already include the content's padding and borders.
-            var target = evt.newRect.size + new Vector2(
+            var target = ContentContainer.layout.size + new Vector2(
                 content.marginLeft + content.marginRight + outer.paddingLeft + outer.paddingRight
                 + outer.borderLeftWidth + outer.borderRightWidth,
                 content.marginTop + content.marginBottom + outer.paddingTop + outer.paddingBottom
@@ -87,8 +104,13 @@ internal record AnimateContentSizeModifierImpl(
                 Element.style.width = target.x;
                 Element.style.height = target.y;
                 ContentContainer.style.position = Position.Absolute;
+                ContentContainer.style.left = 0;
+                ContentContainer.style.top = 0;
             }
-            else if (_targetSize.Value != target)
+            // Pixel alignment at fractional DPI introduces small float errors when the
+            // centered parent moves. They must not keep restarting the native animation.
+            else if (!Mathf.Approximately(_targetSize.Value.x, target.x)
+                || !Mathf.Approximately(_targetSize.Value.y, target.y))
             {
                 AnimateTo(target);
             }
@@ -148,10 +170,10 @@ internal record AnimateContentSizeModifierImpl(
                 Justify.FlexEnd => 1f,
                 _ => 0f
             };
-            ContentContainer.style.left = outer.paddingLeft
-                + (Element.contentRect.width - content.width - content.marginLeft - content.marginRight) * horizontal;
-            ContentContainer.style.top = outer.paddingTop
-                + (Element.contentRect.height - content.height - content.marginTop - content.marginBottom) * vertical;
+            // Translation affects rendering/picking without changing the measured content size.
+            ContentContainer.style.translate = new Translate(
+                outer.paddingLeft + (Element.contentRect.width - content.width - content.marginLeft - content.marginRight) * horizontal,
+                outer.paddingTop + (Element.contentRect.height - content.height - content.marginTop - content.marginBottom) * vertical);
         }
 
         private void StopAnimation()
@@ -172,6 +194,8 @@ internal record AnimateContentSizeModifierImpl(
         )
         {
             StopAnimation();
+            _measurement?.Pause();
+            _measurement = null;
             contentContainer.UnregisterCallback<GeometryChangedEvent>(OnContentGeometryChanged);
             element.UnregisterCallback<GeometryChangedEvent>(OnElementGeometryChanged);
             element.style.width = _width;
@@ -181,6 +205,7 @@ internal record AnimateContentSizeModifierImpl(
             contentContainer.style.top = _top;
             contentContainer.style.position = _position;
             contentContainer.style.flexShrink = _flexShrink;
+            contentContainer.style.translate = _translate;
             element.Clip().Decrement();
             _targetSize = null;
         }

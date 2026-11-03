@@ -9,6 +9,34 @@ namespace Compose.Net.Unity.Tests;
 
 public sealed partial class AnimateContentSizeTests
 {
+    [TestCase(1.25f), TestCase(1.5f), TestCase(2f)]
+    public void OnePhysicalPixelResizeStillAnimates(float scale)
+    {
+        pixelsPerPoint = scale;
+        Create(box: true);
+        var before = _host.layout.size;
+        Resize(100 + 1 / scale, 50 + 1 / scale);
+        Frame(1000);
+        Assert.That(_finished.Count, Is.EqualTo(1));
+        Assert.That(_host.layout.width, Is.GreaterThan(before.x));
+        Assert.That(_host.layout.height, Is.GreaterThan(before.y));
+    }
+
+    [Test]
+    public void DisposalCancelsMeasurementQueuedByLayout()
+    {
+        Create();
+        _child.style.width = 200;
+        _child.style.height = 150;
+        simulate.FrameUpdateMs(0); // Queues measurement without running the scheduler again.
+        _node.Dispose();
+        Frame(1000);
+        Assert.That(_finished, Is.Empty);
+        Assert.That(_host.style.width.keyword, Is.EqualTo(StyleKeyword.Null));
+        Assert.That(_host.style.height.keyword, Is.EqualTo(StyleKeyword.Null));
+        Assert.That(_child.parent, Is.SameAs(_host));
+    }
+
     [TestCase(200, 50)]
     [TestCase(100, 150)]
     [TestCase(200, 150)]
@@ -32,11 +60,11 @@ public sealed partial class AnimateContentSizeTests
             Alignment.CenterStart, Alignment.Center, Alignment.CenterEnd,
             Alignment.BottomStart, Alignment.BottomCenter, Alignment.BottomEnd };
         Create(alignment: alignments[y * 3 + x]); Resize(200, 150); Frame(500);
-        Assert.That(_content.layout.x, Is.EqualTo(-25 * x).Within(1));
-        Assert.That(_content.layout.y, Is.EqualTo(-25 * y).Within(1));
+        Assert.That(_content.worldBound.x - _host.worldBound.x, Is.EqualTo(-25 * x).Within(1));
+        Assert.That(_content.worldBound.y - _host.worldBound.y, Is.EqualTo(-25 * y).Within(1));
         Frame(500); Resize(100, 50); Frame(500);
-        Assert.That(_content.layout.x, Is.EqualTo(25 * x).Within(1));
-        Assert.That(_content.layout.y, Is.EqualTo(25 * y).Within(1));
+        Assert.That(_content.worldBound.x - _host.worldBound.x, Is.EqualTo(25 * x).Within(1));
+        Assert.That(_content.worldBound.y - _host.worldBound.y, Is.EqualTo(25 * y).Within(1));
     }
 
     [TestCase(0, 0.25f)]

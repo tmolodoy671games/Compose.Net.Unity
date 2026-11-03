@@ -53,7 +53,13 @@ public sealed partial class AnimateContentSizeTests : UITestFixture
         Assert.That(_finished, Is.Empty, "The first layout must not animate or notify");
     }
 
-    private void Frame(int ms) => simulate.FrameUpdateMs(ms);
+    private void Frame(int ms)
+    {
+        // Drain the post-layout scheduler before advancing the animation clock.
+        simulate.FrameUpdateMs(0);
+        simulate.FrameUpdateMs(ms);
+        simulate.FrameUpdateMs(0);
+    }
     private void Resize(float width, float height) { _child.style.width = width; _child.style.height = height; Frame(0); }
 
     [TestCase(false)]
@@ -101,8 +107,8 @@ public sealed partial class AnimateContentSizeTests : UITestFixture
         Create(alignment: mode == 0 ? Alignment.TopStart : mode == 1 ? Alignment.Center : Alignment.BottomEnd);
         Resize(200, 150);
         Frame(500);
-        Assert.That(_content.layout.x, Is.EqualTo(-25 * mode).Within(1));
-        Assert.That(_content.layout.y, Is.EqualTo(-25 * mode).Within(1));
+        Assert.That(_content.worldBound.x - _host.worldBound.x, Is.EqualTo(-25 * mode).Within(1));
+        Assert.That(_content.worldBound.y - _host.worldBound.y, Is.EqualTo(-25 * mode).Within(1));
     }
 
     [Test]
@@ -152,6 +158,7 @@ public sealed partial class AnimateContentSizeTests : UITestFixture
         Assert.That(_content.style.position.keyword, Is.EqualTo(StyleKeyword.Null));
         Assert.That(_content.style.left.keyword, Is.EqualTo(StyleKeyword.Null));
         Assert.That(_content.style.top.keyword, Is.EqualTo(StyleKeyword.Null));
+        Assert.That(_content.style.translate.keyword, Is.EqualTo(StyleKeyword.Null));
     }
 
     [Test]
@@ -169,6 +176,6 @@ public sealed partial class AnimateContentSizeTests : UITestFixture
         Resize(200, 150);
         Frame(1000);
         Assert.That(_host.layout.width, Is.EqualTo(263).Within(1));
-        Assert.That(_content.layout.x, Is.EqualTo(20).Within(1));
+        Assert.That(_content.worldBound.x - _host.worldBound.x, Is.EqualTo(20).Within(1));
     }
 }
