@@ -1,6 +1,5 @@
 using System;
 using Compose.Net;
-using UnityEngine.UIElements;
 using static Compose.Net.ComposeFunctions;
 
 namespace Compose.Net.Unity.Samples.Behaviors.Content;
@@ -15,12 +14,12 @@ public partial class AnimateContentSizeDemo : ComposeUI
     public static void Screen(AnimateContentSizeDemoState state)
     {
         Column(modifier: Modifier.FillMaxWidth().Background(new Color(0.045f, 0.06f, 0.095f))
-            .Padding(20.Dp()).TestTag("animate-size-demo"), content: () =>
+            .Padding(20.Dp()).TestTag("animate-size-demo"), verticalArrangement: Arrangement.SpacedBy(12.Dp()), content: () =>
         {
             Text("Modifier.AnimateContentSize", color: Color.White, fontSize: 30.Sp());
             Text("Click content to expand / collapse. S, M and L select a target; click again during motion to interrupt.",
                 color: Color.LightGray, fontSize: 14.Sp());
-            Row(content: () =>
+            Row(horizontalArrangement: Arrangement.SpacedBy(8.Dp()), content: () =>
             {
                 SizeControl("animate.expand-all", "Expand all", state.ExpandAll, 150);
                 SizeControl("animate.collapse-all", "Collapse all", state.CollapseAll, 150);
@@ -29,7 +28,7 @@ public partial class AnimateContentSizeDemo : ComposeUI
             for (var row = 0; row < 5; row++)
             {
                 var first = row * 3;
-                Row(content: () =>
+                Row(horizontalArrangement: Arrangement.SpacedBy(12.Dp()), content: () =>
                 {
                     SizeCard(state.Cases[first]);
                     SizeCard(state.Cases[first + 1]);
@@ -50,12 +49,12 @@ public partial class AnimateContentSizeDemo : ComposeUI
         var tag = "animate." + item.Id;
         // Reading Revision deliberately recomposes this card without changing its target size.
         var revision = item.Revision.Value;
-        Column(modifier: Modifier.Width(336.Dp()).Height(370.Dp()).Padding(6.Dp())
-            .Background(new Color(0.095f, 0.12f, 0.18f), RoundedCornerShape(10.Dp())).Padding(12.Dp()), content: () =>
+        Column(modifier: Modifier.Width(336.Dp()).Height(444.Dp()).SizeIn(minHeight: 444.Dp())
+            .Background(new Color(0.095f, 0.12f, 0.18f), RoundedCornerShape(10.Dp())).Padding(12.Dp()).TestTag(tag + ".card"), verticalArrangement: Arrangement.SpacedBy(8.Dp()), content: () =>
         {
             Text(item.Title, color: Color.White, fontSize: 18.Sp());
             Text(item.Description, color: Color.LightGray, fontSize: 12.Sp(), modifier: Modifier.Height(36.Dp()));
-            Box(modifier: Modifier.Width(296.Dp()).Height(164.Dp())
+            Box(modifier: Modifier.Width(296.Dp()).Height(176.Dp()).SizeIn(minHeight: 176.Dp())
                 .Background(new Color(0.055f, 0.075f, 0.12f)).Clip().Padding(8.Dp())
                 .TestTag(tag + ".stage"), content: () =>
             {
@@ -69,7 +68,7 @@ public partial class AnimateContentSizeDemo : ComposeUI
                 else
                     SizeTarget(item);
             });
-            Row(content: () =>
+            Row(horizontalArrangement: Arrangement.SpacedBy(8.Dp()), content: () =>
             {
                 SizeControl(tag + ".small", "S", item.Small, 56);
                 SizeControl(tag + ".medium", "M", item.Medium, 56);
@@ -79,7 +78,7 @@ public partial class AnimateContentSizeDemo : ComposeUI
                 SizeControl(tag + ".align", "Anchor: " + AnimateContentSizeDemoCase.AlignmentNames[item.AlignmentIndex.Value],
                     item.NextAlignment, 290);
             else if (item.Scenario == AnimateSizeScenario.Parameters)
-                Row(content: () =>
+                Row(horizontalArrangement: Arrangement.SpacedBy(8.Dp()), content: () =>
                 {
                     SizeControl(tag + ".speed", item.Slow.Value ? "3000 ms" : "1000 ms", item.ToggleSpec, 140);
                     SizeControl(tag + ".listener", item.AlternateListener.Value ? "Listener B" : "Listener A", item.ToggleListener, 150);
@@ -89,7 +88,7 @@ public partial class AnimateContentSizeDemo : ComposeUI
             else if (item.Scenario == AnimateSizeScenario.Content)
                 SizeControl(tag + ".visible", item.Visible.Value ? "Remove content" : "Restore content", item.ToggleVisible, 290);
             else if (item.Scenario == AnimateSizeScenario.Recompose)
-                Row(content: () =>
+                Row(horizontalArrangement: Arrangement.SpacedBy(8.Dp()), content: () =>
                 {
                     SizeControl(tag + ".prefix", item.Decorated.Value ? "Opacity 65%" : "Opacity 100%", item.ToggleDecoration, 145);
                     SizeControl(tag + ".same", "Same target #" + revision, item.NoChange, 145);
@@ -121,7 +120,7 @@ public partial class AnimateContentSizeDemo : ComposeUI
                     AnimateContentSizeDemoCase.Alignments[item.AlignmentIndex.Value], listener)
             };
         }
-        Box(modifier: WithNativeClick(modifier, item.Toggle), content: () =>
+        Box(modifier: modifier.Clickable(item.Toggle), content: () =>
         {
             if (item.Visible.Value)
             {
@@ -155,31 +154,9 @@ public partial class AnimateContentSizeDemo : ComposeUI
 
     [Composable]
     private static void SizeControl(string tag, string label, Action action, int width) =>
-        Box(modifier: WithNativeClick(Modifier.Width(width.Dp()).Height(30.Dp()).Padding(2.Dp())
+        Box(modifier: Modifier.Width(width.Dp()).Height(30.Dp()).Padding(2.Dp())
                 .Background(new Color(0.18f, 0.23f, 0.32f), RoundedCornerShape(4.Dp()))
-                .TestTag(tag), action), contentAlignment: Alignment.Center,
+                .TestTag(tag).Clickable(action), contentAlignment: Alignment.Center,
             content: () => Text(label, color: Color.White, fontSize: 12.Sp(), modifier: Modifier.TestTag(tag + ".label")));
-
-    [Composable]
-    private static IModifier WithNativeClick(IModifier modifier, Action action)
-    {
-        // Demo controls use the UI Toolkit gesture recognizer independently of Modifier.Clickable.
-        var clickable = Remember(action, () => new Clickable(action));
-        var previousPickingMode = UnityEngine.UIElements.PickingMode.Ignore;
-        return modifier.Custom(
-            apply: node =>
-            {
-                var element = node.VisualElement();
-                previousPickingMode = element.pickingMode;
-                element.pickingMode = UnityEngine.UIElements.PickingMode.Position;
-                element.AddManipulator(clickable);
-            },
-            revert: node =>
-            {
-                var element = node.VisualElement();
-                element.RemoveManipulator(clickable);
-                element.pickingMode = previousPickingMode;
-            });
-    }
 
 }

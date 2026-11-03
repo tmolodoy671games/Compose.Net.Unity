@@ -17,7 +17,7 @@ public sealed partial class AnimateContentSizeDemoWindow : EditorWindow
     {
         var window = GetWindow<AnimateContentSizeDemoWindow>();
         window.titleContent = new GUIContent("Animate Content Size");
-        window.minSize = new Vector2(1080, 500);
+        window.minSize = new Vector2(1100, 500);
         window.Show();
     }
 

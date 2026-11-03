@@ -192,10 +192,7 @@ internal sealed class SharedVisual : ISharedContentHost
             Layer.style.overflow = clipping ? Overflow.Hidden : Overflow.Visible;
             if (clipping)
             {
-                Layer.style.borderTopLeftRadius = clip.Shape.TopLeft.ToLength(UnityDensity.Current);
-                Layer.style.borderTopRightRadius = clip.Shape.TopRight.ToLength(UnityDensity.Current);
-                Layer.style.borderBottomLeftRadius = clip.Shape.BottomLeft.ToLength(UnityDensity.Current);
-                Layer.style.borderBottomRightRadius = clip.Shape.BottomRight.ToLength(UnityDensity.Current);
+                RoundedCorners.Apply(Layer, clip.Shape, new Vector2(layerBounds.Size.Width, layerBounds.Size.Height));
             }
             _placement.style.left = bounds.Offset.X - layerBounds.Offset.X;
             _placement.style.top = bounds.Offset.Y - layerBounds.Offset.Y;

@@ -22,7 +22,7 @@ public sealed partial class AnimateContentSizeDemoTests : UITestFixture
     [SetUp]
     public void Mount()
     {
-        panelSize = new Vector2(1100, 2100);
+        panelSize = new Vector2(1100, 2700);
         simulate.timePerSimulatedFrameMs = 0;
         _state = new AnimateContentSizeDemoState();
         _view = new ComposeView(); _view.style.flexShrink = 0;
@@ -32,7 +32,13 @@ public sealed partial class AnimateContentSizeDemoTests : UITestFixture
         Assert.That(_view.Q("animate-size-demo"), Is.Not.Null);
     }
 
-    [Composable] private void Content() => AnimateContentSizeDemo.Screen(_state);
+    [Composable] private void Content()
+    {
+        var indication = LocalIndication.Current;
+        if (_recordingIndication != null) _recordingIndication.Native = indication;
+        CompositionLocalProvider(LocalIndication.Provides(_recordingIndication ?? indication),
+            () => AnimateContentSizeDemo.Screen(_state));
+    }
     [TearDown] public void Unmount() { _view?.Dispose(); simulate.ResetTimePerSimulatedFrameToDefault(); }
 
     private void Flush(int ms = 0)
@@ -159,8 +165,8 @@ public sealed partial class AnimateContentSizeDemoTests : UITestFixture
         yield return Click("alignment", "large"); Flush(500);
         for (var i = 0; i < 4; i++) yield return Click("alignment", "align");
         var content = Element("animate.alignment.content").parent;
-        Assert.That(content.layout.x, Is.EqualTo(-30).Within(1));
-        Assert.That(content.layout.y, Is.EqualTo(-18).Within(1));
+        Assert.That(content.worldBound.x - Target("alignment").worldBound.x, Is.EqualTo(-30).Within(1));
+        Assert.That(content.worldBound.y - Target("alignment").worldBound.y, Is.EqualTo(-18).Within(1));
         Flush(500); Assert.That(_state["alignment"].CompletedA.Value, Is.EqualTo(1));
     }
 

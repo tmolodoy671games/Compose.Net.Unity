@@ -1,11 +1,13 @@
 using System.Linq;
 using Compose.Net.Unity.Samples.Behaviors.Content;
 using NUnit.Framework;
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity.Tests;
 
+[AutoStaticsCleanup]
 public sealed partial class BoxTests
 {
     private BoxDemoCase? _demo;

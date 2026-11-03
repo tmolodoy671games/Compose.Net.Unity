@@ -6,7 +6,7 @@ using Compose.Net.Navigation;
 
 namespace Compose.Net.Unity.Samples.Behaviors.Content
 {
-    internal partial class NavigationSample : ComposeUI
+    public partial class NavigationSample : ComposeUI
     {
         private sealed record Home : INavKey;
 
@@ -27,12 +27,12 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         protected override void Preview() => Layout();
 
         [Composable]
-        private static void Layout()
+        public static void Layout()
         {
             var backStack = RememberNavBackStack<INavKey>(new Home());
             NavDisplay(
                 backStack,
-                onBack: () => backStack.RemoveLastOrNull(),
+                onBack: () => { if (backStack.Size > 1) backStack.RemoveLastOrNull(); },
                 modifier: Modifier.FillMaxSize().Background(Background),
                 contentAlignment: Alignment.Center,
                 entryProvider: EntryProvider<INavKey>(scope =>
@@ -59,9 +59,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         color: Muted,
                         fontSize: 16.Sp()
                     );
-                    NavButton("Визитов: " + visits.Value, () => visits.Value++);
-                    NavButton("Товары", () => backStack.Add(new ProductList()));
-                    NavButton("Настройки", () => backStack.Add(new Settings()));
+                    NavButton("Визитов: " + visits.Value, () => visits.Value++, "visits");
+                    NavButton("Товары", () => backStack.Add(new ProductList()), "products");
+                    NavButton("Настройки", () => backStack.Add(new Settings()), "settings");
                 }
             );
         }
@@ -74,9 +74,9 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 backStack: backStack,
                 content: () =>
                 {
-                    NavButton("Compose.Net", () => backStack.Add(new Product("compose", "Compose.Net")));
-                    NavButton("Navigation 3", () => backStack.Add(new Product("nav3", "Navigation 3")));
-                    NavButton("Unity UI Toolkit", () => backStack.Add(new Product("uitk", "Unity UI Toolkit")));
+                    NavButton("Compose.Net", () => backStack.Add(new Product("compose", "Compose.Net")), "product-compose");
+                    NavButton("Navigation 3", () => backStack.Add(new Product("nav3", "Navigation 3")), "product-nav3");
+                    NavButton("Unity UI Toolkit", () => backStack.Add(new Product("uitk", "Unity UI Toolkit")), "product-uitk");
                 }
             );
         }
@@ -91,7 +91,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 {
                     Text("id: " + product.Id, color: Muted, fontSize: 18.Sp());
                     NavButton("Ещё один экран того же типа", () =>
-                        backStack.Add(new Product(product.Id + "+", product.Title + " +"))
+                        backStack.Add(new Product(product.Id + "+", product.Title + " +")), "next-product"
                     );
                 }
             );
@@ -108,7 +108,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 {
                     NavButton(
                         dark.Value ? "Тема: тёмная" : "Тема: светлая",
-                        () => dark.Value = !dark.Value
+                        () => dark.Value = !dark.Value, "theme"
                     );
                 }
             );
@@ -121,6 +121,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
             [Composable] Action content
         )
         {
+            var onBack = LocalOnBack.Current;
             Column(
                 horizontalAlignment: Alignment.CenterHorizontally,
                 verticalArrangement: Arrangement.Center,
@@ -142,21 +143,22 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                         .Padding(right: 12.Dp())
                                         .Background(Surface, RoundedCornerShape(10.Dp()))
                                         .Padding(horizontal: 16.Dp(), vertical: 8.Dp())
-                                        .Clickable(() => backStack.RemoveLastOrNull())
+                                        .Clickable(onBack)
+                                        .TestTag("nav.back")
                                 );
                             }
 
-                            Text(title, color: Color.White, fontSize: 32.Sp());
+                            Text(title, color: Color.White, fontSize: 32.Sp(), modifier: Modifier.TestTag("nav.title"));
                         }
                     );
-                    Text("Стек: " + backStack.Size, color: Muted, fontSize: 14.Sp());
+                    Text("Стек: " + backStack.Size, color: Muted, fontSize: 14.Sp(), modifier: Modifier.TestTag("nav.stack"));
                     content();
                 }
             );
         }
 
         [Composable]
-        private static void NavButton(string text, Action onClick)
+        private static void NavButton(string text, Action onClick, string tag)
         {
             Text(
                 text,
@@ -167,6 +169,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     .Background(Surface, RoundedCornerShape(12.Dp()))
                     .Padding(horizontal: 20.Dp(), vertical: 12.Dp())
                     .Clickable(onClick)
+                    .TestTag("nav." + tag)
             );
         }
     }

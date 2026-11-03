@@ -15,6 +15,7 @@ internal class GenerateVisualContent
 
     private readonly VisualElement _element;
     private Action<MeshGenerationContext>? _onTop;
+    private DrawStateObserver? _drawObserver;
 
     // Drawn after every inserted callback.
     public Action<MeshGenerationContext>? OnTop
@@ -33,6 +34,11 @@ internal class GenerateVisualContent
     {
         _element = element;
         _originalGenerateVisualContent = element.generateVisualContent;
+        element.RegisterCallback<DetachFromPanelEvent>(_ =>
+        {
+            _drawObserver?.Dispose();
+            _drawObserver = null;
+        });
     }
 
     public void Insert(int index, Action<MeshGenerationContext> generateVisualContent)
@@ -50,10 +56,15 @@ internal class GenerateVisualContent
 
     internal void Invoke(MeshGenerationContext context)
     {
-        _originalGenerateVisualContent?.Invoke(context);
-        foreach (var generateVisualContent in _generateVisualContent)
-            generateVisualContent?.Invoke(context);
-        _onTop?.Invoke(context);
+        _drawObserver ??= new DrawStateObserver(_element.MarkDirtyRepaint);
+        _drawObserver.Observe(() =>
+        {
+            foreach (var generateVisualContent in _generateVisualContent)
+                generateVisualContent?.Invoke(context);
+            // Native content belongs above backgrounds and below overlays.
+            _originalGenerateVisualContent?.Invoke(context);
+            _onTop?.Invoke(context);
+        });
     }
 }
 

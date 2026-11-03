@@ -1,48 +1,24 @@
-﻿// ReSharper disable CheckNamespace
-
-using System;
+﻿using System;
 using Compose.Net;
-using SharpExtensions;
-using UnityEngine;
 using UnityEngine.UIElements;
-using Rect = Compose.Net.Rect;
 
 namespace Compose.Net.Unity;
 
-internal record BorderModifierImpl(
-    Dp BorderWidth,
-    IBrush Brush,
-    Shape Shape
-) : DrawUnityModifier
+internal record BorderModifierImpl(Dp BorderWidth, IBrush Brush, Shape Shape) : DrawUnityModifier
 {
-    protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = it =>
+    protected override Action<MeshGenerationContext> GenerateVisualContent { get; } = context =>
     {
-        var scope = it.DrawScope();
+        var scope = context.DrawScope();
         var density = UnityDensity.Current;
-        var sideOffset = BorderWidth.ToPx(density) / 2;
-        scope.DrawRoundRect(
-            brush: Brush,
-            topLeft: new Offset(sideOffset, sideOffset),
-            size: scope.Size - new Size(sideOffset * 2),
-            cornerRadius: Shape.TopLeft.ToPx(density),
-            style: Stroke(BorderWidth.ToPx(density))
-        );
+        var width = Math.Min(BorderWidth.ToPx(density), Math.Min(scope.Size.Width, scope.Size.Height));
+        if (width <= 0) return;
+        var half = width / 2;
+        var radii = RoundedCorners.Resolve(Shape, new UnityEngine.Vector2(scope.Size.Width, scope.Size.Height));
+        var pxPerDp = 1.Dp().ToPx(density);
+        var inset = new Shape((Math.Max(0, radii.x - half) / pxPerDp).Dp(),
+            (Math.Max(0, radii.y - half) / pxPerDp).Dp(),
+            (Math.Max(0, radii.z - half) / pxPerDp).Dp(),
+            (Math.Max(0, radii.w - half) / pxPerDp).Dp());
+        scope.DrawShape(Brush, new Offset(half, half), scope.Size - new Size(width), inset, style: Stroke(width));
     };
-
-    protected override void OnAttached(VisualElement element)
-    {
-        var width = BorderWidth.ToPx(UnityDensity.Current);
-        element.style.borderTopWidth = width;
-        element.style.borderBottomWidth = width;
-        element.style.borderLeftWidth = width;
-        element.style.borderRightWidth = width;
-    }
-
-    protected override void OnDetached(VisualElement element)
-    {
-        element.style.borderTopWidth = StyleKeyword.Null;
-        element.style.borderBottomWidth = StyleKeyword.Null;
-        element.style.borderLeftWidth = StyleKeyword.Null;
-        element.style.borderRightWidth = StyleKeyword.Null;
-    }
 }

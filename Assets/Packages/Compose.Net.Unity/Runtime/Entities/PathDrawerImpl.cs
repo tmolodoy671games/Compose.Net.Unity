@@ -9,9 +9,14 @@ namespace Compose.Net.Unity;
 
 internal sealed class PathDrawerImpl : IPathDrawer
 {
-    private readonly Painter2D _painter;
+    private Painter2D _painter;
 
     public PathDrawerImpl(Painter2D painter)
+    {
+        _painter = painter;
+    }
+
+    internal void Begin(Painter2D painter)
     {
         _painter = painter;
         _painter.BeginPath();

@@ -21,27 +21,26 @@ internal record BackgroundColorShapeModifierImpl(
         );
     };
 
+    private readonly EventCallback<GeometryChangedEvent> _geometry = e => RoundedCorners.Apply((VisualElement)e.currentTarget, Shape);
     protected override void OnAttached(VisualElement element)
     {
         element.Clip().Increment();
-        var shapeValue = Shape;
-        element.style.borderTopLeftRadius = shapeValue.TopLeft.ToLength(UnityDensity.Current);
-        element.style.borderTopRightRadius = shapeValue.TopRight.ToLength(UnityDensity.Current);
-        element.style.borderBottomLeftRadius = shapeValue.BottomLeft.ToLength(UnityDensity.Current);
-        element.style.borderBottomRightRadius = shapeValue.BottomRight.ToLength(UnityDensity.Current);
+        element.RegisterCallback(_geometry);
+        RoundedCorners.Apply(element, Shape);
     }
 
     protected override void OnDetached(VisualElement element)
     {
+        element.UnregisterCallback(_geometry);
         element.Clip().Decrement();
-        var shapeValue = Shape;
+        var radii = RoundedCorners.Resolve(Shape, element.layout.size);
         var style = element.style;
-        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shapeValue.TopLeft.ToLength(UnityDensity.Current));
-        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shapeValue.TopRight.ToLength(UnityDensity.Current));
-        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shapeValue.BottomLeft.ToLength(UnityDensity.Current));
-        style.borderBottomRightRadius =
-            style.borderBottomRightRadius.CompareAndSetNull(shapeValue.BottomRight.ToLength(UnityDensity.Current));
+        style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(new Length(radii.x));
+        style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(new Length(radii.y));
+        style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(new Length(radii.z));
+        style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(new Length(radii.w));
     }
+
 }
 
 internal record BackgroundColorModifierImpl(Color BackgroundColor)

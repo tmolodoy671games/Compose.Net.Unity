@@ -38,7 +38,11 @@ namespace Compose.Net.Unity
 
         private void OnEnable() => _instance = this;
 
-        private void Update() => _invalidator.Tick();
+        private void Update()
+        {
+            Packages.Compose.Net.Unity.Runtime.Adapters.ComposeUnityAdapter.Instance.TickFrame();
+            _invalidator.Tick();
+        }
 
         public static IDisposable StartCoroutineAsDisposable(IEnumerable<TimeSpan?>? coroutine) =>
             StartCoroutineAsDisposable(coroutine == null ? null : CoroutineAdapter(coroutine));

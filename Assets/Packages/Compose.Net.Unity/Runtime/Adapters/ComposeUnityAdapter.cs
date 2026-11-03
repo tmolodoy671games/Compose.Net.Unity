@@ -17,6 +17,9 @@ namespace Compose.Net.Unity.Packages.Compose.Net.Unity.Runtime.Adapters;
 public class ComposeUnityAdapter : IComposeAdapter
 {
     public static readonly ComposeUnityAdapter Instance = new();
+    private readonly UnityFrameClock _frameClock = new();
+    public IFrameClock FrameClock => _frameClock;
+    internal void TickFrame() => _frameClock.Tick();
 
     private ComposeUnityAdapter()
     {

@@ -3,6 +3,7 @@
 using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Extensions;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -20,6 +21,7 @@ internal record InnerShadowModifierImpl(
     {
         private Shape _shape = shape;
         private Compose.Net.Shadow _shadow = shadow;
+        private Vector4 _radii;
 
         internal void Update(Shape nextShape, Compose.Net.Shadow nextShadow)
         {
@@ -38,7 +40,9 @@ internal record InnerShadowModifierImpl(
         )
         {
             element.style.overflow = Overflow.Hidden;
-            Init(shadowElement, _shape, _shadow);
+            Init(shadowElement, _shadow);
+            element.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            ApplyCorners();
         }
 
         protected override void RevertFromShadow(
@@ -47,21 +51,36 @@ internal record InnerShadowModifierImpl(
             VisualElement shadowElement
         )
         {
+            element.UnregisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             element.style.overflow = StyleKeyword.Null;
-            Revert(shadowElement, _shape, _shadow);
+            Revert(shadowElement, _radii, _shadow);
+        }
+
+        private void OnGeometryChanged(GeometryChangedEvent evt) => ApplyCorners();
+
+        private void ApplyCorners()
+        {
+            if (Element == null || Shadow == null) return;
+            var size = Element.layout.size;
+            if (!float.IsFinite(size.x) || !float.IsFinite(size.y)) return;
+            var radii = RoundedCorners.Resolve(_shape, size);
+            var spread = _shadow.Spread.ToPx(UnityDensity.Current);
+            // The shadow border extends by Spread on each side. Resolve the original
+            // shape first so radii above the cap produce identical shadow geometry.
+            var limit = Mathf.Max(0, Mathf.Min(size.x, size.y) / 2 + spread);
+            _radii = new Vector4(Mathf.Clamp(radii.x + spread, 0, limit),
+                Mathf.Clamp(radii.y + spread, 0, limit),
+                Mathf.Clamp(radii.z + spread, 0, limit),
+                Mathf.Clamp(radii.w + spread, 0, limit));
+            RoundedCorners.Apply(Shadow, _radii);
         }
 
         private static void Init(
             VisualElement shadowElement,
-            Shape shape,
             Compose.Net.Shadow shadow
         )
         {
             var style = shadowElement.style;
-            style.borderTopLeftRadius = shape.TopLeft.ToLength(UnityDensity.Current);
-            style.borderTopRightRadius = shape.TopRight.ToLength(UnityDensity.Current);
-            style.borderBottomLeftRadius = shape.BottomLeft.ToLength(UnityDensity.Current);
-            style.borderBottomRightRadius = shape.BottomRight.ToLength(UnityDensity.Current);
 
             style.borderTopColor = shadow.Color.ToUnityColor();
             style.borderBottomColor = shadow.Color.ToUnityColor();
@@ -89,15 +108,15 @@ internal record InnerShadowModifierImpl(
 
         private static void Revert(
             VisualElement shadowElement,
-            Shape shape,
+            Vector4 radii,
             Compose.Net.Shadow shadow
         )
         {
             var style = shadowElement.style;
-            style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(shape.TopLeft.ToLength(UnityDensity.Current));
-            style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(shape.TopRight.ToLength(UnityDensity.Current));
-            style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(shape.BottomLeft.ToLength(UnityDensity.Current));
-            style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(shape.BottomRight.ToLength(UnityDensity.Current));
+            style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(new Length(radii.x));
+            style.borderTopRightRadius = style.borderTopRightRadius.CompareAndSetNull(new Length(radii.y));
+            style.borderBottomLeftRadius = style.borderBottomLeftRadius.CompareAndSetNull(new Length(radii.z));
+            style.borderBottomRightRadius = style.borderBottomRightRadius.CompareAndSetNull(new Length(radii.w));
 
             style.borderTopColor = style.borderTopColor.CompareAndSetNull(shadow.Color.ToUnityColor());
             style.borderBottomColor = style.borderBottomColor.CompareAndSetNull(shadow.Color.ToUnityColor());

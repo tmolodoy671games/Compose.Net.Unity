@@ -313,6 +313,103 @@ public sealed partial class AnimatedContentDemoTests : UITestFixture
         Assert.That(last.worldBound.yMax, Is.LessThanOrEqualTo(rootVisualElement.worldBound.yMax));
         yield return Click("delay", "b"); Flush(2000); Only("delay", 1);
     }
+    [UnityTest] public IEnumerator SizeTransitionsRestoreAuthoredMinimums()
+    {
+        var parent = new VisualElement { style = { flexShrink = 0 } };
+        var element = new VisualElement { style = { width = 120, height = 80, minWidth = 40, minHeight = 30 } };
+        parent.Add(element); rootVisualElement.Add(parent); Flush();
+        var node = new UnityReusableComposeNode(element);
+        var enter = _adapter.EnterTransitionsFactory.ExpandIn(Tween(1000), Alignment.Center, true, _ => new Size(0, 0));
+        enter.Apply(node, TimeSpan.FromMilliseconds(250));
+        Near(element.style.minWidth.value.value, 120); Near(element.style.minHeight.value.value, 80);
+        enter.Revert(node, TimeSpan.FromMilliseconds(250));
+        Near(element.style.minWidth.value.value, 40); Near(element.style.minHeight.value.value, 30);
+        enter.Apply(node, TimeSpan.FromMilliseconds(1000));
+        Near(element.style.minWidth.value.value, 40); Near(element.style.minHeight.value.value, 30);
+        enter.Revert(node, TimeSpan.FromMilliseconds(1000));
+        var exit = _adapter.ExitTransitionsFactory.ShrinkOut(Tween(1000), Alignment.Center, true, _ => new Size(0, 0));
+        exit.Apply(node, TimeSpan.FromMilliseconds(250));
+        Near(element.style.minWidth.value.value, 120); Near(element.style.minHeight.value.value, 80);
+        exit.Revert(node, TimeSpan.FromMilliseconds(250));
+        Near(element.style.minWidth.value.value, 40); Near(element.style.minHeight.value.value, 30);
+        yield return null;
+    }
+
+    [UnityTest] public IEnumerator AnimatedContentSampleClicksSlideAndSettle()
+    {
+        var sample = typeof(AnimatedContentDemo).Assembly.GetType(
+            "Compose.Net.Unity.Samples.Behaviors.Content.AnimatedContentSample", true)!;
+        var layout = sample.GetMethod("Layout", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        _composer.Dispose(); rootVisualElement.Clear();
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false), new RootNode(rootVisualElement),
+            (Action)layout.CreateDelegate(typeof(Action)));
+        Flush();
+        var container = rootVisualElement.Query<VisualElement>().ToList()
+            .Single(element => element.GetType().Name == "AnimatedContent");
+        foreach (var pair in new[] { ("1", "10"), ("10", "100"), ("100", "1000") })
+        {
+            var initialSize = container.layout.size;
+            var outgoing = rootVisualElement.Query<TextElement>().ToList().Single(text => text.text == pair.Item1);
+            simulate.MouseDown(outgoing); yield return null; Flush();
+            simulate.MouseUp(outgoing); yield return null; Flush();
+            for (var i = 0; i < 120 && rootVisualElement.Query<TextElement>().ToList().All(text => text.text != pair.Item2); i++)
+            { yield return null; Flush(); }
+            var incoming = rootVisualElement.Query<TextElement>().ToList().Single(text => text.text == pair.Item2);
+            var motion = incoming.parent;
+            Assert.That(motion.parent.style.position.value, Is.EqualTo(Position.Absolute));
+            Near(motion.parent.layout.y, outgoing.parent.parent.layout.y);
+            var textStyle = incoming.resolvedStyle;
+            var targetSize = incoming.layout.size + new Vector2(
+                32 + textStyle.marginLeft + textStyle.marginRight,
+                16 + textStyle.marginTop + textStyle.marginBottom); // Sample padding and text margins.
+            for (var elapsed = 25; elapsed <= 1000; elapsed += 25)
+            {
+                Flush(25); simulate.FrameUpdateMs(25); Flush();
+                if (elapsed % 250 == 0)
+                {
+                    var progress = Tween(1000).GetProgress(elapsed);
+                    var expected = Vector2.LerpUnclamped(initialSize, targetSize, progress);
+                    SizeIs(container, expected.x, expected.y);
+                    Near(motion.resolvedStyle.translate.y, motion.layout.height * (1 - progress));
+                }
+                if (elapsed == 500)
+                    Near(outgoing.parent.resolvedStyle.translate.y, -outgoing.parent.layout.height / 2);
+            }
+            Assert.That(rootVisualElement.Query<TextElement>().ToList().Select(text => text.text), Is.EqualTo(new[] { pair.Item2 }));
+            Near(motion.resolvedStyle.translate.y, 0);
+            Assert.That(incoming.layout.width, Is.GreaterThan(0));
+            Assert.That(incoming.layout.height, Is.GreaterThan(0));
+            // The container must already be settled when the slide ends, with no resize tail.
+            SizeIs(container, targetSize.x, targetSize.y);
+            Flush(500); simulate.FrameUpdateMs(500); Flush();
+            SizeIs(container, targetSize.x, targetSize.y);
+        }
+    }
+
+    [UnityTest] public IEnumerator SizeModifierPreservesAnimatedContentMeasurementAndPlacement()
+    {
+        _probeModifier = Modifier.Padding(horizontal: 16.Dp(), vertical: 8.Dp()).Clip()
+            .AnimateContentSize(Tween(1000, easing: LinearEasing));
+        _probeSpec = _ => SlideInVertically(Tween(1000, easing: LinearEasing), height => height)
+            .TogetherWith(SlideOutVertically(Tween(1000, easing: LinearEasing), height => -height))
+            .Using(SizeTransform(sizeAnimationSpec: (_, _) => Tween(1000, easing: LinearEasing)));
+        RemountProbe();
+        _probeState.Value = 1; Flush();
+        var outgoing = E("probe-0").parent.parent;
+        var incoming = E("probe-1").parent.parent;
+        Assert.That(outgoing.style.position.value, Is.EqualTo(Position.Absolute), "Outgoing content must overlap the target");
+        Assert.That(incoming.style.position.value, Is.EqualTo(Position.Absolute), "Incoming content must be placed by AnimatedContent");
+        Near(outgoing.layout.y, incoming.layout.y);
+        Flush(250);
+        Near(E("probe-0").parent.resolvedStyle.translate.y, -12);
+        Near(E("probe-1").parent.resolvedStyle.translate.y, 84);
+        SizeIs(incoming.parent, 130, 64);
+        Flush(750);
+        Assert.That(rootVisualElement.Q("probe-0"), Is.Null);
+        SizeIs(incoming.parent, 220, 112);
+        yield return null;
+    }
+
     private readonly IMutableState<int?> _probeState = MutableStateOf<int?>(0);
     private IModifier _probeModifier = Modifier;
     private Alignment _probeAlignment = Alignment.TopStart;

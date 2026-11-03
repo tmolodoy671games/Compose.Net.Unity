@@ -10,10 +10,10 @@ using Rect = Compose.Net.Rect;
 
 namespace Compose.Net.Unity;
 
-internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
+internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope
 {
     private MeshGenerationContext _context;
-    private readonly IPathDrawer _drawer;
+    private readonly PathDrawerImpl _drawer;
     private readonly Action<Texture2D> _consumeTexture2D;
     private Size _size;
 
@@ -22,6 +22,24 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         _context = context;
         _drawer = new PathDrawerImpl(_context.painter2D);
         _consumeTexture2D = it => _context.painter2D.fillTexture = it;
+    }
+
+    public void DrawMesh(ReadOnlySpan<Offset> positions, ReadOnlySpan<Color> colors,
+        ReadOnlySpan<ushort> indices, Rect bounds, float alpha)
+    {
+        var mesh = _context.Allocate(positions.Length, indices.Length);
+        for (var i = 0; i < positions.Length; i++)
+        {
+            var color = colors[i].ToUnityColor();
+            color.a *= alpha;
+            mesh.SetNextVertex(new Vertex
+            {
+                position = new Vector3(bounds.Offset.X + positions[i].X * bounds.Size.Width,
+                    bounds.Offset.Y + positions[i].Y * bounds.Size.Height, Vertex.nearZ),
+                tint = color
+            });
+        }
+        for (var i = 0; i < indices.Length; i++) mesh.SetNextIndex(indices[i]);
     }
 
     public MeshGenerationContext Context => _context;
@@ -321,7 +339,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Bottom-right
         var bottomRightRadius = Mathf.Clamp(
-            shape.TopRight.ToPx(UnityDensity.Current),
+            shape.BottomRight.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -334,7 +352,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
         // Bottom-left
         var bottomLeftRadius = Mathf.Clamp(
-            shape.TopRight.ToPx(UnityDensity.Current),
+            shape.BottomLeft.ToPx(UnityDensity.Current),
             0f,
             Mathf.Min(width, height) / 2f
         );
@@ -609,6 +627,9 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
         DrawStyle? style
     )
     {
+        // Scopes survive repaint and shared-transition captures. Each path must
+        // start fresh on the current context, not the painter from construction.
+        _drawer.Begin(_context.painter2D);
         path.Apply(_drawer);
         Draw(style);
     }
@@ -787,7 +808,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
 
     private void ApplyColor(Color color, float alpha, DrawStyle? style)
     {
-        color = color with { Alpha = alpha };
+        color = color with { Alpha = color.Alpha * alpha };
         var painter = _context.painter2D;
         switch (style ?? Fill)
         {
@@ -796,7 +817,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>
                 break;
             case DrawStyle.Stroke stroke:
                 painter.lineWidth = stroke.Width;
-                painter.fillColor = color.ToUnityColor();
+                painter.strokeColor = color.ToUnityColor();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(style));

@@ -32,12 +32,12 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     AnimatedContent(
                         targetState: state.Value,
                         transitionSpec: _ => SlideInVertically(tween, it => it)
-                            .TogetherWith(SlideOutVertically(tween, it => -it)),
+                            .TogetherWith(SlideOutVertically(tween, it => -it))
+                            .Using(SizeTransform(sizeAnimationSpec: (_, _) => tween)),
                         modifier: Modifier
                             .Background(Color.LightBlue)
                             .Padding(horizontal: 16.Dp(), vertical: 8.Dp())
                             .Clip(RoundedCornerShape(8.Dp()))
-                            .AnimateContentSize(tween)
                             .Clickable(() => state.Value *= 10),
                         content: it => Text(
                             text: it.ToString(),

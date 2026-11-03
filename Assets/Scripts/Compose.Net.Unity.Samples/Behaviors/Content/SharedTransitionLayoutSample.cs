@@ -67,11 +67,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 contentAlignment: Alignment.Center,
                 modifier: Modifier
                     .Padding(all: 16.Dp())
+                    .Clickable(() => selected.Value = index)
                     .Size(200.Dp())
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
                         boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color, RoundedCornerShape(24.Dp()))
-                    .Clickable(() => selected.Value = index)
                     .TestTag($"shared-sample.thumb.{index}"),
                 content: () => Text(
                     $"#{index}",
@@ -91,11 +91,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
             Box(
                 contentAlignment: Alignment.TopLeft,
                 modifier: Modifier
+                    .Clickable(() => selected.Value = -1)
                     .FillMaxSize()
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
                         boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color)
-                    .Clickable(() => selected.Value = -1)
                     .TestTag($"shared-sample.detail.{index}"),
                 content: () => Text(
                     $"#{index}",

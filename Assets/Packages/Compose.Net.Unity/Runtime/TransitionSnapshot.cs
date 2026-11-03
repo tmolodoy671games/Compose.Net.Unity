@@ -20,8 +20,8 @@ public partial class UnityReusableComposeNode : ITransitionSnapshotNode
             var style = element.style;
             RawOpacity = style.opacity; RawTranslation = style.translate; RawScale = style.scale;
             Left = style.left; Top = style.top;
-            MaxWidth = element.parent?.style.maxWidth ?? default;
-            MaxHeight = element.parent?.style.maxHeight ?? default;
+            MaxWidth = element.parent != null ? Box.AuthoredBound(element.parent, Box.BoundProperty.MaxWidth) : new StyleLength(StyleKeyword.Null);
+            MaxHeight = element.parent != null ? Box.AuthoredBound(element.parent, Box.BoundProperty.MaxHeight) : new StyleLength(StyleKeyword.Null);
             ClipWidth = MaxWidth.keyword == StyleKeyword.Undefined ? MaxWidth.value.value : element.layout.width;
             ClipHeight = MaxHeight.keyword == StyleKeyword.Undefined ? MaxHeight.value.value : element.layout.height;
             Opacity = style.opacity.keyword == StyleKeyword.Undefined ? style.opacity.value : 1;

@@ -29,11 +29,8 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                             .Clip(RoundedCornerShape(32.Dp()))
                             .Padding(16.Dp())
                             .Background(Color.LightCoral)
-                            .AnimateContentSize(Tween(3_000))
-                            .Clickable(
-                                () => isSwitched.Value = !isSwitched.Value
-                            )
-                        ,
+                            .Clickable(() => isSwitched.Value = !isSwitched.Value)
+                            .AnimateContentSize(Tween(3_000), alignment: Alignment.Center),
                         content: () => Text(
                             text: isSwitched.Value
                                 ? "Short"

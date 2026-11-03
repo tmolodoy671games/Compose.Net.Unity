@@ -21,6 +21,8 @@ internal class AnimatedContent : Box
 {
     private AnimatedContentLayout? _layout;
     private bool _initialized, _fixedWidth, _fixedHeight, _clip;
+    // Content-container modifiers move the entries into their own layout shell.
+    private VisualElement Content => (this.GetReusableComposeNode() as UnityReusableComposeNode)?.ContentContainer ?? this;
     internal AnimatedContent()
     {
         RegisterCallback<GeometryChangedEvent>(_ => ArrangeContent());
@@ -48,9 +50,9 @@ internal class AnimatedContent : Box
     internal void MeasureContent()
     {
         if (_layout == null) return;
-        var target = Children().OfType<AnimatedContentItem>().FirstOrDefault(item => item.Id == _layout.TargetId && !item.Hidden);
+        var target = Content.Children().OfType<AnimatedContentItem>().FirstOrDefault(item => item.Id == _layout.TargetId && !item.Hidden);
         if (target == null || !float.IsFinite(target.layout.width) || !float.IsFinite(target.layout.height)) return;
-        var items = Children().OfType<AnimatedContentItem>().Where(item => !item.Hidden && float.IsFinite(item.layout.width)).ToArray();
+        var items = Content.Children().OfType<AnimatedContentItem>().Where(item => !item.Hidden && float.IsFinite(item.layout.width)).ToArray();
         var measured = new Size(items.Max(item => item.FullSize.Width), items.Max(item => item.FullSize.Height));
         var targetSize = new Size(_fixedWidth ? contentRect.width : target.FullSize.Width,
             _fixedHeight ? contentRect.height : target.FullSize.Height);
@@ -61,12 +63,16 @@ internal class AnimatedContent : Box
     private void ArrangeContent()
     {
         if (_layout == null || _layout.CurrentSize.IsUnspecified) return;
-        var box = resolvedStyle;
-        if (!_fixedWidth) style.width = _layout.CurrentSize.Width + box.paddingLeft + box.paddingRight + box.borderLeftWidth + box.borderRightWidth;
-        if (!_fixedHeight) style.height = _layout.CurrentSize.Height + box.paddingTop + box.paddingBottom + box.borderTopWidth + box.borderBottomWidth;
+        var content = Content;
+        var box = content.resolvedStyle;
+        // Animate the content shell; animateContentSize owns the outer dimensions.
+        if (content != this)
+            SetAnimatedConstraints(content, AnimatedConstraints.Width | AnimatedConstraints.Height, true);
+        if (!_fixedWidth || content != this) content.style.width = _layout.CurrentSize.Width + box.paddingLeft + box.paddingRight + box.borderLeftWidth + box.borderRightWidth;
+        if (!_fixedHeight || content != this) content.style.height = _layout.CurrentSize.Height + box.paddingTop + box.paddingBottom + box.borderTopWidth + box.borderBottomWidth;
         var width = _fixedWidth ? contentRect.width : _layout.CurrentSize.Width;
         var height = _fixedHeight ? contentRect.height : _layout.CurrentSize.Height;
-        foreach (var item in Children().OfType<AnimatedContentItem>())
+        foreach (var item in content.Children().OfType<AnimatedContentItem>())
         {
             item.style.position = Position.Absolute;
             item.style.left = box.paddingLeft + (width - item.layout.width) * AnimatedContentLayout.Bias(_layout.ContentAlignment, true);
@@ -97,12 +103,12 @@ internal class AnimatedContentItem : Box
     internal AnimatedContentItem()
     {
         style.flexShrink = 0;
-        RegisterCallback<GeometryChangedEvent>(_ => (parent as AnimatedContent)?.MeasureContent());
+        RegisterCallback<GeometryChangedEvent>(_ => GetFirstAncestorOfType<AnimatedContent>()?.MeasureContent());
     }
     internal void Configure(int id, bool target, bool hidden)
     {
         var changed = IsTarget != target || Hidden != hidden;
         Id = id; IsTarget = target; Hidden = hidden;
-        if (changed) (parent as AnimatedContent)?.MeasureContent();
+        if (changed) GetFirstAncestorOfType<AnimatedContent>()?.MeasureContent();
     }
 }

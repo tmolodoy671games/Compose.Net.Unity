@@ -249,6 +249,15 @@ public class Box : VisualElement, ILayout
         var available = unbounded || parent == null ? float.PositiveInfinity : Maximum(parent, horizontal);
         // Animated shells change rendered bounds, not the constraints for natural target measurement.
         var animated = e.UserData().GetOrNull(AnimationKey) is AnimatedConstraints flags ? flags : 0;
+        // A weighted child receives only its share of the main axis. Passing the whole row's
+        // maximum through an auto-sized Column makes nested percentage-sized Boxes overflow it.
+        var rowAxis = parent?.resolvedStyle.flexDirection is FlexDirection.Row or FlexDirection.RowReverse;
+        if (parent != null && horizontal == rowAxis && e.resolvedStyle.flexGrow > 0 && float.IsFinite(available) &&
+            (animated & (horizontal ? AnimatedConstraints.Width : AnimatedConstraints.Height)) == 0)
+        {
+            var allocated = horizontal ? e.layout.width : e.layout.height;
+            if (float.IsFinite(allocated) && allocated > 0) available = Mathf.Min(available, allocated);
+        }
         var size = (animated & (horizontal ? AnimatedConstraints.Width : AnimatedConstraints.Height)) != 0
             ? float.PositiveInfinity : LengthValue(horizontal ? e.style.width : e.style.height, available, float.PositiveInfinity);
         var limit = (animated & (horizontal ? AnimatedConstraints.MaxWidth : AnimatedConstraints.MaxHeight)) != 0

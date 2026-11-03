@@ -17,9 +17,6 @@ namespace Compose.Net.Unity.Editor.Rewriters;
 [InitializeOnLoad]
 internal class ComposeILPostProcessor : ILPostProcessor
 {
-    // true: в консоль пишется, что сборка была пропущена и почему
-    private const bool Verbose = true;
-
     public override ILPostProcessor GetInstance() => this;
 
     // Только дешёвая проверка ссылок и никаких исключений:
@@ -35,11 +32,7 @@ internal class ComposeILPostProcessor : ILPostProcessor
 
             if (!ComposableMethodRewriter.CanPatch(assembly))
             {
-                return Unchanged(
-                    compiledAssembly,
-                    Verbose
-                        ? Warning($"skipped {compiledAssembly.Name}: no [RecompiledComposableCode] methods found")
-                        : null);
+                return Unchanged(compiledAssembly, null);
             }
 
             var messages = ComposableMethodRewriter.Patch(assembly);
@@ -92,12 +85,6 @@ internal class ComposeILPostProcessor : ILPostProcessor
             messages.Add(message);
         return new ILPostProcessResult(compiledAssembly.InMemoryAssembly, messages);
     }
-
-    private static DiagnosticMessage Warning(string text) => new()
-    {
-        DiagnosticType = DiagnosticType.Warning,
-        MessageData = "Compose ILPP: " + text,
-    };
 
     private static bool ReferencesCompose(ICompiledAssembly compiledAssembly)
     {

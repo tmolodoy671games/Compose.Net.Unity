@@ -56,11 +56,13 @@ public abstract record DrawUnityModifier(int DrawIndex = -1)
         {
             var indexChanged = _drawIndex != next.DrawIndex;
             var contentChanged = !ReferenceEquals(_owner.GenerateVisualContent, next.GenerateVisualContent);
+            var previous = _owner;
             _owner = next;
             if (_element == null)
                 return;
             if (!indexChanged && !contentChanged)
                 return;
+            previous.OnDetached(_element);
             RemoveCallback();
             _drawIndex = next.DrawIndex;
             InsertCallback();

@@ -7,6 +7,7 @@ using Compose.Net;
 using static Compose.Net.ComposeFunctions;
 using Compose.Net.Unity.Packages.Compose.Net.Unity.Runtime.Adapters;
 using NUnit.Framework;
+using Unity.Scripting.LifecycleManagement;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.UIElements.TestFramework;
@@ -14,6 +15,7 @@ using Color = Compose.Net.Color;
 
 namespace Compose.Net.Unity.Tests;
 
+[AutoStaticsCleanup]
 public sealed partial class BoxTests : UITestFixture
 {
     private IComposer _composer = null!;
@@ -109,6 +111,7 @@ public sealed partial class BoxTests : UITestFixture
         _alignment=Alignments[y*3+x];_box=Modifier.Size(200.Dp(),140.Dp());Add("a",40,20);Add("b",80,60);Mount();
         At("a",x*80,y*60);At("b",x*60,y*40);
     }
+    [NoAutoStaticsCleanup]
     private static readonly Alignment[] Alignments={Alignment.TopStart,Alignment.TopCenter,Alignment.TopEnd,Alignment.CenterStart,Alignment.Center,Alignment.CenterEnd,Alignment.BottomStart,Alignment.BottomCenter,Alignment.BottomEnd};
     [Test, BoxScope] public void PerChildAlignmentOverridesDefaultAndUpdates()
     {

@@ -1,0 +1,9 @@
+{
+  "name": "Compose.Net.Unity.DelegatedState.Tests",
+  "references": ["Compose.Net.Unity", "Unity.UI.TestFramework.Runtime", "Unity.UI.TestFramework.Editor"],
+  "includePlatforms": ["Editor"],
+  "overrideReferences": true,
+  "precompiledReferences": ["Compose.Net.dll", "Sharp Extensions.dll", "StableCollections.dll", "nunit.framework.dll"],
+  "autoReferenced": false,
+  "optionalUnityReferences": ["TestAssemblies"]
+}

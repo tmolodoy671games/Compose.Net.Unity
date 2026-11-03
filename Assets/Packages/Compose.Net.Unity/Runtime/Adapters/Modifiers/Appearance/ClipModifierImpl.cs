@@ -23,6 +23,7 @@ internal record ClipModifierImpl(Shape Shape)
         {
             _element = (VisualElement)Target;
             _element.Clip().Increment();
+            _element.RegisterCallback<GeometryChangedEvent>(OnGeometry);
             ApplyShape();
         }
 
@@ -36,6 +37,7 @@ internal record ClipModifierImpl(Shape Shape)
 
         public override void OnDetach()
         {
+            _element?.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
             RevertShape();
             _element?.Clip().Decrement();
             _element = null;
@@ -49,11 +51,12 @@ internal record ClipModifierImpl(Shape Shape)
             _originalTopRight = style.borderTopRightRadius;
             _originalBottomLeft = style.borderBottomLeftRadius;
             _originalBottomRight = style.borderBottomRightRadius;
-            var shapeValue = _shape;
-            style.borderTopLeftRadius = shapeValue.TopLeft.ToLength(UnityDensity.Current);
-            style.borderTopRightRadius = shapeValue.TopRight.ToLength(UnityDensity.Current);
-            style.borderBottomLeftRadius = shapeValue.BottomLeft.ToLength(UnityDensity.Current);
-            style.borderBottomRightRadius = shapeValue.BottomRight.ToLength(UnityDensity.Current);
+            RoundedCorners.Apply(_element, _shape);
+        }
+
+        private void OnGeometry(GeometryChangedEvent evt)
+        {
+            if (_element != null && !_shape.IsUnspecified) RoundedCorners.Apply(_element, _shape);
         }
 
         private void RevertShape()

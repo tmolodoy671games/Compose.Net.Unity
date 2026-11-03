@@ -199,10 +199,12 @@ internal sealed class LazyGridView : VisualElement, IDisposable
         var slot = new Slot(); slot.style.flexShrink = 0;
         if (!_horizontal) slot.style.minHeight = GridExtentIndex.Estimate;
         slot.RegisterCallback<GeometryChangedEvent>(_ => QueueLayout());
+        slot.RegisterCallback<AttachToPanelEvent>(_ => NativeCollectionStyles.ClearRowBackground(slot));
         return slot;
     }
     private void BindSlot(VisualElement element, int physicalLine)
     {
+        NativeCollectionStyles.ClearRowBackground(element);
         if (_lines == null) return;
         var slot = (Slot)element; slot.Line = PhysicalLine(physicalLine + _windowStart);
         _slots[slot.Line] = slot; ConfigureSlot(slot);

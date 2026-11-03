@@ -205,10 +205,12 @@ internal sealed class LazyListView : VisualElement, IDisposable
     {
         var slot = new Slot(); slot.style.height = ExtentIndex.Estimate; slot.style.minHeight = 0;
         slot.RegisterCallback<GeometryChangedEvent>(_ => QueueLayout());
+        slot.RegisterCallback<AttachToPanelEvent>(_ => NativeCollectionStyles.ClearRowBackground(slot));
         return slot;
     }
     private void BindSlot(VisualElement element, int physicalIndex)
     {
+        NativeCollectionStyles.ClearRowBackground(element);
         if (_settings == null) return;
         var slot = (Slot)element; slot.Index = LogicalIndex(physicalIndex);
         _slots[slot.Index] = slot; ConfigureSlot(slot, physicalIndex);

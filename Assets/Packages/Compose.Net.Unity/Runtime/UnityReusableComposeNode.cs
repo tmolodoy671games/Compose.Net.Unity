@@ -42,7 +42,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
     {
     }
 
-    private VisualElement ContentContainer => _contentContainer ?? VisualElement;
+    internal VisualElement ContentContainer => _contentContainer ?? VisualElement.contentContainer;
 
     public void Dispose()
     {

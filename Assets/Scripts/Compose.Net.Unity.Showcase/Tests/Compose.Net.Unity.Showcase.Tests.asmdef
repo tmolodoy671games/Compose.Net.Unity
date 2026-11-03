@@ -1,0 +1,9 @@
+{
+  "name": "Compose.Net.Unity.Showcase.Tests",
+  "references": ["Compose.Net.Unity", "Compose.Net.Unity.Showcase", "Compose.Net.Unity.Showcase.Editor", "Unity.UI.TestFramework.Runtime", "Unity.UI.TestFramework.Editor"],
+  "includePlatforms": ["Editor"],
+  "overrideReferences": true,
+  "precompiledReferences": ["Compose.Net.dll", "Compose.Net.Navigation.dll", "Compose.Net.Showcase.dll", "Sharp Extensions.dll", "StableCollections.dll", "nunit.framework.dll"],
+  "autoReferenced": false,
+  "optionalUnityReferences": ["TestAssemblies"]
+}
