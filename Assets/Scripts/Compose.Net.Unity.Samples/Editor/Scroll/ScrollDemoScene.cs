@@ -16,8 +16,12 @@ public static class ScrollDemoScene
     {
         var scene = SceneManager.GetActiveScene();
         if (!scene.IsValid() || !scene.isLoaded) throw new InvalidOperationException("Open a scene first.");
-        var root = GameObject.Find("Samples")?.transform;
-        var existing = root?.Find("ScrollDemo") ?? scene.GetRootGameObjects().FirstOrDefault(item => item.name == "ScrollDemo")?.transform;
+        var roots = scene.GetRootGameObjects();
+        // Include inactive demo groups and reuse an existing component anywhere in the scene.
+        var root = (roots.FirstOrDefault(item => item.name == "Demos") ??
+                    roots.FirstOrDefault(item => item.name == "Samples"))?.transform;
+        var existing = roots.SelectMany(item => item.GetComponentsInChildren<ScrollDemo>(true))
+            .FirstOrDefault()?.transform;
         var go = existing != null ? existing.gameObject : new GameObject("ScrollDemo");
         if (existing == null) { Undo.RegisterCreatedObjectUndo(go, "Add Scroll demo"); go.transform.SetParent(root, false); }
         var settings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/Settings/Panel Settings.asset");
