@@ -68,7 +68,8 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 modifier: Modifier
                     .Padding(all: 16.Dp())
                     .Size(200.Dp())
-                    .SharedBounds(s.RememberSharedContentState($"card{index}"), a, boundsTransform: (_, _) => Tween(500))
+                    .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
+                        boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color, RoundedCornerShape(24.Dp()))
                     .Clickable(() => selected.Value = index)
                     .TestTag($"shared-sample.thumb.{index}"),
@@ -91,7 +92,8 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 contentAlignment: Alignment.TopLeft,
                 modifier: Modifier
                     .FillMaxSize()
-                    .SharedBounds(s.RememberSharedContentState($"card{index}"), a, boundsTransform: (_, _) => Tween(500))
+                    .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
+                        boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color)
                     .Clickable(() => selected.Value = -1)
                     .TestTag($"shared-sample.detail.{index}"),
