@@ -1,0 +1,11 @@
+{
+  "name": "Compose.Net.Unity.Interaction.Editor",
+  "references": [
+    "Compose.Net.Unity",
+    "Compose.Net.Unity.Samples"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

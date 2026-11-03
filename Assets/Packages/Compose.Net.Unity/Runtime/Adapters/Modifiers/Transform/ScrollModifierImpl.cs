@@ -94,6 +94,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _view.contentContainer.RegisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
             _view.contentContainer.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
             _view.RegisterCallback<DetachFromPanelEvent>(OnPanelDetach);
+            _view.RegisterCallback<NestedScrollDeltaEvent>(OnNestedScroll);
             // Gate only scroll input, leaving child controls enabled. A child scroll view
             // consumes its event before this bubble callback, preserving nested scrolling.
             content.RegisterCallback<WheelEvent>(OnWheel);
@@ -114,6 +115,17 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
                 ? ScrollView.TouchScrollBehavior.Clamped : ScrollView.TouchScrollBehavior.Elastic;
             if (_options.OverscrollEffect != null) _view.elasticity = _options.OverscrollEffect.Elasticity;
             _view.focusable = _options.Enabled;
+        }
+
+        private void OnNestedScroll(NestedScrollDeltaEvent evt)
+        {
+            if (!_options.Enabled || _view == null || !_measured ||
+                (evt.Orientation == Orientation.Horizontal) != _options.Horizontal) return;
+            var before = Axis(_view.scrollOffset);
+            var next = Mathf.Clamp(before - evt.Remaining, 0, _options.State.MaxValue);
+            _view.scrollOffset = _options.Horizontal ? new Vector2(next, 0) : new Vector2(0, next);
+            evt.Remaining -= before - Axis(_view.scrollOffset);
+            if (Mathf.Abs(evt.Remaining) < .001f) evt.StopPropagation();
         }
 
         private void OnGeometry(GeometryChangedEvent evt) => QueueMeasure();
@@ -290,6 +302,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _view.contentContainer.UnregisterCallback<PointerCancelEvent>(OnCancel, TrickleDown.TrickleDown);
             _view.contentContainer.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
             _view.UnregisterCallback<DetachFromPanelEvent>(OnPanelDetach);
+            _view.UnregisterCallback<NestedScrollDeltaEvent>(OnNestedScroll);
             var index = element.IndexOf(_view);
             content.RemoveFromHierarchy();
             (element as ILayout)?.Untrack(_view);
