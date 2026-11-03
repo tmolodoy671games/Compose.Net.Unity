@@ -44,3 +44,23 @@ Run **Compose.Net.Unity.Scroll.Tests** in the Edit Mode Test Runner. The tests u
 wheel, keyboard and touch events, and a deterministic clock for programmatic animations.
 They cover all axis/reverse combinations, bounds, layout, gesture interruption, subscriptions,
 native capture, nested propagation, all demo controls, and the complete demo screen.
+
+## Shared layout demo and tests
+
+`SharedLayoutDemo` is included in `Assets/Scenes/SampleScene.unity` with its own PanelRenderer.
+Open **Tools > Compose.Net > Shared Layout Demo** for the Editor window, or
+**Tools > Compose.Net > Add Shared Layout Demo to Scene** to add it to another scene.
+The 27 cards cover SharedElement/SharedBounds, all scale modes, remeasurement, placeholders,
+overlay clipping and ordering, nesting, matching, dynamic enable/disable, reversal, retargeting,
+caller-managed visibility, delayed and instantaneous transitions, springs, zero-size targets,
+remembered state and independent AnimatedVisibility containers. A/B/C and clickable shared cards
+change targets; Resize changes a destination in flight, and Enable toggles matching.
+
+Shared transitions use live UI Toolkit elements, native layout, transforms, rounded clipping and
+picking. There is no screenshot renderer or synthetic pointer pipeline. The core README describes
+parameter semantics and the native measurement limits.
+
+Run **Compose.Net.Unity.SharedLayout.Tests** in the Edit Mode Test Runner. Tests check every demo
+in both directions, numeric geometry and timing, clipping, scale policies, parent opacity isolation,
+placeholder displacement, interrupted transitions, retention/disposal, configuration, scope isolation
+and actual pointer input to buttons and moving shared content.

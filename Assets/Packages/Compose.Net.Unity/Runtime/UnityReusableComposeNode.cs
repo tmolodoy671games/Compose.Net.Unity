@@ -63,7 +63,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
 
     public void Remove(IReusableComposeNode child)
     {
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = ((UnityReusableComposeNode)child).LayoutElement;
         (ContentContainer as ILayout)?.Untrack(childVisualElement);
         ContentContainer.Remove(childVisualElement);
         SyncDrawOnTop();
@@ -71,7 +71,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
 
     public void FastRemove(int index, IReusableComposeNode child)
     {
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = ((UnityReusableComposeNode)child).LayoutElement;
         if (childVisualElement.parent != ContentContainer)
             return;
         (ContentContainer as ILayout)?.Untrack(childVisualElement);
@@ -88,8 +88,8 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
     {
         if (_drawBehind != null)
             index++;
-        ContentContainer.Insert(index, child.VisualElement());
-        (ContentContainer as ILayout)?.Track(child.VisualElement());
+        ContentContainer.Insert(index, ((UnityReusableComposeNode)child).LayoutElement);
+        (ContentContainer as ILayout)?.Track(((UnityReusableComposeNode)child).LayoutElement);
         SyncDrawOnTop();
     }
 
@@ -97,7 +97,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
     {
         if (_drawBehind != null)
             index++;
-        var childVisualElement = child.VisualElement();
+        var childVisualElement = ((UnityReusableComposeNode)child).LayoutElement;
         var parent = ContentContainer;
         if (parent.GetOrNull(index) != childVisualElement)
         {
@@ -120,8 +120,8 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
     }
 
     public bool IsRoot { get; }
-    public IReusableComposeNode? Parent => VisualElement.parent?.GetReusableComposeNode();
-    public int IndexInParent => VisualElement.parent.IndexOf(VisualElement);
+    public IReusableComposeNode? Parent => LayoutElement.parent?.GetReusableComposeNode();
+    public int IndexInParent => LayoutElement.parent.IndexOf(LayoutElement);
     public AnchorManager? AnchorManager => _anchorManager;
 
     public void InsertDrawOnTop(int index, Action<MeshGenerationContext> content)
