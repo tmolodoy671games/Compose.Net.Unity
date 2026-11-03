@@ -60,6 +60,7 @@ internal sealed class SharedVisual : ISharedContentHost
     private readonly SharedContent _content;
     private readonly VisualElement _element;
     private readonly VisualElement _placement = new() { pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
+    private readonly VisualElement _resize = new() { name = "shared-transition-resize", pickingMode = UnityEngine.UIElements.PickingMode.Ignore, usageHints = UsageHints.DynamicTransform };
     private readonly VisualElement _motion = new() { name = "shared-transition-motion", pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
     internal readonly VisualElement Layer = new() { name = "shared-transition-layer", pickingMode = UnityEngine.UIElements.PickingMode.Ignore, usageHints = UsageHints.DynamicTransform };
     internal VisualElement? Slot { get; private set; }
@@ -71,7 +72,8 @@ internal sealed class SharedVisual : ISharedContentHost
     private IPath? _clipPath, _resolvedClip;
     public IPath? ClipPathInOverlay => Frame.RenderInOverlay ? _resolvedClip : null;
     private StyleLength _renderWidth, _renderHeight;
-    private Vector2 _natural;
+    private Vector2 _natural, _naturalParentSize;
+    private VisualElement? _layoutParent;
     private SharedVisual? _layoutAncestor;
     private Vector2 _offsetInAncestor;
     private bool _disposed, _hidden, _restorePending;
@@ -110,17 +112,56 @@ internal sealed class SharedVisual : ISharedContentHost
         _motion.style.position = Position.Absolute;
         _placement.style.position = Position.Absolute;
         _motion.style.left = _motion.style.top = 0;
-        Layer.Add(_placement); _placement.Add(_motion);
+        _resize.style.position = Position.Absolute;
+        _resize.style.left = _resize.style.top = 0;
+        _resize.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(0, 0);
+        Layer.Add(_placement); _placement.Add(_motion); _motion.Add(_resize);
         // These are drawing bounds, not constraints for the content's natural layout.
         // Box must measure scaled contents at their destination size, even while the
         // overlay is smaller. UI Toolkit still performs their layout and transforms.
-        foreach (var wrapper in new[] { Layer, _placement, _motion })
+        foreach (var wrapper in new[] { Layer, _placement, _motion, _resize })
             Box.SetAnimatedConstraints(wrapper, Box.AnimatedConstraints.Width | Box.AnimatedConstraints.Height, true);
         TransitionNode = new UnityReusableComposeNode(_motion);
         _element.RegisterCallback<GeometryChangedEvent>(OnGeometry);
         _element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
         // Ancestor scrolling/placement doesn't emit a GeometryChangedEvent on this element.
         _measure = _element.schedule.Execute(Measure).Every(16);
+    }
+    internal static StyleLength AuthoredSize(VisualElement element, bool width)
+    {
+        var saved = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual?._saved;
+        return saved != null ? width ? saved.Width : saved.Height : width ? element.style.width : element.style.height;
+    }
+    internal static void SetAuthoredSize(VisualElement element, bool width, StyleLength value)
+    {
+        var shared = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual;
+        if (shared?._saved != null)
+        {
+            // An authored target can equal today's animated size. Track the write explicitly;
+            // comparing style values cannot distinguish it from our last render in that case.
+            if (width) { shared._saved.Width = value; shared.Slot!.style.width = value; }
+            else { shared._saved.Height = value; shared.Slot!.style.height = value; }
+            Box.Refresh(shared.Slot!);
+            shared.Measure();
+        }
+        else if (width) element.style.width = value;
+        else element.style.height = value;
+    }
+    internal static StyleLength AuthoredBound(VisualElement element, Box.BoundProperty property)
+    {
+        var saved = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual?._saved;
+        return saved?.GetBound(property) ?? Box.AuthoredBound(element, property);
+    }
+    internal static void SetAuthoredBound(VisualElement element, Box.BoundProperty property, StyleLength value)
+    {
+        var shared = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual;
+        if (shared?._saved != null)
+        {
+            shared._saved.SetBound(property, value);
+            Box.SetAuthoredBound(shared.Slot!, property, value); Box.Refresh(shared.Slot!);
+            shared.Measure();
+        }
+        else Box.SetAuthoredBound(element, property, value);
     }
     private void OnGeometry(GeometryChangedEvent _) => Measure();
     private void OnCaptureOut(PointerCaptureOutEvent _)
@@ -167,14 +208,24 @@ internal sealed class SharedVisual : ISharedContentHost
             // Declarative changes during a transition become fresh target constraints.
             if (_element.style.width != _renderWidth) { _saved.Width = _element.style.width; Slot!.style.width = _saved.Width; }
             if (_element.style.height != _renderHeight) { _saved.Height = _element.style.height; Slot!.style.height = _saved.Height; }
-            if (_saved.Width.keyword == StyleKeyword.Undefined && _saved.Width.value.unit == LengthUnit.Pixel) _natural.x = _saved.Width.value.value;
-            if (_saved.Height.keyword == StyleKeyword.Undefined && _saved.Height.value.unit == LengthUnit.Pixel) _natural.y = _saved.Height.value.value;
+            _saved.CaptureConstraints(_element);
+            var ancestorAnimating = _layoutAncestor is { Slot: not null };
+            var available = ancestorAnimating ? _naturalParentSize : Slot!.parent.contentRect.size;
+            if (!ancestorAnimating && Frame.PlaceholderSize == PlaceholderSize.ContentSize)
+            {
+                // The logical slot still participates in native flex/grid layout. Its used
+                // dimensions include flex-shrink, percentages and min/max constraints.
+                var size = Slot!.layout.size;
+                if (float.IsFinite(size.x) && float.IsFinite(size.y)) _natural = size;
+            }
+            else _natural = _saved.ResolveSize(_natural, available, Slot!.parent is Box);
         }
         else _natural = _element.layout.size;
         var position = PositionInRoot(Slot ?? _element);
         if (_saved == null)
         {
             _layoutAncestor = Parent;
+            _naturalParentSize = _element.parent?.contentRect.size ?? _natural;
             if (_layoutAncestor?._content.LayoutBounds is { } ancestorBounds)
                 _offsetInAncestor = position - new Vector2(ancestorBounds.Offset.X, ancestorBounds.Offset.Y);
         }
@@ -243,10 +294,12 @@ internal sealed class SharedVisual : ISharedContentHost
                 dy = (bounds.Size.Height - height * sy) * AnimatedContentLayout.Bias(mode.Alignment, false);
             }
             _element.style.width = _renderWidth = width; _element.style.height = _renderHeight = height;
-            _element.style.translate = new Translate(dx, dy);
-            _element.style.scale = new Scale(new Vector3(sx, sy, 1));
-            var placeholder = frame.PlaceholderSize.CalculateSize(new Size(_natural.x, _natural.y), bounds.Size);
-            Slot!.style.width = placeholder.Width; Slot.style.height = placeholder.Height;
+            // Keep authored Scale/Offset/TransformOrigin on the live content. Shared resizing
+            // belongs to its own layer, otherwise entering/exiting the overlay resets them.
+            _resize.style.width = width; _resize.style.height = height;
+            _resize.style.translate = new Translate(dx, dy);
+            _resize.style.scale = new Scale(new Vector3(sx, sy, 1));
+            UpdatePlaceholder(bounds.Size);
             _root.Sort();
             _restorePending = !frame.Active;
         }
@@ -256,6 +309,25 @@ internal sealed class SharedVisual : ISharedContentHost
             if (frame.Hidden) { _visibility = _element.style.visibility; _element.style.visibility = Visibility.Hidden; }
             else _element.style.visibility = _visibility;
             _hidden = frame.Hidden;
+        }
+    }
+    private void UpdatePlaceholder(Size animatedSize)
+    {
+        var slot = Slot!;
+        if (Frame.PlaceholderSize == PlaceholderSize.ContentSize)
+        {
+            // Preserve the original flex basis. Using an already shrunken width as the new
+            // basis shrinks it a second time and turns an ordinary return into a retarget.
+            slot.style.width = _saved!.Width.keyword == StyleKeyword.Undefined ? _saved.Width : new StyleLength(_natural.x);
+            slot.style.height = _saved.Height.keyword == StyleKeyword.Undefined ? _saved.Height : new StyleLength(_natural.y);
+            slot.style.flexGrow = _element.style.flexGrow; slot.style.flexShrink = _element.style.flexShrink;
+            slot.style.flexBasis = _element.style.flexBasis;
+        }
+        else
+        {
+            var placeholder = Frame.PlaceholderSize.CalculateSize(new Size(_natural.x, _natural.y), animatedSize);
+            slot.style.width = placeholder.Width; slot.style.height = placeholder.Height;
+            slot.style.flexGrow = slot.style.flexShrink = 0; slot.style.flexBasis = StyleKeyword.Auto;
         }
     }
     private IPath ResolveClip(Shape shape, Rect bounds)
@@ -288,16 +360,19 @@ internal sealed class SharedVisual : ISharedContentHost
         Slot.SetReusableComposeNode(_node);
         _saved.Apply(Slot);
         Slot.style.alignSelf = align; Slot.style.justifySelf = justify;
-        Slot.style.width = _natural.x; Slot.style.height = _natural.y;
+        UpdatePlaceholder(Frame.Bounds.Size);
+        Slot.RegisterCallback<GeometryChangedEvent>(OnGeometry);
         _element.RemoveFromHierarchy(); parent.Insert(index, Slot); (parent as ILayout)?.Track(Slot);
-        _motion.Add(_element);
+        _layoutParent = parent;
+        _layoutParent.RegisterCallback<GeometryChangedEvent>(OnGeometry);
+        _resize.Add(_element);
         _element.style.position = Position.Absolute;
         _element.style.left = _element.style.top = 0;
         _element.style.right = _element.style.bottom = StyleKeyword.Auto;
         _element.style.marginLeft = _element.style.marginRight = _element.style.marginTop = _element.style.marginBottom = 0;
         _element.style.minWidth = _element.style.minHeight = 0;
         _element.style.maxWidth = _element.style.maxHeight = StyleKeyword.None;
-        _element.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(0, 0);
+
     }
     private void End(bool force = false)
     {
@@ -306,10 +381,11 @@ internal sealed class SharedVisual : ISharedContentHost
         // before restoring the hierarchy; disposal still cancels input normally.
         _restorePending = !force && HasCapturedPointer();
         if (_restorePending) return;
-        var slot = Slot; var parent = slot.parent; var index = parent?.IndexOf(slot) ?? 0;
+        _layoutParent?.UnregisterCallback<GeometryChangedEvent>(OnGeometry); _layoutParent = null;
+        var slot = Slot; slot.UnregisterCallback<GeometryChangedEvent>(OnGeometry); var parent = slot.parent; var index = parent?.IndexOf(slot) ?? 0;
         _element.RemoveFromHierarchy();
         (parent as ILayout)?.Untrack(slot); slot.RemoveFromHierarchy();
-        _saved!.Apply(_element); _saved = null; Slot = null;
+        _saved!.Apply(_element, restore: true); _saved = null; Slot = null;
         if (parent != null) { parent.Insert(index, _element); (parent as ILayout)?.Track(_element); }
         Layer.RemoveFromHierarchy(); _resolvedClip = null;
     }
@@ -325,14 +401,12 @@ internal sealed class SharedVisual : ISharedContentHost
     private sealed class LayoutStyle
     {
         internal StyleLength Width, Height;
-        private readonly StyleLength _minW, _minH, _maxW, _maxH, _left, _top, _right, _bottom, _ml, _mr, _mt, _mb, _basis;
+        private StyleLength _minW, _minH, _maxW, _maxH;
+        private readonly StyleLength _left, _top, _right, _bottom, _ml, _mr, _mt, _mb, _basis;
         private readonly StyleEnum<Position> _position;
         private readonly StyleFloat _grow, _shrink;
         private readonly StyleEnum<Align> _align, _justify;
         private readonly StyleGridLine _columnStart, _columnEnd, _rowStart, _rowEnd;
-        private readonly StyleTranslate _translate;
-        private readonly StyleScale _scale;
-        private readonly StyleTransformOrigin _origin;
         internal LayoutStyle(VisualElement element)
         {
             var s = element.style; Width = s.width; Height = s.height;
@@ -341,17 +415,62 @@ internal sealed class SharedVisual : ISharedContentHost
             _ml = s.marginLeft; _mr = s.marginRight; _mt = s.marginTop; _mb = s.marginBottom;
             _grow = s.flexGrow; _shrink = s.flexShrink; _basis = s.flexBasis; _align = s.alignSelf; _justify = s.justifySelf;
             _columnStart = s.gridColumnStart; _columnEnd = s.gridColumnEnd; _rowStart = s.gridRowStart; _rowEnd = s.gridRowEnd;
-            _translate = s.translate; _scale = s.scale; _origin = s.transformOrigin;
         }
-        internal void Apply(VisualElement element)
+        internal StyleLength GetBound(Box.BoundProperty property) => property switch
+        {
+            Box.BoundProperty.MinWidth => _minW, Box.BoundProperty.MaxWidth => _maxW,
+            Box.BoundProperty.MinHeight => _minH, _ => _maxH
+        };
+        internal void SetBound(Box.BoundProperty property, StyleLength value)
+        {
+            switch (property)
+            {
+                case Box.BoundProperty.MinWidth: _minW = value; break;
+                case Box.BoundProperty.MaxWidth: _maxW = value; break;
+                case Box.BoundProperty.MinHeight: _minH = value; break;
+                case Box.BoundProperty.MaxHeight: _maxH = value; break;
+            }
+        }
+        internal void CaptureConstraints(VisualElement element)
+        {
+            var s = element.style;
+            if (s.minWidth != new StyleLength(0f)) _minW = s.minWidth;
+            if (s.minHeight != new StyleLength(0f)) _minH = s.minHeight;
+            if (s.maxWidth.keyword != StyleKeyword.None) _maxW = s.maxWidth;
+            if (s.maxHeight.keyword != StyleKeyword.None) _maxH = s.maxHeight;
+            s.minWidth = s.minHeight = 0;
+            s.maxWidth = s.maxHeight = StyleKeyword.None;
+        }
+        internal Vector2 ResolveSize(Vector2 natural, Vector2 available, bool constrained)
+        {
+            static float Length(StyleLength value, float parent, float fallback) =>
+                value.keyword == StyleKeyword.Undefined
+                    ? value.value.unit == LengthUnit.Percent ? parent * value.value.value / 100 : value.value.value
+                    : fallback;
+            static float Dimension(StyleLength value, StyleLength minimum, StyleLength maximum, float parent, float fallback, bool constrain)
+            {
+                if (!float.IsFinite(parent)) return fallback;
+                var min = Math.Max(0, Length(minimum, parent, 0));
+                var max = Length(maximum, parent, float.PositiveInfinity);
+                if (constrain) max = Math.Min(max, Math.Max(0, parent));
+                return Math.Max(0, Math.Max(Math.Min(min, max), Math.Min(max, Length(value, parent, fallback))));
+            }
+            return new Vector2(Dimension(Width, _minW, _maxW, available.x, natural.x, constrained),
+                Dimension(Height, _minH, _maxH, available.y, natural.y, constrained));
+        }
+        internal void Apply(VisualElement element, bool restore = false)
         {
             var s = element.style; s.width = Width; s.height = Height;
             s.minWidth = _minW; s.minHeight = _minH; s.maxWidth = _maxW; s.maxHeight = _maxH;
             s.left = _left; s.top = _top; s.right = _right; s.bottom = _bottom; s.position = _position;
             s.marginLeft = _ml; s.marginRight = _mr; s.marginTop = _mt; s.marginBottom = _mb;
-            s.flexGrow = _grow; s.flexShrink = _shrink; s.flexBasis = _basis; s.alignSelf = _align; s.justifySelf = _justify;
-            s.gridColumnStart = _columnStart; s.gridColumnEnd = _columnEnd; s.gridRowStart = _rowStart; s.gridRowEnd = _rowEnd;
-            s.translate = _translate; s.scale = _scale; s.transformOrigin = _origin;
+            // These properties were only copied to the placeholder, never overridden on
+            // the content. Preserve declarative updates made while it lived in the overlay.
+            if (!restore)
+            {
+                s.flexGrow = _grow; s.flexShrink = _shrink; s.flexBasis = _basis; s.alignSelf = _align; s.justifySelf = _justify;
+                s.gridColumnStart = _columnStart; s.gridColumnEnd = _columnEnd; s.gridRowStart = _rowStart; s.gridRowEnd = _rowEnd;
+            }
         }
     }
 }

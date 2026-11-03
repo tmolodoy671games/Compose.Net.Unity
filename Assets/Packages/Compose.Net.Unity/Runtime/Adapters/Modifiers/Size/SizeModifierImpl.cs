@@ -22,10 +22,10 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
         public override void OnAttach()
         {
             _element = (VisualElement)Target;
-            _originalWidth = _element.style.width;
-            _originalHeight = _element.style.height;
-            if (!_width.IsUnspecified) _element.style.width = _width.ToLength(UnityDensity.Current);
-            if (!_height.IsUnspecified) _element.style.height = _height.ToLength(UnityDensity.Current);
+            _originalWidth = SharedVisual.AuthoredSize(_element, true);
+            _originalHeight = SharedVisual.AuthoredSize(_element, false);
+            if (!_width.IsUnspecified) SharedVisual.SetAuthoredSize(_element, true, _width.ToLength(UnityDensity.Current));
+            if (!_height.IsUnspecified) SharedVisual.SetAuthoredSize(_element, false, _height.ToLength(UnityDensity.Current));
             Box.Refresh(_element);
         }
 
@@ -34,9 +34,9 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
             if (_element != null)
             {
                 if (!_width.Equals(nextWidth))
-                    _element.style.width = !nextWidth.IsUnspecified ? nextWidth.ToLength(UnityDensity.Current) : _originalWidth;
+                    SharedVisual.SetAuthoredSize(_element, true, !nextWidth.IsUnspecified ? nextWidth.ToLength(UnityDensity.Current) : _originalWidth);
                 if (!_height.Equals(nextHeight))
-                    _element.style.height = !nextHeight.IsUnspecified ? nextHeight.ToLength(UnityDensity.Current) : _originalHeight;
+                    SharedVisual.SetAuthoredSize(_element, false, !nextHeight.IsUnspecified ? nextHeight.ToLength(UnityDensity.Current) : _originalHeight);
             }
             _width = nextWidth;
             _height = nextHeight;
@@ -47,8 +47,8 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
         {
             if (_element != null)
             {
-                _element.style.width = _originalWidth;
-                _element.style.height = _originalHeight;
+                SharedVisual.SetAuthoredSize(_element, true, _originalWidth);
+                SharedVisual.SetAuthoredSize(_element, false, _originalHeight);
             }
             if (_element != null) Box.Refresh(_element);
             _element = null;

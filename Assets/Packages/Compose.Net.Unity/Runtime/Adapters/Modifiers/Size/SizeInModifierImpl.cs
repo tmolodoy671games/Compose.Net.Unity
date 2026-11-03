@@ -34,10 +34,10 @@ internal record SizeInModifierImpl(
         public override void OnAttach()
         {
             _element = (VisualElement)Target;
-            _originalMinWidth = Box.AuthoredBound(_element, Box.BoundProperty.MinWidth);
-            _originalMaxWidth = Box.AuthoredBound(_element, Box.BoundProperty.MaxWidth);
-            _originalMinHeight = Box.AuthoredBound(_element, Box.BoundProperty.MinHeight);
-            _originalMaxHeight = Box.AuthoredBound(_element, Box.BoundProperty.MaxHeight);
+            _originalMinWidth = SharedVisual.AuthoredBound(_element, Box.BoundProperty.MinWidth);
+            _originalMaxWidth = SharedVisual.AuthoredBound(_element, Box.BoundProperty.MaxWidth);
+            _originalMinHeight = SharedVisual.AuthoredBound(_element, Box.BoundProperty.MinHeight);
+            _originalMaxHeight = SharedVisual.AuthoredBound(_element, Box.BoundProperty.MaxHeight);
             ApplyAll();
             Box.Refresh(_element);
         }
@@ -51,13 +51,13 @@ internal record SizeInModifierImpl(
         {
             if (_element == null) return;
             if (!_minWidth.Equals(nextMinWidth))
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, !nextMinWidth.IsUnspecified ? nextMinWidth.ToLength(UnityDensity.Current) : _originalMinWidth);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, !nextMinWidth.IsUnspecified ? nextMinWidth.ToLength(UnityDensity.Current) : _originalMinWidth);
             if (!_maxWidth.Equals(nextMaxWidth))
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, !nextMaxWidth.IsUnspecified ? nextMaxWidth.ToLength(UnityDensity.Current) : _originalMaxWidth);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, !nextMaxWidth.IsUnspecified ? nextMaxWidth.ToLength(UnityDensity.Current) : _originalMaxWidth);
             if (!_minHeight.Equals(nextMinHeight))
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, !nextMinHeight.IsUnspecified ? nextMinHeight.ToLength(UnityDensity.Current) : _originalMinHeight);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, !nextMinHeight.IsUnspecified ? nextMinHeight.ToLength(UnityDensity.Current) : _originalMinHeight);
             if (!_maxHeight.Equals(nextMaxHeight))
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, !nextMaxHeight.IsUnspecified ? nextMaxHeight.ToLength(UnityDensity.Current) : _originalMaxHeight);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, !nextMaxHeight.IsUnspecified ? nextMaxHeight.ToLength(UnityDensity.Current) : _originalMaxHeight);
             _minWidth = nextMinWidth;
             _maxWidth = nextMaxWidth;
             _minHeight = nextMinHeight;
@@ -69,10 +69,10 @@ internal record SizeInModifierImpl(
         {
             if (_element != null)
             {
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _originalMinWidth);
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _originalMaxWidth);
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _originalMinHeight);
-                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _originalMaxHeight);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _originalMinWidth);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _originalMaxWidth);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _originalMinHeight);
+                SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _originalMaxHeight);
             }
             if (_element != null) Box.Refresh(_element);
             _element = null;
@@ -81,10 +81,10 @@ internal record SizeInModifierImpl(
         private void ApplyAll()
         {
             if (_element == null) return;
-            if (!_minWidth.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _minWidth.ToLength(UnityDensity.Current));
-            if (!_maxWidth.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _maxWidth.ToLength(UnityDensity.Current));
-            if (!_minHeight.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _minHeight.ToLength(UnityDensity.Current));
-            if (!_maxHeight.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _maxHeight.ToLength(UnityDensity.Current));
+            if (!_minWidth.IsUnspecified) SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _minWidth.ToLength(UnityDensity.Current));
+            if (!_maxWidth.IsUnspecified) SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _maxWidth.ToLength(UnityDensity.Current));
+            if (!_minHeight.IsUnspecified) SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _minHeight.ToLength(UnityDensity.Current));
+            if (!_maxHeight.IsUnspecified) SharedVisual.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _maxHeight.ToLength(UnityDensity.Current));
         }
     }
 }

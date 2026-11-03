@@ -21,10 +21,10 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
         public override void OnAttach()
         {
             _element = (VisualElement)Target;
-            _originalWidth = _element.style.width;
-            _originalHeight = _element.style.height;
-            if (_width > 0) _element.style.width = new Length(_width * 100, LengthUnit.Percent);
-            if (_height > 0) _element.style.height = new Length(_height * 100, LengthUnit.Percent);
+            _originalWidth = SharedVisual.AuthoredSize(_element, true);
+            _originalHeight = SharedVisual.AuthoredSize(_element, false);
+            if (_width > 0) SharedVisual.SetAuthoredSize(_element, true, new Length(_width * 100, LengthUnit.Percent));
+            if (_height > 0) SharedVisual.SetAuthoredSize(_element, false, new Length(_height * 100, LengthUnit.Percent));
             Box.Refresh(_element);
         }
 
@@ -33,13 +33,13 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
             if (_element != null)
             {
                 if (_width != nextWidth)
-                    _element.style.width = nextWidth > 0
+                    SharedVisual.SetAuthoredSize(_element, true, nextWidth > 0
                         ? new Length(nextWidth * 100, LengthUnit.Percent)
-                        : _originalWidth;
+                        : _originalWidth);
                 if (_height != nextHeight)
-                    _element.style.height = nextHeight > 0
+                    SharedVisual.SetAuthoredSize(_element, false, nextHeight > 0
                         ? new Length(nextHeight * 100, LengthUnit.Percent)
-                        : _originalHeight;
+                        : _originalHeight);
             }
             _width = nextWidth;
             _height = nextHeight;
@@ -50,8 +50,8 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
         {
             if (_element != null)
             {
-                _element.style.width = _originalWidth;
-                _element.style.height = _originalHeight;
+                SharedVisual.SetAuthoredSize(_element, true, _originalWidth);
+                SharedVisual.SetAuthoredSize(_element, false, _originalHeight);
             }
             if (_element != null) Box.Refresh(_element);
             _element = null;

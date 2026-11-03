@@ -112,19 +112,19 @@ public sealed partial class SharedLayoutDemoTests : UITestFixture
     {
         Select("remeasure", 1); Select("fill-bounds", 1); Flush(500);
         Near(Shared("remeasure", 1).layout.width,120); Near(Shared("remeasure", 1).resolvedStyle.scale.value.x,1);
-        Near(Shared("fill-bounds", 1).layout.width,160); Near(Shared("fill-bounds", 1).resolvedStyle.scale.value.x,.75f,.01f);
-        Near(Shared("fill-bounds", 1).resolvedStyle.scale.value.y,.8f,.01f);
+        Near(Shared("fill-bounds", 1).layout.width,160); Near(Shared("fill-bounds", 1).worldBound.width / Shared("fill-bounds", 1).layout.width,.75f,.01f);
+        Near(Shared("fill-bounds", 1).worldBound.height / Shared("fill-bounds", 1).layout.height,.8f,.01f);
     }
     [Test] public void FitCropInsideAndNoneUseTheirDeclaredScaleAndAlignment()
     {
         foreach(var id in new[]{"fit","crop","inside","no-scale","fill-height"}) Select(id,1);
         Flush(500);
-        Near(Shared("fit",1).resolvedStyle.scale.value.x,.75f,.01f);
-        Near(Shared("crop",1).resolvedStyle.scale.value.x,.8f,.01f);
-        Near(Shared("inside",1).resolvedStyle.scale.value.x,.75f,.01f);
-        Near(Shared("no-scale",1).resolvedStyle.scale.value.x,1,.01f);
-        Near(Shared("no-scale",1).resolvedStyle.translate.x,-40);
-        Near(Shared("fill-height",1).resolvedStyle.scale.value.x,.8f,.01f);
+        Near(Shared("fit",1).worldBound.width / Shared("fit",1).layout.width,.75f,.01f);
+        Near(Shared("crop",1).worldBound.width / Shared("crop",1).layout.width,.8f,.01f);
+        Near(Shared("inside",1).worldBound.width / Shared("inside",1).layout.width,.75f,.01f);
+        Near(Shared("no-scale",1).worldBound.width / Shared("no-scale",1).layout.width,1,.01f);
+        Near(Shared("no-scale",1).worldBound.x - Layer(Shared("no-scale",1))!.worldBound.x,-40);
+        Near(Shared("fill-height",1).worldBound.width / Shared("fill-height",1).layout.width,.8f,.01f);
     }
     [Test] public void AnimatedPlaceholderMovesFollowingSibling()
     {
