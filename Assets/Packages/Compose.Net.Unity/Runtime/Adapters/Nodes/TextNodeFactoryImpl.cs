@@ -30,5 +30,6 @@ internal class TextNodeFactoryImpl : ITextNodeFactory
         it.style.unityTextAlign = textAlign.ToTextAnchor();
         it.style.fontSize = fontSize.Value;
         it.style.color = color.ToUnityColor();
+        Box.Refresh(it);
     }
 }

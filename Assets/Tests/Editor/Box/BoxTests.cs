@@ -21,6 +21,8 @@ public sealed partial class BoxTests : UITestFixture
     private IMutableState<int> _revision = null!;
     private IModifier _box = null!;
     private Alignment _alignment = Alignment.TopStart;
+    private string? _regressionText;
+    private int _regressionFont;
     private bool _propagate, _emptyOverload, _text, _nested, _scroll;
     private readonly List<Item> _items = new();
     private int _clicked;
@@ -33,6 +35,7 @@ public sealed partial class BoxTests : UITestFixture
         rootVisualElement.style.width = 800; rootVisualElement.style.height = 600;
         _adapter = new Adapter(); _revision = MutableStateOf(0); _box = Modifier;
         _alignment = Alignment.TopStart; _propagate = _emptyOverload = _text = _nested = _scroll = false;
+        _regressionText = null;
         _clicked = 0; _items.Clear(); _scrollState = null; _demo = null; _gallery = null;
         using var initial = IComposer.Create();
         Bootstrap(initial, _adapter, false, new ComposeConfig(Logging:false), new Root(rootVisualElement), Empty);
@@ -68,6 +71,7 @@ public sealed partial class BoxTests : UITestFixture
         var revision = _revision.Value;
         foreach (var item in _items)
             Key(item.Id, () => Box(item.Modifier.TestTag(item.Id)));
+        if (_regressionText != null) Text(_regressionText, fontSize: _regressionFont.Sp(), color: Color.White, modifier: Modifier.TestTag("sample-text"));
         if (_text) Text("Native text wraps inside the incoming maximum width, keeping its measured height.",
             fontSize: 16.Sp(), modifier: Modifier.TestTag("text"));
         if (_nested) Box(contentAlignment: Alignment.BottomEnd, modifier: Modifier.Size(120.Dp(), 80.Dp()).Align(Alignment.BottomEnd).TestTag("inner"),

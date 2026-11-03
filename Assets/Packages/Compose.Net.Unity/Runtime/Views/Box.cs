@@ -253,7 +253,7 @@ public class Box : VisualElement, ILayout
         private StyleEnum<Position> _position;
         private StyleLength _left, _right, _top, _bottom;
         private bool _match;
-        private Bound _minWidth, _maxWidth, _minHeight, _maxHeight;
+        private Bound _minWidth, _maxWidth, _minHeight, _maxHeight, _textWidth, _textHeight;
         internal ChildStyle(VisualElement child)
         {
             var s = child.style;
@@ -293,6 +293,34 @@ public class Box : VisualElement, ILayout
         internal void Constrain(VisualElement child, float minW, float maxW, float minH, float maxH, bool fill)
         {
             var s = child.style;
+            if (child is TextElement text)
+            {
+                var authored = _textWidth.Authored(s.width);
+                if (authored.keyword is StyleKeyword.Null or StyleKeyword.Auto)
+                {
+                    // Native Grid measures auto-sized labels with margins at a different width
+                    // than it assigns them. Resolve the preferred width with UI Toolkit's own
+                    // text measurer so wrapping and the row's intrinsic height use one width.
+                    var preferred = text.MeasureTextSize(text.text, 0, VisualElement.MeasureMode.Undefined,
+                        0, VisualElement.MeasureMode.Undefined).x;
+                    if (float.IsFinite(preferred))
+                    {
+                        var insets = child.resolvedStyle.paddingLeft + child.resolvedStyle.paddingRight
+                            + child.resolvedStyle.borderLeftWidth + child.resolvedStyle.borderRightWidth;
+                        var available = Mathf.Max(0, maxW - child.resolvedStyle.marginLeft - child.resolvedStyle.marginRight);
+                        s.width = _textWidth.Apply(s.width, Mathf.Min(preferred + insets, available), available, true);
+                        var authoredHeight = _textHeight.Authored(s.height);
+                        if (authoredHeight.keyword is StyleKeyword.Null or StyleKeyword.Auto)
+                        {
+                            var measured = text.MeasureTextSize(text.text, Mathf.Max(0, s.width.value.value - insets),
+                                VisualElement.MeasureMode.Exactly, 0, VisualElement.MeasureMode.Undefined).y;
+                            var verticalInsets = child.resolvedStyle.paddingTop + child.resolvedStyle.paddingBottom
+                                + child.resolvedStyle.borderTopWidth + child.resolvedStyle.borderBottomWidth;
+                            if (float.IsFinite(measured)) s.height = _textHeight.Apply(s.height, Mathf.Min(measured + verticalInsets, maxH), maxH, true);
+                        }
+                    }
+                }
+            }
             if (fill)
             {
                 if (s.width.keyword == StyleKeyword.Undefined && s.width.value.unit == LengthUnit.Percent && float.IsFinite(maxW))
@@ -308,6 +336,8 @@ public class Box : VisualElement, ILayout
         internal void ClearConstraints(VisualElement child)
         {
             var s = child.style;
+            s.width = _textWidth.Restore(s.width);
+            s.height = _textHeight.Restore(s.height);
             s.minWidth = _minWidth.Restore(s.minWidth); s.maxWidth = _maxWidth.Restore(s.maxWidth);
             s.minHeight = _minHeight.Restore(s.minHeight); s.maxHeight = _maxHeight.Restore(s.maxHeight);
         }
