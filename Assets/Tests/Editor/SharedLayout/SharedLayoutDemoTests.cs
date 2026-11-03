@@ -63,7 +63,7 @@ public sealed partial class SharedLayoutDemoTests : UITestFixture
         foreach (var item in _state.Cases)
         {
             Assert.That(item.Scope!.IsTransitionActive, Is.False, item.Id);
-            Assert.That(item.States[0].IsMatchFound, Is.False, item.Id);
+            Assert.That(item.States[0].IsMatchFound, Is.EqualTo(item.Id == "caller"), item.Id);
             Assert.That(Layer(Shared(item.Id, 0)), Is.Null, item.Id);
         }
     }

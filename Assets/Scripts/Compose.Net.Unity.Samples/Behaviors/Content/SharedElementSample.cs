@@ -4,7 +4,7 @@ using Compose.Net;
 
 namespace Compose.Net.Unity.Samples.Behaviors.Content
 {
-    internal partial class SharedElementSample : ComposeUI
+    public partial class SharedElementSample : ComposeUI
     {
         [Composable]
         protected override void Content()
@@ -19,9 +19,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         }
 
         [Composable]
-        private static void Layout()
+        private static void Layout() => Screen(Remember(() => MutableStateOf(false)));
+
+        [Composable]
+        public static void Screen(IMutableState<bool> expanded)
         {
-            var expanded = Remember(() => MutableStateOf(false));
             var tween = Tween(500);
             SharedTransitionLayout(
                 modifier: Modifier.FillMaxSize(),
@@ -34,13 +36,17 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         modifier: Modifier.FillMaxSize(),
                         content: (animatedScope, it) =>
                         {
-                            var cardModifier = Modifier.SharedBounds(
-                                sharedContentState: sharedScope.RememberSharedContentState("card"),
-                                animatedVisibilityScope: animatedScope,
-                                enter: IEnterTransition.None,
-                                exit: IExitTransition.None,
-                                boundsTransform: (_, _) => tween
-                            );
+                            // Overlay content needs its own fade. Remeasure both cards as their aspect ratio changes.
+                            var cardModifier = Modifier
+                                .TestTag(it ? "shared-element.expanded" : "shared-element.collapsed")
+                                .SharedBounds(
+                                    sharedContentState: sharedScope.RememberSharedContentState("card"),
+                                    animatedVisibilityScope: animatedScope,
+                                    enter: FadeIn(tween),
+                                    exit: FadeOut(tween),
+                                    boundsTransform: (_, _) => tween,
+                                    resizeMode: ResizeMode.RemeasureToBounds
+                                );
                             if (it)
                             {
                                 Box(

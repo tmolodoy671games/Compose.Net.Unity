@@ -120,7 +120,10 @@ public sealed partial class SharedLayoutDemoTests
         var a=Alpha(E("nested.child.0")); var b=Alpha(E("nested.child.1"));
         _expanded.Value=false; Flush(); RectNear(NestedBounds(0),before);
         Near(Alpha(E("nested.child.0")),a,.01f); Near(Alpha(E("nested.child.1")),b,.01f);
-        Flush(500); RectNear(NestedBounds(0),Interpolate(before,start,.5f));
+        // AndroidX changes an interrupted tween into a spring, preserving its velocity.
+        Flush(16); var next=NestedBounds(0);
+        Assert.That(Vector2.Distance(next.position,before.position),Is.LessThan(Vector2.Distance(before.position,start.position)));
+        Flush(484); RectNear(NestedBounds(0),start);
         Flush(500); Assert.That(_nestedScope.IsTransitionActive,Is.False); RectNear(NestedBounds(0),start);
     }
     [Test] public void DisposingThreeNestedMatchesRemovesEveryOverlay()

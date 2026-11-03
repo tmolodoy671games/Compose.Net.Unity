@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters.Extensions.Values;
+using Compose.Net.Unity.Runtime.Adapters.Nodes;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Rect = Compose.Net.Rect;
@@ -29,6 +30,7 @@ internal sealed class SharedTransitionRoot : ISharedTransitionRoot
         Overlay.style.left = Overlay.style.top = Overlay.style.right = Overlay.style.bottom = 0;
         element.Add(Overlay);
     }
+    public Size Size => new(Element.layout.width, Element.layout.height);
     public ISharedContentHost Attach(IReusableComposeNode node, SharedContent content)
     {
         var visual = new SharedVisual(this, (UnityReusableComposeNode)node, content);
@@ -38,7 +40,8 @@ internal sealed class SharedTransitionRoot : ISharedTransitionRoot
     {
         Overlay.BringToFront();
         // With equal drawing order, the visible destination must receive input after a reversal.
-        foreach (var item in Items.Where(item => item.InOverlay).OrderBy(item => item.Frame.ZIndex).ThenBy(item => item.Depth).ThenBy(item => item.IsVisible))
+        foreach (var item in Items.Where(item => item.InOverlay).OrderBy(item => item.Frame.ZIndex == 0 && item.ParentSharedContentState == null &&
+                item.IsSharedContent ? -1 : item.Frame.ZIndex).ThenBy(item => item.Depth).ThenBy(item => item.IsVisible))
             item.Layer.BringToFront();
     }
     public void Dispose()
@@ -62,8 +65,11 @@ internal sealed class SharedVisual : ISharedContentHost
     internal VisualElement? Slot { get; private set; }
     internal SharedContentFrame Frame;
     internal bool IsVisible => _content.IsVisible;
+    internal bool IsSharedContent => _content.IsSharedBounds || _content.IsSharedElement;
     internal bool InOverlay => Slot != null && Layer.parent == _root.Overlay;
     private LayoutStyle? _saved;
+    private IPath? _clipPath, _resolvedClip;
+    public IPath? ClipPathInOverlay => Frame.RenderInOverlay ? _resolvedClip : null;
     private StyleLength _renderWidth, _renderHeight;
     private Vector2 _natural;
     private SharedVisual? _layoutAncestor;
@@ -84,10 +90,20 @@ internal sealed class SharedVisual : ISharedContentHost
         }
     }
     internal int Depth => Parent is { } parent ? parent.Depth + 1 : 0;
-    public SharedContentState? ParentSharedContentState => Parent?._content.State;
+    public SharedContentState? ParentSharedContentState
+    {
+        get
+        {
+            for (var ancestor = Parent; ancestor != null; ancestor = ancestor.Parent)
+                if (ancestor._content.IsSharedBounds) return ancestor._content.State;
+            return null;
+        }
+    }
     public IReusableComposeNode TransitionNode { get; }
     internal SharedVisual(SharedTransitionRoot root, UnityReusableComposeNode node, SharedContent content)
     {
+        if (node.SharedVisual != null)
+            throw new InvalidOperationException("Use a separate layout for each shared or overlay modifier.");
         _root = root; _node = node; _element = node.VisualElement; _content = content;
         node.SharedVisual = this;
         Layer.style.position = Position.Absolute;
@@ -138,6 +154,14 @@ internal sealed class SharedVisual : ISharedContentHost
     {
         if (_disposed || _element.panel == null) return;
         if (_restorePending) End();
+        // Retained navigation entries collapse their native layout while hidden. Keep the
+        // last natural bounds until the entry returns and is measured at its real size.
+        for (var current = Slot ?? _element; current != null && current != _root.Element; current = current.parent)
+        {
+            var moved = _root.Items.FirstOrDefault(item => item._element == current && item.Slot != null);
+            if (moved != null) current = moved.Slot!;
+            if (current is AnimatedContentItem { Hidden: true }) return;
+        }
         if (_saved != null)
         {
             // Declarative changes during a transition become fresh target constraints.
@@ -181,11 +205,12 @@ internal sealed class SharedVisual : ISharedContentHost
             {
                 for (var ancestor = Parent; ancestor != null; ancestor = ancestor.Parent)
                 {
-                    if (!ancestor.Frame.Active || ancestor.Frame.Clip.InheritParent) continue;
+                    if (!ancestor._content.IsSharedBounds || !ancestor.Frame.Active || ancestor.Frame.Clip.InheritParent) continue;
                     clip = ancestor.Frame.Clip; clipBounds = ancestor.Frame.Bounds; break;
                 }
             }
             var clipping = !clip.Shape.IsUnspecified;
+            _resolvedClip = clipping ? ResolveClip(clip.Shape, clipBounds) : null;
             var layerBounds = clipping ? clipBounds : bounds;
             Layer.style.left = layerBounds.Offset.X - origin.x; Layer.style.top = layerBounds.Offset.Y - origin.y;
             Layer.style.width = layerBounds.Size.Width; Layer.style.height = layerBounds.Size.Height;
@@ -233,6 +258,20 @@ internal sealed class SharedVisual : ISharedContentHost
             _hidden = frame.Hidden;
         }
     }
+    private IPath ResolveClip(Shape shape, Rect bounds)
+    {
+        var p = (_clipPath ??= ComposeFunctions.Path()).Reset();
+        var radii = RoundedCorners.Resolve(shape, new Vector2(bounds.Size.Width, bounds.Size.Height));
+        var x = bounds.Offset.X; var y = bounds.Offset.Y;
+        var r = x + bounds.Size.Width; var b = y + bounds.Size.Height;
+        var tl = radii.x; var tr = radii.y; var bl = radii.z; var br = radii.w;
+        const float k = .55228475f;
+        p.MoveTo(x + tl, y).LineTo(r - tr, y).CubicTo(r - tr + tr*k, y, r, y + tr - tr*k, r, y + tr)
+            .LineTo(r, b - br).CubicTo(r, b - br + br*k, r - br + br*k, b, r - br, b)
+            .LineTo(x + bl, b).CubicTo(x + bl - bl*k, b, x, b - bl + bl*k, x, b - bl)
+            .LineTo(x, y + tl).CubicTo(x, y + tl - tl*k, x + tl - tl*k, y, x + tl, y).Close();
+        return p;
+    }
     private void Begin()
     {
         _restorePending = false;
@@ -272,7 +311,7 @@ internal sealed class SharedVisual : ISharedContentHost
         (parent as ILayout)?.Untrack(slot); slot.RemoveFromHierarchy();
         _saved!.Apply(_element); _saved = null; Slot = null;
         if (parent != null) { parent.Insert(index, _element); (parent as ILayout)?.Track(_element); }
-        Layer.RemoveFromHierarchy();
+        Layer.RemoveFromHierarchy(); _resolvedClip = null;
     }
     public void Dispose()
     {
@@ -280,6 +319,7 @@ internal sealed class SharedVisual : ISharedContentHost
         _disposed = true; _measure.Pause(); _element.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
         _element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
         End(force: true); if (_hidden) _element.style.visibility = _visibility;
+        _clipPath?.Dispose(); _clipPath = _resolvedClip = null;
         _node.SharedVisual = null; _root.Items.Remove(this);
     }
     private sealed class LayoutStyle
@@ -288,7 +328,8 @@ internal sealed class SharedVisual : ISharedContentHost
         private readonly StyleLength _minW, _minH, _maxW, _maxH, _left, _top, _right, _bottom, _ml, _mr, _mt, _mb, _basis;
         private readonly StyleEnum<Position> _position;
         private readonly StyleFloat _grow, _shrink;
-        private readonly StyleEnum<Align> _align;
+        private readonly StyleEnum<Align> _align, _justify;
+        private readonly StyleGridLine _columnStart, _columnEnd, _rowStart, _rowEnd;
         private readonly StyleTranslate _translate;
         private readonly StyleScale _scale;
         private readonly StyleTransformOrigin _origin;
@@ -298,7 +339,8 @@ internal sealed class SharedVisual : ISharedContentHost
             _minW = s.minWidth; _minH = s.minHeight; _maxW = s.maxWidth; _maxH = s.maxHeight;
             _left = s.left; _top = s.top; _right = s.right; _bottom = s.bottom; _position = s.position;
             _ml = s.marginLeft; _mr = s.marginRight; _mt = s.marginTop; _mb = s.marginBottom;
-            _grow = s.flexGrow; _shrink = s.flexShrink; _basis = s.flexBasis; _align = s.alignSelf;
+            _grow = s.flexGrow; _shrink = s.flexShrink; _basis = s.flexBasis; _align = s.alignSelf; _justify = s.justifySelf;
+            _columnStart = s.gridColumnStart; _columnEnd = s.gridColumnEnd; _rowStart = s.gridRowStart; _rowEnd = s.gridRowEnd;
             _translate = s.translate; _scale = s.scale; _origin = s.transformOrigin;
         }
         internal void Apply(VisualElement element)
@@ -307,7 +349,8 @@ internal sealed class SharedVisual : ISharedContentHost
             s.minWidth = _minW; s.minHeight = _minH; s.maxWidth = _maxW; s.maxHeight = _maxH;
             s.left = _left; s.top = _top; s.right = _right; s.bottom = _bottom; s.position = _position;
             s.marginLeft = _ml; s.marginRight = _mr; s.marginTop = _mt; s.marginBottom = _mb;
-            s.flexGrow = _grow; s.flexShrink = _shrink; s.flexBasis = _basis; s.alignSelf = _align;
+            s.flexGrow = _grow; s.flexShrink = _shrink; s.flexBasis = _basis; s.alignSelf = _align; s.justifySelf = _justify;
+            s.gridColumnStart = _columnStart; s.gridColumnEnd = _columnEnd; s.gridRowStart = _rowStart; s.gridRowEnd = _rowEnd;
             s.translate = _translate; s.scale = _scale; s.transformOrigin = _origin;
         }
     }

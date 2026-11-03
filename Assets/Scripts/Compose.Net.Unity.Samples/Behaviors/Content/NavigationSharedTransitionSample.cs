@@ -8,7 +8,7 @@ using global::Unity.Scripting.LifecycleManagement;
 namespace Compose.Net.Unity.Samples.Behaviors.Content
 {
     [NoAutoStaticsCleanup]
-    internal partial class NavigationSharedTransitionSample : ComposeUI
+    public partial class NavigationSharedTransitionSample : ComposeUI
     {
         private sealed record Home : INavKey;
 
@@ -37,7 +37,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         protected override void Preview() => Layout();
 
         [Composable]
-        private static void Layout()
+        public static void Layout()
         {
             var tween = Tween(500);
             var fade = FadeIn(tween).TogetherWith(FadeOut(tween));
@@ -53,9 +53,6 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         contentAlignment: Alignment.Center,
                         transitionSpec: _ => fade,
                         popTransitionSpec: _ => fade,
-                        // Shared element reclaim + retain currently leaves nested text transforms
-                        // stuck; match SharedTransitionLayoutSample and dispose off-stack entries.
-                        retainEntries: false,
                         entryProvider: EntryProvider<INavKey>(scope =>
                         {
                             scope.Entry<Home>(() => HomeScreen(shared, backStack));
@@ -74,7 +71,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
             Column(
                 horizontalAlignment: Alignment.CenterHorizontally,
                 verticalArrangement: Arrangement.Center,
-                modifier: Modifier.FillMaxSize().Padding(24.Dp()),
+                modifier: Modifier.FillMaxSize().Padding(24.Dp()).TestTag("nav-shared.home"),
                 content: () =>
                 {
                     Text("Home", color: Color.White, fontSize: 32.Sp());
@@ -170,6 +167,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                         color: Color.White,
                         fontSize: 18.Sp(),
                         modifier: Modifier
+                            .TestTag("nav-shared.settings.theme")
                             .Padding(top: 12.Dp())
                             .Background(Color.Black with { Alpha = 0.25f }, RoundedCornerShape(12.Dp()))
                             .Padding(horizontal: 20.Dp(), vertical: 12.Dp())
@@ -192,17 +190,21 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
         {
             var animated = LocalAnimatedVisibilityScope.Current;
             var tween = Tween(500);
+            // Shared layers escape the NavDisplay fade; fade the whole screen here so
+            // settings and product content stay visible while it returns to its button.
             Column(
                 horizontalAlignment: Alignment.CenterHorizontally,
                 verticalArrangement: Arrangement.Top,
                 modifier: Modifier
                     .FillMaxSize()
+                    .TestTag("nav-shared.screen." + containerKey)
                     .SharedBounds(
                         shared.RememberSharedContentState(containerKey),
                         animated,
-                        enter: IEnterTransition.None,
-                        exit: IExitTransition.None,
-                        boundsTransform: (_, _) => tween
+                        enter: FadeIn(tween),
+                        exit: FadeOut(tween),
+                        boundsTransform: (_, _) => tween,
+                        resizeMode: ResizeMode.RemeasureToBounds
                     )
                     .Background(color)
                     .Padding(24.Dp()),
@@ -218,6 +220,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                 color: Color.White,
                                 fontSize: 16.Sp(),
                                 modifier: Modifier
+                                    .TestTag("nav-shared.back." + containerKey)
                                     .Padding(right: 12.Dp())
                                     .Background(Color.Black with { Alpha = 0.25f }, RoundedCornerShape(10.Dp()))
                                     .Padding(horizontal: 16.Dp(), vertical: 8.Dp())
@@ -229,11 +232,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                                 color: Color.White,
                                 fontSize: 64.Sp(),
                                 // sharedBounds: text size differs between button and title.
-                                modifier: Modifier.SharedBounds(
+                                modifier: Modifier.TestTag("nav-shared.screen-title." + titleKey).SharedBounds(
                                     shared.RememberSharedContentState(titleKey),
                                     animated,
-                                    enter: IEnterTransition.None,
-                                    exit: IExitTransition.None,
+                                    enter: FadeIn(tween),
+                                    exit: FadeOut(tween),
                                     boundsTransform: (_, _) => tween
                                 )
                             );
@@ -260,12 +263,14 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                 contentAlignment: Alignment.Center,
                 modifier: Modifier
                     .Padding(top: 12.Dp())
+                    .TestTag("nav-shared.button." + containerKey)
                     .SharedBounds(
                         shared.RememberSharedContentState(containerKey),
                         animated,
-                        enter: IEnterTransition.None,
-                        exit: IExitTransition.None,
-                        boundsTransform: (_, _) => tween
+                        enter: FadeIn(tween),
+                        exit: FadeOut(tween),
+                        boundsTransform: (_, _) => tween,
+                        resizeMode: ResizeMode.RemeasureToBounds
                     )
                     .Background(color, RoundedCornerShape(16.Dp()))
                     .Padding(horizontal: 24.Dp(), vertical: 16.Dp())
@@ -274,11 +279,11 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     text,
                     color: Color.White,
                     fontSize: 32.Sp(),
-                    modifier: Modifier.SharedBounds(
+                    modifier: Modifier.TestTag("nav-shared.button-title." + titleKey).SharedBounds(
                         shared.RememberSharedContentState(titleKey),
                         animated,
-                        enter: IEnterTransition.None,
-                        exit: IExitTransition.None,
+                        enter: FadeIn(tween),
+                        exit: FadeOut(tween),
                         boundsTransform: (_, _) => tween
                     )
                 )

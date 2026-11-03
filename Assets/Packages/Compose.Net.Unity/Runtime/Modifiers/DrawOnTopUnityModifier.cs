@@ -61,8 +61,10 @@ public abstract record DrawOnTopUnityModifier(int DrawIndex = -1)
                 return;
             if (!indexChanged && !contentChanged)
                 return;
+            // Replacing the callback must preserve the live drawing host, its layout,
+            // and native render state while a ripple or another overlay is animating.
             if (_content != null)
-                _unityNode.RemoveDrawOnTop(_content, keepHost: false);
+                _unityNode.RemoveDrawOnTop(_content, keepHost: true);
             _drawIndex = next.DrawIndex;
             _content = next.GenerateVisualContent;
             _unityNode.InsertDrawOnTop(_drawIndex, _content);
