@@ -86,3 +86,24 @@ gallery tests plus 3 native scene-host lifecycle tests. The suite uses real UI T
 mouse/wheel/touch/pen events, capture, layout, nested elements and the actual demo screen.
 Also run **Compose.Net.Unity.Clickable.Tests** when changing input dispatch.
 See the Compose.Net repository README for the public API and migration details.
+
+
+## Lazy list demo and tests
+
+Open `Assets/Scenes/LazyListDemo.unity`, **Tools > Compose.Net > Lazy List Demo**, or
+`SampleScene → Demos → LazyListDemo`. **Add Lazy List Demo to Scene** is idempotent and includes
+inactive demo groups. The 18 cards cover both axes, reverse layout, variable sizes, padding and
+spacing, stable-key insertion, sticky headers, initial positions, disabled input, 100,000 items,
+nested rows, parent sizing and empty data. All cards provide jump/animation, prepend, resize,
+state replacement, mount/unmount, input/reverse and native physics controls, with live counters.
+
+Columns use native UI Toolkit `ListView` with dynamic heights. Toolkit has no horizontal
+collection view, so rows use a sparse size index and bounded Compose window over `ScrollView`.
+Native Toolkit handles wheel, touch, capture, keyboard navigation, nesting, inertia and overscroll.
+Item trees remain in the parent composition, preserving keys, Remember and composition locals.
+
+Run **Compose.Net.Unity.Lazy.Tests** in the Edit Mode Test Runner. The panel suite covers both axes
+and reverse layouts, large/variable data, offscreen navigation, empty asynchronous data, animations
+and cancellation, stable keys/lifetimes, padding/overlap/alignment, parent sizing, native input and
+interactions, every demo control and the complete screen. Core API details and platform adaptations
+are documented in the Compose.Net README.

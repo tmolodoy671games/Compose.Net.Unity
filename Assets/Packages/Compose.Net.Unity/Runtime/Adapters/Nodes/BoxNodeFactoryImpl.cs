@@ -8,6 +8,9 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
     {
         return type switch
         {
+            NodeTypes.LazyColumn => new LazyListNode(false),
+            NodeTypes.LazyRow => new LazyListNode(true),
+            NodeTypes.LazyListItem => new LazyListItemNode(),
             NodeTypes.AnimatedContent => new AnimatedContentLayoutNode(new AnimatedContent()),
             NodeTypes.AnimatedContentItem => new AnimatedContentItemNode(new AnimatedContentItem()),
             _ => new UnityReusableComposeNode(CreateBox(type))

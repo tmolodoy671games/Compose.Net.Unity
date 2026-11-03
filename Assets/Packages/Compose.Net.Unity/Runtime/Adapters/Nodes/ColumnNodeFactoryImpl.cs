@@ -27,6 +27,7 @@ internal class ColumnNodeFactoryImpl : IColumnNodeFactory
         var column = node.VisualElement<Column>();
         column.style.alignItems = horizontalAlignment.ToAlign();
         column.style.justifyContent = verticalArrangement.ToJustify();
+        column.style.rowGap = verticalArrangement is Arrangement.Spaced spaced ? spaced.Space.ToPx(global::Compose.Net.Density.Default) : 0;
         ((UnityReusableComposeNode)node).SyncScrollContentLayout();
     }
 }

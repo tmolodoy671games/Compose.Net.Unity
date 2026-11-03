@@ -1,0 +1,43 @@
+using Compose.Net;
+using static Compose.Net.ComposeFunctions;
+using Compose.Net.Unity.Samples.Behaviors.Content;
+using UnityEditor;
+using UnityEngine;
+
+namespace Compose.Net.Unity.Samples.Editor
+{
+    public sealed partial class LazyListDemoWindow : EditorWindow
+    {
+        private ComposeView? _view;
+
+        [MenuItem("Tools/Compose.Net/Lazy List Demo")]
+        public static void Open()
+        {
+            var window = GetWindow<LazyListDemoWindow>();
+            window.titleContent = new GUIContent("Lazy List Demo");
+            window.minSize = new Vector2(1140, 600);
+            window.Show();
+        }
+
+        private void CreateGUI()
+        {
+            _view?.Dispose();
+            rootVisualElement.Clear();
+            _view = new ComposeView();
+            _view.style.flexGrow = 1;
+            rootVisualElement.Add(_view);
+            _view.SetContent(Content);
+        }
+
+        [Composable]
+        private static void Content() => LazyListDemo.Screen(ComposeFunctions.Remember(() => new LazyListDemoState()));
+
+        private void Update()
+        {
+            ComposeInvalidatorHolder.ComposeInvalidator.Tick();
+            Repaint();
+        }
+
+        private void OnDisable() => _view?.Dispose();
+    }
+}

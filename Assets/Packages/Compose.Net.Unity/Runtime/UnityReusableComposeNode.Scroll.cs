@@ -12,5 +12,7 @@ public partial class UnityReusableComposeNode
         _contentContainer.style.flexDirection = VisualElement.style.flexDirection;
         _contentContainer.style.alignItems = VisualElement.style.alignItems;
         _contentContainer.style.justifyContent = VisualElement.style.justifyContent;
+        _contentContainer.style.rowGap = VisualElement.style.rowGap;
+        _contentContainer.style.columnGap = VisualElement.style.columnGap;
     }
 }

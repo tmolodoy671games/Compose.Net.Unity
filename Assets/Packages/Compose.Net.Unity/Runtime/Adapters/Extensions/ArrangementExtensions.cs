@@ -7,6 +7,7 @@ internal static class ArrangementExtensions
 {
     public static Justify ToJustify(this Arrangement arrangement)
     {
+        if (arrangement is Arrangement.Spaced spaced) return (spaced.Alignment ?? Arrangement.Top).ToJustify();
         if (arrangement == Arrangement.Top)
             return Justify.FlexStart;
         if (arrangement == Arrangement.Center)
