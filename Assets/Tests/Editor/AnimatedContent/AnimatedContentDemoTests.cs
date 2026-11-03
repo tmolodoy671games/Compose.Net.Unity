@@ -303,9 +303,13 @@ public sealed partial class AnimatedContentDemoTests : UITestFixture
         panelSize = new Vector2(1100, 600); Flush();
         var last = E("ac.delay.b");
         Assert.That(last.worldBound.yMin, Is.GreaterThan(rootVisualElement.worldBound.yMax));
-        simulate.ScrollWheel(new Vector2(0, 500), new Vector2(600, 400));
         for (var i = 0; i < 120 && last.worldBound.yMax > rootVisualElement.worldBound.yMax; i++)
-        { yield return null; Flush(16); }
+        {
+            // Small wheel steps keep the control visible without jumping into native elastic overscroll.
+            simulate.ScrollWheel(new Vector2(0, 5), new Vector2(600, 400));
+            yield return null; Flush(16);
+        }
+        Assert.That(last.worldBound.yMin, Is.GreaterThanOrEqualTo(rootVisualElement.worldBound.yMin));
         Assert.That(last.worldBound.yMax, Is.LessThanOrEqualTo(rootVisualElement.worldBound.yMax));
         yield return Click("delay", "b"); Flush(2000); Only("delay", 1);
     }

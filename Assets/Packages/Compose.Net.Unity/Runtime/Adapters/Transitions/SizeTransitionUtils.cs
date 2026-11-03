@@ -17,11 +17,13 @@ internal static class SizeTransitionUtils
         element.style.flexShrink = 0;
         if (horizontal)
         {
+            Box.SetAnimatedConstraints(parent, Box.AnimatedConstraints.MaxWidth, true);
             parent.style.maxWidth = width;
             element.style.left = (width - full.Width) * HorizontalFraction(alignment);
         }
         if (vertical)
         {
+            Box.SetAnimatedConstraints(parent, Box.AnimatedConstraints.MaxHeight, true);
             parent.style.maxHeight = height;
             element.style.top = (height - full.Height) * VerticalFraction(alignment);
         }
@@ -34,12 +36,20 @@ internal static class SizeTransitionUtils
         element.style.flexShrink = StyleKeyword.Null;
         if (horizontal)
         {
-            if (parent != null) parent.style.maxWidth = StyleKeyword.Null;
+            if (parent != null)
+            {
+                parent.style.maxWidth = StyleKeyword.Null;
+                Box.SetAnimatedConstraints(parent, Box.AnimatedConstraints.MaxWidth, false);
+            }
             element.style.left = StyleKeyword.Null;
         }
         if (vertical)
         {
-            if (parent != null) parent.style.maxHeight = StyleKeyword.Null;
+            if (parent != null)
+            {
+                parent.style.maxHeight = StyleKeyword.Null;
+                Box.SetAnimatedConstraints(parent, Box.AnimatedConstraints.MaxHeight, false);
+            }
             element.style.top = StyleKeyword.Null;
         }
         if (clip && parent != null) parent.Clip().Decrement();

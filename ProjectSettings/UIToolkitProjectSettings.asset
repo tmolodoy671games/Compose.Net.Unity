@@ -22,4 +22,4 @@ MonoBehaviour:
   m_ThemePriorityNoticeVersion: 1
   m_EnableLowLevelDebugger: 0
   m_EnableUIComponents: 0
-  m_EnableGridLayout: 0
+  m_EnableGridLayout: 1

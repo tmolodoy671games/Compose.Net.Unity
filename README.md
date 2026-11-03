@@ -107,3 +107,23 @@ and reverse layouts, large/variable data, offscreen navigation, empty asynchrono
 and cancellation, stable keys/lifetimes, padding/overlap/alignment, parent sizing, native input and
 interactions, every demo control and the complete screen. Core API details and platform adaptations
 are documented in the Compose.Net README.
+
+`Box` now uses a single native UI Toolkit CSS Grid cell. Keep **Project Settings > UI Toolkit >
+Enable Grid Layout** enabled; this project targets Unity 7000.0.0a12. Native grid handles intrinsic
+size, overlap, nine alignments and text wrapping. `MatchParentSize` is an absolute overlay that
+does not affect the Box's size; `FillMaxSize` does. `propagateMinConstraints` defaults to false.
+`Align` overrides `contentAlignment`, and the first Box parent-data modifier in a chain wins.
+Start/End use the library's existing LTR conventions. See the
+[AndroidX reference](https://github.com/androidx/androidx/blob/androidx-main/compose/foundation/foundation-layout/src/commonMain/kotlin/androidx/compose/foundation/layout/Box.kt).
+
+Open **Tools > Compose.Net > Box Demo**, or run `Samples/BoxDemo` in `Assets/Scenes/SampleScene.unity`.
+**Tools > Compose.Net > Add Box Demo to Scene** reuses existing instances, including inactive or
+renamed ones. The gallery has 32 interactive examples, live measurements, standard UI Toolkit
+buttons, responsive Flexbox columns and native scrolling. Each example has Change and Reset controls.
+The layout adapter preserves natural measurement through `AnimatedContent`, expand/shrink and
+`AnimateContentSize`; it uses no layout spacer or translation to stack children.
+
+Run Edit Mode assembly **Compose.Net.Unity.Box.Tests** (100 cases) for sizing, constraints, all
+alignments, parent-data precedence/removal, native picking/z-index, offset, fractional fill,
+scrolling, stable layout, all demo controls, narrow/wide galleries and scene integration.
+The accompanying regression checks cover Scroll, AnimatedContent, AnimateContentSize, SharedLayout and LazyList.

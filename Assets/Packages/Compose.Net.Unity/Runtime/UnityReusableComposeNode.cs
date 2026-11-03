@@ -365,8 +365,8 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
         var children = VisualElement.Children().ToPersistentStableList();
         foreach (var child in children)
         {
-            // The Box spacer and DrawOn belong to the element itself, not to its content.
-            if (child is BoxPull || child == _drawOn)
+            // DrawOn belongs to the element itself, not to its content.
+            if (child == _drawOn)
                 continue;
             (VisualElement as ILayout)?.Untrack(child);
             child.parent.Remove(child);
@@ -377,7 +377,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
         (VisualElement as ILayout)?.Track(_contentContainerInstance);
         foreach (var child in children)
         {
-            if (child is BoxPull || child == _drawOn)
+            if (child == _drawOn)
                 continue;
             _contentContainerInstance.Add(child);
             (_contentContainerInstance as ILayout)?.Track(child);
@@ -394,8 +394,6 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
         var children = _contentContainer.Children().ToPersistentStableList();
         foreach (var child in children)
         {
-            if (child is BoxPull)
-                continue;
             (_contentContainer as ILayout)?.Untrack(child);
             child.parent.Remove(child);
         }
@@ -404,8 +402,6 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
         VisualElement.Remove(_contentContainer);
         foreach (var child in children)
         {
-            if (child is BoxPull)
-                continue;
             VisualElement.Add(child);
             (VisualElement as ILayout)?.Track(child);
         }

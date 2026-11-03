@@ -26,6 +26,7 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
             _originalHeight = _element.style.height;
             if (!_width.IsUnspecified) _element.style.width = _width.ToLength(UnityDensity.Current);
             if (!_height.IsUnspecified) _element.style.height = _height.ToLength(UnityDensity.Current);
+            Box.Refresh(_element);
         }
 
         internal void Update(Dp nextWidth, Dp nextHeight)
@@ -39,6 +40,7 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
             }
             _width = nextWidth;
             _height = nextHeight;
+            if (_element != null) Box.Refresh(_element);
         }
 
         public override void OnDetach()
@@ -48,6 +50,7 @@ internal record SizeModifierImpl(Dp Width, Dp Height)
                 _element.style.width = _originalWidth;
                 _element.style.height = _originalHeight;
             }
+            if (_element != null) Box.Refresh(_element);
             _element = null;
         }
     }

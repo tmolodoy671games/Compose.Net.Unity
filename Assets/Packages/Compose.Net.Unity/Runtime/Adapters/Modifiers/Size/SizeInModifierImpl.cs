@@ -34,12 +34,12 @@ internal record SizeInModifierImpl(
         public override void OnAttach()
         {
             _element = (VisualElement)Target;
-            var style = _element.style;
-            _originalMinWidth = style.minWidth;
-            _originalMaxWidth = style.maxWidth;
-            _originalMinHeight = style.minHeight;
-            _originalMaxHeight = style.maxHeight;
+            _originalMinWidth = Box.AuthoredBound(_element, Box.BoundProperty.MinWidth);
+            _originalMaxWidth = Box.AuthoredBound(_element, Box.BoundProperty.MaxWidth);
+            _originalMinHeight = Box.AuthoredBound(_element, Box.BoundProperty.MinHeight);
+            _originalMaxHeight = Box.AuthoredBound(_element, Box.BoundProperty.MaxHeight);
             ApplyAll();
+            Box.Refresh(_element);
         }
 
         internal void Update(
@@ -50,42 +50,41 @@ internal record SizeInModifierImpl(
         )
         {
             if (_element == null) return;
-            var style = _element.style;
             if (!_minWidth.Equals(nextMinWidth))
-                style.minWidth = !nextMinWidth.IsUnspecified ? nextMinWidth.ToLength(UnityDensity.Current) : _originalMinWidth;
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, !nextMinWidth.IsUnspecified ? nextMinWidth.ToLength(UnityDensity.Current) : _originalMinWidth);
             if (!_maxWidth.Equals(nextMaxWidth))
-                style.maxWidth = !nextMaxWidth.IsUnspecified ? nextMaxWidth.ToLength(UnityDensity.Current) : _originalMaxWidth;
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, !nextMaxWidth.IsUnspecified ? nextMaxWidth.ToLength(UnityDensity.Current) : _originalMaxWidth);
             if (!_minHeight.Equals(nextMinHeight))
-                style.minHeight = !nextMinHeight.IsUnspecified ? nextMinHeight.ToLength(UnityDensity.Current) : _originalMinHeight;
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, !nextMinHeight.IsUnspecified ? nextMinHeight.ToLength(UnityDensity.Current) : _originalMinHeight);
             if (!_maxHeight.Equals(nextMaxHeight))
-                style.maxHeight = !nextMaxHeight.IsUnspecified ? nextMaxHeight.ToLength(UnityDensity.Current) : _originalMaxHeight;
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, !nextMaxHeight.IsUnspecified ? nextMaxHeight.ToLength(UnityDensity.Current) : _originalMaxHeight);
             _minWidth = nextMinWidth;
             _maxWidth = nextMaxWidth;
             _minHeight = nextMinHeight;
             _maxHeight = nextMaxHeight;
+            Box.Refresh(_element);
         }
 
         public override void OnDetach()
         {
             if (_element != null)
             {
-                var style = _element.style;
-                style.minWidth = _originalMinWidth;
-                style.maxWidth = _originalMaxWidth;
-                style.minHeight = _originalMinHeight;
-                style.maxHeight = _originalMaxHeight;
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _originalMinWidth);
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _originalMaxWidth);
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _originalMinHeight);
+                Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _originalMaxHeight);
             }
+            if (_element != null) Box.Refresh(_element);
             _element = null;
         }
 
         private void ApplyAll()
         {
             if (_element == null) return;
-            var style = _element.style;
-            if (!_minWidth.IsUnspecified) style.minWidth = _minWidth.ToLength(UnityDensity.Current);
-            if (!_maxWidth.IsUnspecified) style.maxWidth = _maxWidth.ToLength(UnityDensity.Current);
-            if (!_minHeight.IsUnspecified) style.minHeight = _minHeight.ToLength(UnityDensity.Current);
-            if (!_maxHeight.IsUnspecified) style.maxHeight = _maxHeight.ToLength(UnityDensity.Current);
+            if (!_minWidth.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MinWidth, _minWidth.ToLength(UnityDensity.Current));
+            if (!_maxWidth.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MaxWidth, _maxWidth.ToLength(UnityDensity.Current));
+            if (!_minHeight.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MinHeight, _minHeight.ToLength(UnityDensity.Current));
+            if (!_maxHeight.IsUnspecified) Box.SetAuthoredBound(_element, Box.BoundProperty.MaxHeight, _maxHeight.ToLength(UnityDensity.Current));
         }
     }
 }

@@ -32,6 +32,8 @@ internal class AnimatedContent : Box
             _initialized = true;
             _fixedWidth = style.width.keyword == StyleKeyword.Undefined;
             _fixedHeight = style.height.keyword == StyleKeyword.Undefined;
+            SetAnimatedConstraints(this, AnimatedConstraints.Width, !_fixedWidth);
+            SetAnimatedConstraints(this, AnimatedConstraints.Height, !_fixedHeight);
         }
         _layout = layout;
         tooltip = layout.Label;
@@ -83,7 +85,7 @@ internal class AnimatedContentItem : Box
             if (content == null) return new Size(0, 0);
             // Expand/shrink constrain the transition shell. Measure its content before that
             // constraint, otherwise the animated clip becomes the next size target.
-            var children = content.Children().Where(child => child is not BoxPull).ToArray();
+            var children = content.Children().ToArray();
             if (children.Length == 0) return new Size(0, 0);
             return new Size(
                 children.Max(child => child.layout.width + child.resolvedStyle.marginLeft + child.resolvedStyle.marginRight),

@@ -19,6 +19,8 @@ internal class AlignmentModifiersFactoryImpl : IAlignmentModifiersFactory
         return new AlignModifierImpl(alignment);
     }
 
+    public IModifier MatchParentSize() => new AlignModifierImpl(Compose.Net.Alignment.Center, true);
+
     public IModifier Position(Dp top, Dp bottom, Dp left, Dp right)
     {
         return new PositionModifierImpl(top, bottom, left, right);

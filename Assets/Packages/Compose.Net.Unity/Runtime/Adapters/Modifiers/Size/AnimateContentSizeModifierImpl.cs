@@ -52,6 +52,7 @@ internal record AnimateContentSizeModifierImpl(
         {
             _width = element.style.width;
             _height = element.style.height;
+            Box.SetAnimatedConstraints(element, Box.AnimatedConstraints.Width | Box.AnimatedConstraints.Height, true);
             _left = contentContainer.style.left;
             _top = contentContainer.style.top;
             _position = contentContainer.style.position;
@@ -175,6 +176,7 @@ internal record AnimateContentSizeModifierImpl(
             element.UnregisterCallback<GeometryChangedEvent>(OnElementGeometryChanged);
             element.style.width = _width;
             element.style.height = _height;
+            Box.SetAnimatedConstraints(element, Box.AnimatedConstraints.Width | Box.AnimatedConstraints.Height, false);
             contentContainer.style.left = _left;
             contentContainer.style.top = _top;
             contentContainer.style.position = _position;

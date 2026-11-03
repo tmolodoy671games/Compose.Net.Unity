@@ -76,6 +76,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _view.style.minWidth = 0;
             _view.style.minHeight = 0;
             _view.style.alignSelf = Align.Stretch;
+            _view.style.justifySelf = Align.Stretch;
             (element as ILayout)?.Untrack(content);
             var index = element.IndexOf(content);
             content.RemoveFromHierarchy();

@@ -230,13 +230,17 @@ internal sealed class LazyListView : VisualElement, IDisposable
         slot.style.paddingLeft = _crossStart; slot.style.paddingRight = _crossEnd;
         slot.style.alignItems = Align.Stretch;
         slot.style.height = Math.Max(1, _extents.Size(physicalIndex) + slot.style.paddingTop.value.value + (physicalIndex + 1 == Count ? _trailing : _spacing));
+        if (slot.childCount == 1) slot[0].style.top = slot.style.paddingTop;
     }
     internal void Attach(LazyListItemNode node)
     {
         if (_settings == null || node.Index < 0 || node.Index >= Count) return;
         var element = node.VisualElement;
         if (node.Index == _pinned && element.parent == _overlay) return;
-        ((Box)element).ContentAlignment = _horizontal
+        var box = (Box)element;
+        box.UnboundedWidth = _horizontal;
+        box.UnboundedHeight = !_horizontal;
+        box.ContentAlignment = _horizontal
             ? _settings.CrossAxisAlignment == Alignment.Bottom ? Alignment.BottomLeft : _settings.CrossAxisAlignment == Alignment.CenterVertically ? Alignment.CenterLeft : Alignment.TopLeft
             : _settings.CrossAxisAlignment == Alignment.Right ? Alignment.TopRight : _settings.CrossAxisAlignment == Alignment.CenterHorizontally ? Alignment.TopCenter : Alignment.TopLeft;
         if (_horizontal)
@@ -249,8 +253,12 @@ internal sealed class LazyListView : VisualElement, IDisposable
         }
         else if (_slots.TryGetValue(node.Index, out var slot))
         {
-            element.style.position = Position.Relative;
-            element.style.alignSelf = Align.Stretch;
+            // The native slot retains an estimated height until dynamic measurement settles.
+            // An absolute intrinsic grid can grow beyond that estimate without a flex constraint.
+            element.style.position = Position.Absolute;
+            element.style.left = _crossStart;
+            element.style.right = _crossEnd;
+            element.style.top = slot.style.paddingTop;
             if (element.parent != slot) { slot.Clear(); slot.Add(element); }
 
         }

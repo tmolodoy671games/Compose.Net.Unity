@@ -20,9 +20,12 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
         };
     }
 
-    public void Apply(IReusableComposeNode node, Alignment alignment)
+    public void Apply(IReusableComposeNode node, Alignment alignment, bool propagateMinConstraints = false)
     {
-        node.VisualElement<Box>().ContentAlignment = alignment;
+        var box = node.VisualElement<Box>();
+        box.ContentAlignment = alignment;
+        box.PropagateMinConstraints = propagateMinConstraints;
+        box.RefreshConstraints();
     }
 
     // Typed nodes only differ by class, so the UI Toolkit debugger shows a readable name.
