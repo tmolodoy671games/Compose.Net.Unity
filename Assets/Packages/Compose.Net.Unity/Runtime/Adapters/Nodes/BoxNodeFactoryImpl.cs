@@ -11,6 +11,9 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
             NodeTypes.LazyColumn => new LazyListNode(false),
             NodeTypes.LazyRow => new LazyListNode(true),
             NodeTypes.LazyListItem => new LazyListItemNode(),
+            NodeTypes.LazyVerticalGrid => new LazyGridNode(false),
+            NodeTypes.LazyHorizontalGrid => new LazyGridNode(true),
+            NodeTypes.LazyGridItem => new LazyGridItemNode(),
             NodeTypes.AnimatedContent => new AnimatedContentLayoutNode(new AnimatedContent()),
             NodeTypes.AnimatedContentItem => new AnimatedContentItemNode(new AnimatedContentItem()),
             _ => new UnityReusableComposeNode(CreateBox(type))
