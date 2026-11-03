@@ -70,6 +70,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     .Clickable(() => selected.Value = index)
                     .Size(200.Dp())
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
+                        enter: FadeIn(Tween(500)), exit: FadeOut(Tween(500)),
                         boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color, RoundedCornerShape(24.Dp()))
                     .TestTag($"shared-sample.thumb.{index}"),
@@ -94,6 +95,7 @@ namespace Compose.Net.Unity.Samples.Behaviors.Content
                     .Clickable(() => selected.Value = -1)
                     .FillMaxSize()
                     .SharedBounds(s.RememberSharedContentState($"card{index}"), a,
+                        enter: FadeIn(Tween(500)), exit: FadeOut(Tween(500)),
                         boundsTransform: (_, _) => Tween(500), resizeMode: ResizeMode.RemeasureToBounds)
                     .Background(color)
                     .TestTag($"shared-sample.detail.{index}"),

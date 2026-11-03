@@ -102,6 +102,21 @@ public sealed partial class SharedLayoutDemoTests
             Flush(1000);
         }
     }
+    [TestCase(0)][TestCase(1)][TestCase(2)]
+    public void SampleCardCrossfadeLastsAsLongAsItsBoundsInBothDirections(int index)
+    {
+        MountNestedSample();
+        for(var direction=0;direction<2;direction++)
+        {
+            var outgoing=E("shared-sample."+(direction==0?"thumb.":"detail.")+index);
+            _sampleSelection.Value=direction==0?index:-1;Flush();Flush(400);
+            var incoming=E("shared-sample."+(direction==0?"detail.":"thumb.")+index);
+            var progress=EaseInOutEasing.Transform(.8f);
+            Near(Alpha(outgoing),1-progress,.005f);
+            Near(Alpha(incoming),progress,.005f);
+            Flush(1100);
+        }
+    }
     [Test] public void NativeSharedTransitionsSurviveRepeatedInterruptionsAndDisposeAllLayers()
     {
         MountNested(true,threeLevels:true);var random=new System.Random(9217);
