@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Compose.Net;
 using SharpExtensions;
 using StableCollections;
@@ -10,7 +10,7 @@ using Rect = Compose.Net.Rect;
 
 namespace Compose.Net.Unity;
 
-internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope
+internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope, IMaterialTextureDrawScope
 {
     private MeshGenerationContext _context;
     private readonly GradientDrawCache _painter;
@@ -20,6 +20,9 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     private readonly PathDrawerImpl _drawer;
     private readonly Action<Texture2D> _consumeTexture2D;
     private Size _size;
+
+    public void DrawMaterialTexture(SurfaceMaterial material, Shape shape, float opacity, float tileSize)
+        => UnityMaterialTextures.Draw(this, material, shape, opacity, tileSize);
 
     public UnityDrawScope(MeshGenerationContext context)
     {
