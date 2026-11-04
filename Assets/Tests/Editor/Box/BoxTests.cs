@@ -187,7 +187,7 @@ public sealed partial class BoxTests : UITestFixture
         _items.Reverse();Update();Assert.That(E("a"),Is.SameAs(original));simulate.Click(E("box").worldBound.center);Flush();Assert.That(_clicked,Is.EqualTo(1));
     }
     [Test, BoxScope] public void TextWrapUsesNativeMeasurement()
-    { _box=Modifier.Width(150.Dp());_text=true;Mount();Assert.That(E("text").layout.width,Is.LessThanOrEqualTo(150));Assert.That(E("text").layout.height,Is.GreaterThan(35));Near(E("box").layout.height,E("text").layout.height+6); }
+    { _box=Modifier.Width(150.Dp());_text=true;Mount();Assert.That(E("text").layout.width,Is.LessThanOrEqualTo(150));Assert.That(E("text").layout.height,Is.GreaterThan(35));Near(E("box").layout.height,E("text").layout.height); }
     [Test, BoxScope] public void VerticalScrollLeavesHeightUnbounded()
     { _box=Modifier.Size(200.Dp(),100.Dp());_scroll=true;_scrollState=new ScrollState();Add("a",150,300);Mount();Size("a",150,300);Near(_scrollState.MaxValue,200); }
     [Test, BoxScope] public void UntrackRestoresAuthoredNativeStyles()

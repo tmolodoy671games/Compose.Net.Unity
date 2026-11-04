@@ -28,6 +28,15 @@ public sealed partial class BoxTests
         var box=E("box");var text=E("sample-text");var content=text.parent;
         Assert.That(text.layout.yMin,Is.GreaterThanOrEqualTo(content.resolvedStyle.paddingTop-.6f),"Text escaped the measured grid at the top");
         Assert.That(text.layout.yMax,Is.LessThanOrEqualTo(content.layout.height-content.resolvedStyle.paddingBottom+.6f),"Text escaped the measured grid at the bottom");
+        // The text content box itself must be centered, not merely its margin box.
+        Near(text.worldBound.center.x,box.worldBound.center.x);
+        Near(text.worldBound.center.y,box.worldBound.center.y);
+        Near(text.contentRect.center.x,text.layout.width/2);
+        Near(text.contentRect.center.y,text.layout.height/2);
+        Near(text.resolvedStyle.paddingLeft+text.resolvedStyle.paddingRight,0);
+        Near(text.resolvedStyle.paddingTop+text.resolvedStyle.paddingBottom,0);
+        Near(text.resolvedStyle.marginLeft+text.resolvedStyle.marginRight,0);
+        Near(text.resolvedStyle.marginTop+text.resolvedStyle.marginBottom,0);
         Near(text.worldBound.yMin-box.worldBound.yMin,16+text.resolvedStyle.marginTop);
         Near(box.worldBound.yMax-text.worldBound.yMax,16+text.resolvedStyle.marginBottom);
         Near(box.layout.height,text.layout.height+32+text.resolvedStyle.marginTop+text.resolvedStyle.marginBottom);

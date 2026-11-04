@@ -38,14 +38,9 @@ public class Text : Label
         style.flexShrink = 0;
         style.fontSize = 14;
         
-        style.marginBottom = 2;
-        style.marginLeft = 2;
-        style.marginRight = 4;
-        style.marginTop = 4;
-
-        style.paddingBottom = 4;
-        style.paddingLeft = 1;
-        style.paddingRight = 2;
-        style.paddingTop = 4;
+        // Text has no implicit box spacing in Compose. Explicit modifiers and
+        // containing components own padding; Label defaults must not shift its center.
+        style.marginLeft = style.marginRight = style.marginTop = style.marginBottom = 0;
+        style.paddingLeft = style.paddingRight = style.paddingTop = style.paddingBottom = 0;
     }
 }

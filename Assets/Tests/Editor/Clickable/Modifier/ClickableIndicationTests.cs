@@ -15,11 +15,12 @@ using Color = Compose.Net.Color;
 
 namespace Compose.Net.Unity.Tests;
 
-[TestFixture(false, false), TestFixture(false, true), TestFixture(true, false), TestFixture(true, true)]
+[TestFixture(false, false, false), TestFixture(false, true, false), TestFixture(true, false, false), TestFixture(true, true, false),
+ TestFixture(false, false, true), TestFixture(false, true, true)]
 public sealed partial class ClickableIndicationTests : UITestFixture
 {
-    private readonly bool shortOverload, row;
-    public ClickableIndicationTests(bool shortOverload, bool row) { this.shortOverload = shortOverload; this.row = row; }
+    private readonly bool shortOverload, row, overlay;
+    public ClickableIndicationTests(bool shortOverload, bool row, bool overlay) { this.shortOverload = shortOverload; this.row = row; this.overlay = overlay; }
     private IComposer _composer = null!;
     private TestAdapter _adapter = null!;
     private ProbeIndication _probe = null!;
@@ -51,6 +52,17 @@ public sealed partial class ClickableIndicationTests : UITestFixture
         _probe = Remember(() => new ProbeIndication(indication));
         CompositionLocalProvider(LocalIndication.Provides(_probe), () =>
         {
+            if (overlay)
+            {
+                Box(modifier: Modifier.Size(180.Dp(), 80.Dp()).Background(Color.DodgerBlue), content: () =>
+                {
+                    Text("Clickable", color: Color.White);
+                    var layer = Modifier.MatchParentSize().Clip(RoundedCornerShape(20.Dp())).TestTag("indication").Clickable(Click, _probe, _source);
+                    if (row) Row(modifier: layer, content: () => { });
+                    else Box(modifier: layer);
+                });
+                return;
+            }
             var modifier = Remember(() => shortOverload
                 ? Modifier.Size(180.Dp(), 80.Dp()).Background(Color.DodgerBlue).TestTag("indication").Clickable(Click)
                 : Modifier.Size(180.Dp(), 80.Dp()).Background(Color.DodgerBlue).TestTag("indication").Clickable(Click, _probe, _source));
@@ -102,7 +114,13 @@ public sealed partial class ClickableIndicationTests : UITestFixture
                 ripple.DrawIndication(scope);
                 owner.Draws++;
                 owner.Hover = Read("HoverAlpha");
-                owner.Press = Read("PressScale") > 0 ? Read("PressAlpha") : 0;
+                owner.Press = 0;
+                foreach (var frame in (Array)ripple.GetType().GetProperty("Presses")!.GetValue(ripple)!)
+                {
+                    var scale = (float)frame.GetType().GetProperty("Scale")!.GetValue(frame)!;
+                    var alpha = (float)frame.GetType().GetProperty("Alpha")!.GetValue(frame)!;
+                    if (scale > 0) owner.Press = Math.Max(owner.Press, alpha);
+                }
                 if (owner.Press > 0) owner.PressDraws++;
             }
             private float Read(string property) => (float)ripple.GetType().GetProperty(property)!.GetValue(ripple)!;

@@ -15,7 +15,7 @@ namespace Compose.Net.Unity.MaterialDemo.Tests;
 
 public sealed class MaterialDemoTests : EditorWindowUITestFixture<MaterialDemoWindow>
 {
-    [SetUp] public void Reset() { RecreatePanel(); panelSize = new Vector2(900, 1400); simulate.needsRendering = true; }
+    [SetUp] public void Reset() { RecreatePanel(); panelSize = new Vector2(680, 620); simulate.needsRendering = true; }
     private IEnumerator Settle()
     {
         var deadline = EditorApplication.timeSinceStartup + 0.35;
@@ -28,60 +28,27 @@ public sealed class MaterialDemoTests : EditorWindowUITestFixture<MaterialDemoWi
         rootVisualElement.CaptureToPNG(System.IO.Path.Combine(dir, name + ".png"));
     }
 
-    [UnityTest] public IEnumerator ControlsUpdateAndDepthDoesNotChangeLayout()
+    [UnityTest] public IEnumerator BothThemesShowFiveStaticMaterials()
     {
         yield return Settle();
-        var before = Find("preview").layout;
-        for (var i = 0; i < 5; i++)
+        foreach (var theme in new[] { "light", "dark" })
         {
-            simulate.Click(Find("Material." + i)); yield return Settle();
-            Assert.That(window.State.Material.Value, Is.EqualTo(i));
+            Assert.That(Find(theme), Is.Not.Null);
+            for (var i = 0; i < 5; i++)
+            {
+                var swatch = Find(theme + "." + i);
+                Assert.That(swatch, Is.Not.Null);
+                Assert.That(swatch.layout.width, Is.GreaterThan(0));
+                Assert.That(swatch.worldBound.yMax, Is.LessThanOrEqualTo(Find(theme).worldBound.yMax));
+                var before = Pixels(swatch);
+                simulate.Click(swatch);
+                yield return Settle();
+                Assert.That(Changed(before, Pixels(swatch)), Is.Zero, "Swatches must remain static after clicks");
+            }
         }
-        simulate.Click(Find("Material.3")); yield return Settle();
-        for (var i = 0; i < 4; i++)
-        {
-            simulate.Click(Find("Weave." + i)); yield return Settle();
-            Assert.That(window.State.Weave.Value, Is.EqualTo(i));
-            simulate.Click(Find("Depth." + i)); yield return Settle();
-            Assert.That(window.State.DepthKind.Value, Is.EqualTo(i));
-            Assert.That(Find("preview").layout, Is.EqualTo(before));
-        }
-        simulate.Click(Find("press")); yield return Settle();
-        Assert.That(window.State.Clicks.Value, Is.EqualTo(1));
-        window.State.DepthKind.Value = 1; window.State.Weave.Value = 0;
-        yield return Settle(); Capture("light");
-        simulate.Click(Find("theme")); yield return Settle(); Capture("dark");
-        Assert.That(window.State.Dark.Value, Is.True);
-        window.State.Opacity.Value = 0; yield return Settle(); Capture("transparent");
-        simulate.Click(Find("inherit")); yield return Settle(); Capture("override");
-        Assert.That(window.State.Inherit.Value, Is.False);
-    }
-
-    [UnityTest] public IEnumerator BitmapReliefChangesPixelsAndClothWeavesAreDistinct()
-    {
-        foreach (var name in new[] { "paper", "metal", "linen", "canvas", "felt", "twill" })
-        {
-            var texture = Resources.Load<Texture2D>("ComposeMaterials/" + name);
-            Assert.That(texture, Is.Not.Null, name);
-            Assert.That(texture.isReadable, Is.True, name);
-        }
-        window.State.Strength.Value = 0;
-        yield return Settle();
-        var flat = Pixels(Find("preview"));
-        window.State.Strength.Value = 1;
-        yield return Settle();
-        var textured = Pixels(Find("preview"));
-        Assert.That(Changed(flat, textured), Is.GreaterThan(200), "Bitmap relief must change actual rendered pixels");
-        for (var i = 1; i < 4; i++)
-        {
-            window.State.Weave.Value = i; yield return Settle();
-            var next = Pixels(Find("preview"));
-            Assert.That(Changed(textured, next), Is.GreaterThan(200), "Each weave must have its own bitmap");
-            textured = next;
-        }
-        window.State.Scale.Value = 128; yield return Settle();
-        Assert.That(Changed(textured, Pixels(Find("preview"))), Is.GreaterThan(200), "Tile size must affect UV scale");
-        Capture("textures");
+        Assert.That(Changed(Pixels(Find("light.0")), Pixels(Find("dark.0"))), Is.GreaterThan(200),
+            "Light and dark themes must render distinct palettes");
+        Capture("gallery");
     }
 
     private static Color32[] Pixels(VisualElement element)

@@ -128,6 +128,32 @@ public sealed partial class ScrollModifierTests : UITestFixture
         simulate.ScrollWheel(_horizontal ? new Vector2(direction, 0) : new Vector2(0, direction),
             (target ?? E("viewport")).worldBound.center);
         Flush();
+        // This convenience helper waits out the wheel animation. Frame-level tests below
+        // dispatch directly and inspect each step instead.
+        foreach (var view in rootVisualElement.Query<ScrollView>().ToList()) AdvanceWheel(view, .2);
+    }
+    private static object? WheelController(ScrollView view)
+    {
+        var type = typeof(ComposeUnityAdapter).Assembly.GetType("Compose.Net.Unity.SmoothWheelScroll")!;
+        var table = type.GetField("Controllers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null)!;
+        var args = new object?[] { view, null };
+        return (bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)! ? args[1] : null;
+    }
+    private static void AdvanceWheel(ScrollView view, double seconds)
+    {
+        var controller = WheelController(view);
+        if (controller == null) return;
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        var time = (double)controller.GetType().GetField("_lastTime", flags)!.GetValue(controller)!;
+        controller.GetType().GetMethod("TickAt", flags)!.Invoke(controller, new object[] { time + seconds });
+    }
+    private void RawWheel(float delta, VisualElement? target = null)
+    {
+        var source = new Event { type = EventType.ScrollWheel,
+            delta = _horizontal ? new Vector2(delta, 0) : new Vector2(0, delta) };
+        using var evt = WheelEvent.GetPooled(source);
+        evt.target = target ?? Native.contentContainer;
+        (target ?? Native.contentContainer).SendEvent(evt);
     }
     [UnityTest] public IEnumerator MeasuresNativeRangeAndStartsAtCorrectEdge()
     {
@@ -266,6 +292,77 @@ public sealed partial class ScrollModifierTests : UITestFixture
         Near(Native.scrollDecelerationRate, .25f); Near(Native.elasticity, .2f);
         Assert.That(Native.touchScrollBehavior, Is.EqualTo(ScrollView.TouchScrollBehavior.Elastic));
         Assert.That(Native.nestedInteractionKind, Is.EqualTo(ScrollView.NestedInteractionKind.ForwardScrolling));
+    }
+    [UnityTest] public IEnumerator WheelIsSmoothWithoutOverscroll() { yield return CheckSmoothWheel(); }
+    [UnityTest] public IEnumerator WheelIsSmoothWithOverscroll()
+    { _overscroll = OverscrollEffect.Default; yield return CheckSmoothWheel(); }
+    private IEnumerator CheckSmoothWheel()
+    {
+        yield return Mount(); Native.mouseWheelScrollSize = 20;
+        foreach (var hz in new[] { 60, 120 })
+        {
+            State.ScrollTo(200); var before = Physical;
+            RawWheel(3);
+            Near(Physical, before); // No event-frequency jumps.
+            var previous = before;
+            for (var frame = 0; frame < hz / 10; frame++)
+            {
+                AdvanceWheel(Native, 1.0 / hz);
+                Assert.That(Physical, Is.GreaterThan(previous), "Every display frame must move");
+                Assert.That(Physical - previous, Is.EqualTo(60f / (hz / 10)).Within(.05f));
+                previous = Physical;
+            }
+            Near(Physical, before + 60); Near(Physical, Expected);
+            AdvanceWheel(Native, 1); Near(Physical, before + 60);
+        }
+    }
+    [UnityTest] public IEnumerator WheelCoalescesBurstsAndReversesWithoutJumping()
+    {
+        yield return Mount(); Native.mouseWheelScrollSize = 20; State.ScrollTo(200); var before = Physical;
+        RawWheel(2); RawWheel(2); RawWheel(2);
+        Near(Physical, before);
+        AdvanceWheel(Native, .05); Near(Physical, before + 60);
+        RawWheel(-6); var turning = Physical;
+        Near(Physical, turning);
+        AdvanceWheel(Native, .05); Assert.That(Physical, Is.LessThan(turning));
+        AdvanceWheel(Native, .1); Near(Physical, before);
+    }
+    [UnityTest] public IEnumerator WheelNeverBouncesAtEitherBoundary()
+    {
+        _overscroll = OverscrollEffect.Default; yield return Mount(); Native.mouseWheelScrollSize = 20;
+        foreach (var direction in new[] { -1f, 1f })
+        {
+            State.ScrollTo(200);
+            RawWheel(direction * 100);
+            for (var i = 0; i < 20; i++)
+            {
+                AdvanceWheel(Native, .008);
+                Assert.That(Physical, Is.InRange(0, State.MaxValue));
+            }
+            var edge = direction < 0 ? 0 : State.MaxValue;
+            Near(Physical, edge);
+            RawWheel(direction * 100); AdvanceWheel(Native, .2); Near(Physical, edge);
+            RawWheel(-direction); AdvanceWheel(Native, .2); Near(Physical, edge - direction * 20);
+        }
+    }
+    [UnityTest] public IEnumerator WheelForwardsOnlyDistanceBeyondInnerBoundary()
+    {
+        _nested = true; _reverse.Value = false; yield return Mount(); Native.mouseWheelScrollSize = 20;
+        _inner!.ScrollTo(_inner.MaxValue - 10);
+        var view = E("inner").Q<ScrollView>(); view.mouseWheelScrollSize = 20;
+        RawWheel(2, view.contentContainer);
+        AdvanceWheel(view, .2); AdvanceWheel(Native, .2);
+        Near(_inner.Value, _inner.MaxValue); Near(State.Value, 30);
+    }
+    [UnityTest] public IEnumerator ProgrammaticJumpCancelsPendingWheelAnimation()
+    {
+        _overscroll = OverscrollEffect.Default; yield return Mount();
+        State.ScrollTo(_reverse.Value ? State.MaxValue : 0);
+        RawWheel(_reverse.Value ? -5 : 5);
+        AdvanceWheel(Native, .02);
+        State.ScrollTo(125);
+        AdvanceWheel(Native, .2);
+        yield return Settle(); Near(Physical, Expected); Near(State.Value, 125);
     }
     [UnityTest] public IEnumerator ElasticPullSurvivesRecomposition()
     {

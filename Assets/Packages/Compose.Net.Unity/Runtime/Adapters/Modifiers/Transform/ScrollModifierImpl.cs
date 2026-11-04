@@ -20,6 +20,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
         private IScrollStateAdapter Bridge => _options.State as IScrollStateAdapter ??
             throw new ArgumentException("Scroll state must implement IScrollStateAdapter.");
         private ScrollView? _view;
+        private SmoothWheelScroll? _wheel;
         private bool _syncing, _measured, _nativeStopped, _forceOffset;
         private IVisualElementScheduledItem? _measure, _idle;
         private IDragInteraction.Start? _drag;
@@ -107,6 +108,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _view.RegisterCallback<PointerDownEvent>(OnDown, TrickleDown.TrickleDown);
             _view.RegisterCallback<WheelEvent>(OnWheelStart, TrickleDown.TrickleDown);
             _view.RegisterCallback<NavigationMoveEvent>(OnSelfNavigation, TrickleDown.TrickleDown);
+            _wheel = new SmoothWheelScroll(_view, () => _options.Enabled, BeginWheel);
             QueueMeasure();
         }
 
@@ -116,6 +118,11 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _view.touchScrollBehavior = _options.OverscrollEffect == null || !_options.Enabled || _nativeStopped
                 ? ScrollView.TouchScrollBehavior.Clamped : ScrollView.TouchScrollBehavior.Elastic;
             if (_options.OverscrollEffect != null) _view.elasticity = _options.OverscrollEffect.Elasticity;
+            if (_wheel?.IsActive == true)
+            {
+                _view.scrollDecelerationRate = 0;
+                _view.touchScrollBehavior = ScrollView.TouchScrollBehavior.Clamped;
+            }
             _view.focusable = _options.Enabled;
         }
 
@@ -209,8 +216,21 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             finally { _syncing = false; }
         }
 
+        private void BeginWheel()
+        {
+            StopNativeScroll();
+            _syncing = true;
+            try
+            {
+                Bridge.SetNativeValue(_options.ReverseScrolling ? _options.State.MaxValue - Axis(_view!.scrollOffset) : Axis(_view!.scrollOffset));
+                Bridge.SetNativeScrollInProgress(true);
+            }
+            finally { _syncing = false; }
+        }
+
         private void StopNativeScroll()
         {
+            _wheel?.Cancel();
             if (_view == null) return;
             // Public native settings stop inertia and spring-back on the next toolkit tick.
             // Restore configured physics when the next user gesture starts.
@@ -222,7 +242,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _idle?.Pause();
             Bridge.SetNativeScrollInProgress(false);
         }
-        private void OnDown(PointerDownEvent evt) { if (_options.Enabled) { _nativeStopped = false; Configure(); } }
+        private void OnDown(PointerDownEvent evt) { _wheel?.Cancel(); if (_options.Enabled) { _nativeStopped = false; Configure(); } }
         private void OnWheelStart(WheelEvent evt)
         {
             if (_options.Enabled) { _nativeStopped = false; Configure(); }
@@ -290,6 +310,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
 
         protected override void RevertFromContainer(UnityReusableComposeNode node, VisualElement element, VisualElement content)
         {
+            _wheel?.Cancel();
             EndDrag(true);
             Bridge.ValueChanged -= OnStateValue;
             Bridge.ScrollRequested -= StopNativeScroll;

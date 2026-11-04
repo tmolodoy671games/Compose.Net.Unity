@@ -212,7 +212,10 @@ public sealed partial class GridTests : UITestFixture
     }
     [UnityTest] public IEnumerator WheelUsesNativeInputAndDisabledInputKeepsChildrenClickable()
     {
-        yield return Mount(); Wheel(_initialReverse ? -5 : 5); yield return Settle(14);
+        yield return Mount(); Wheel(_initialReverse ? -5 : 5);
+        var deadline = Time.realtimeSinceStartupAsDouble + .15;
+        while (Time.realtimeSinceStartupAsDouble < deadline) { yield return null; Flush(); }
+        yield return Settle(14);
         TestContext.WriteLine($"wheel first={State.FirstVisibleItemIndex} physical={Physical} value={State.Value} max={State.MaxValue}"); Assert.That(State.FirstVisibleItemIndex, Is.GreaterThan(0));
         _enabled.Value = false; yield return Settle(); var offset = State.Value;
         Wheel(_initialReverse ? -5 : 5); yield return Settle(); Near(State.Value,offset);

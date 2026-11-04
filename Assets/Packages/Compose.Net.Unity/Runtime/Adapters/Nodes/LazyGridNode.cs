@@ -58,6 +58,7 @@ internal sealed class LazyGridView : VisualElement, IDisposable
     private readonly bool _horizontal;
     private readonly ListView? _list;
     private readonly ScrollView _scroll;
+    private readonly SmoothWheelScroll _wheel;
     private readonly VisualElement _overlay = new() { name = "grid-sticky-overlay" };
     private readonly Dictionary<int, Slot> _slots = new();
     private readonly GridExtentIndex _extents = new();
@@ -135,9 +136,10 @@ internal sealed class LazyGridView : VisualElement, IDisposable
         _scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(_ => QueueLayout());
         _scroll.contentContainer.RegisterCallback<GeometryChangedEvent>(_ => QueueLayout());
         Scroller.valueChanged += OnNativeScroll;
-        _scroll.RegisterCallback<PointerDownEvent>(_ => ResumePhysics(), TrickleDown.TrickleDown);
+        _scroll.RegisterCallback<PointerDownEvent>(_ => { _wheel?.Cancel(); ResumePhysics(); }, TrickleDown.TrickleDown);
         _scroll.RegisterCallback<WheelEvent>(OnWheelStart, TrickleDown.TrickleDown);
         _scroll.contentContainer.RegisterCallback<WheelEvent>(GateWheel);
+        _wheel = new SmoothWheelScroll(_scroll, () => _settings?.UserScrollEnabled == true, BeginWheel);
         _scroll.contentContainer.RegisterCallback<PointerMoveEvent>(GateMove);
         _scroll.contentContainer.RegisterCallback<NavigationMoveEvent>(GateNavigation);
         _scroll.RegisterCallback<NavigationMoveEvent>(e => { if (e.target == _scroll) GateNavigation(e); }, TrickleDown.TrickleDown);
@@ -552,9 +554,22 @@ internal sealed class LazyGridView : VisualElement, IDisposable
         _scroll.scrollDecelerationRate = _settings.UserScrollEnabled && !_stopped ? _settings.FlingBehavior?.DecelerationRate ?? .135f : 0;
         _scroll.touchScrollBehavior = _settings.OverscrollEffect == null || !_settings.UserScrollEnabled || _stopped ? ScrollView.TouchScrollBehavior.Clamped : ScrollView.TouchScrollBehavior.Elastic;
         if (_settings.OverscrollEffect != null) _scroll.elasticity = _settings.OverscrollEffect.Elasticity;
+        if (_wheel?.IsActive == true)
+        {
+            _scroll.scrollDecelerationRate = 0;
+            _scroll.touchScrollBehavior = ScrollView.TouchScrollBehavior.Clamped;
+        }
+    }
+    private void BeginWheel()
+    {
+        StopNative();
+        _syncing = true;
+        try { Bridge.SetNativeValue(Logical(Physical)); Bridge.SetNativeScrollInProgress(true); }
+        finally { _syncing = false; }
     }
     private void StopNative()
     {
+        _wheel?.Cancel();
         _stopped = true; ConfigurePhysics();
         if (_pointer >= 0) _scroll.contentContainer.ReleasePointer(_pointer);
         EndDrag(true); _idle?.Pause(); if (_state != null) Bridge.SetNativeScrollInProgress(false);

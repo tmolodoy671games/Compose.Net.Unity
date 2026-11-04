@@ -35,7 +35,7 @@ internal static class UnityMaterialTextures
         var strength = material.Kind switch
         {
             SurfaceMaterialKind.Matte => 0.12f, SurfaceMaterialKind.Ceramic => 0.06f,
-            SurfaceMaterialKind.Metal => 0.45f, SurfaceMaterialKind.Paper => 0.5f, _ => 0.8f
+            SurfaceMaterialKind.Metal => 0.14f, SurfaceMaterialKind.Paper => 0.5f, _ => 0.8f
         };
         var mesh = scope.Context.Allocate(geometry.Vertices.Count, geometry.Indices.Count, texture);
         var atlas = mesh.uvRegion;

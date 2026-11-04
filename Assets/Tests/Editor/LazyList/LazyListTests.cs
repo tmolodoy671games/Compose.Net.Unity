@@ -327,10 +327,15 @@ public sealed partial class LazyListTests : UITestFixture
     [UnityTest] public IEnumerator NativePhysicsSettingsAndDisabledGateAreApplied()
     {
         _fling = new FlingBehavior(.25f); _overscroll = new OverscrollEffect(.2f); yield return Mount();
-        // Initial positioning stops existing native motion. New input restores configured physics.
+        // Wheel motion owns its animation; the next touch restores native physics.
         Wheel(_initialReverse ? -1 : 1); yield return Settle();
+        Assert.That(Native.scrollDecelerationRate, Is.Zero);
+        Assert.That(Native.touchScrollBehavior, Is.EqualTo(ScrollView.TouchScrollBehavior.Clamped));
+        var origin = Native.contentViewport.worldBound.center;
+        Touch(TouchPhase.Began, origin);
         Assert.That(Native.scrollDecelerationRate, Is.EqualTo(.25f));
         Assert.That(Native.elasticity, Is.EqualTo(.2f)); Assert.That(Native.touchScrollBehavior, Is.EqualTo(ScrollView.TouchScrollBehavior.Elastic));
+        Touch(TouchPhase.Ended, origin);
         _enabled.Value = false; yield return Settle(); Assert.That(Native.scrollDecelerationRate, Is.Zero);
         Assert.That(Native.touchScrollBehavior, Is.EqualTo(ScrollView.TouchScrollBehavior.Clamped));
     }
