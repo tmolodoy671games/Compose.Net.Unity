@@ -41,6 +41,7 @@ public class ComposeUnityAdapter : IComposeAdapter
     public ComposeInvalidator? ComposeInvalidatorInstance => ComposeInvalidatorHolder.ComposeInvalidator;
     public IModifiersFactory ModifiersFactory { get; } = new ModifiersFactoryImpl();
     public IReusableNodeFactory NodeFactory { get; } = new ReusableNodeFactoryImpl();
+    public IComposeLayouts Layouts { get; } = new UnityComposeLayouts();
     public IComposeLogger Logger { get; } = new ComposeLoggerImpl();
     public IEnterTransitionsFactory EnterTransitionsFactory { get; } = new EnterTransitionsFactoryImpl();
     public IExitTransitionsFactory ExitTransitionsFactory { get; } = new ExitTransitionsFactoryImpl();

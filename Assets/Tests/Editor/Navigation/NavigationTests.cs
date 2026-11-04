@@ -126,6 +126,7 @@ public sealed partial class NavigationTests : UITestFixture
         public ComposeInvalidator ComposeInvalidatorInstance => Invalidator;
         public IModifiersFactory ModifiersFactory => Native.ModifiersFactory;
         public IReusableNodeFactory NodeFactory => Native.NodeFactory;
+        public IComposeLayouts Layouts => Native.Layouts;
         public IComposeLogger Logger => Native.Logger;
         public IEnterTransitionsFactory EnterTransitionsFactory => Native.EnterTransitionsFactory;
         public IExitTransitionsFactory ExitTransitionsFactory => Native.ExitTransitionsFactory;
