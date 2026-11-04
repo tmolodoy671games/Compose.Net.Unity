@@ -1,11 +1,10 @@
 ﻿using System;
-using Compose.Net;
 using StableCollections;
-using UnityEngine;
 using UnityEngine.UIElements;
-using Rect = Compose.Net.Rect;
 
-namespace Compose.Net.Unity.Runtime.Adapters.Brushes;
+// ReSharper disable CheckNamespace
+
+namespace Compose.Net.Unity;
 
 internal record LinearGradientBrushImpl(
     IStableList<Color> Colors,

@@ -6,18 +6,7 @@ namespace Compose.Net.Unity.Runtime.Adapters.Nodes;
 
 internal class RowNodeFactoryImpl : IRowNodeFactory
 {
-    public IReusableComposeNode CreateNode(string? type = null)
-    {
-        return new UnityReusableComposeNode(CreateRow(type));
-    }
-
-    // Typed nodes only differ by class, so the UI Toolkit debugger shows a readable name.
-    private static Row CreateRow(string? type) => type switch
-    {
-        null => new Row(),
-        NodeTypes.HorizontalPagerContent => new HorizontalPagerContent(),
-        _ => new Row { name = type },
-    };
+    public IReusableComposeNode CreateNode() => new UnityReusableComposeNode(new Row());
 
     public void Apply(
         IReusableComposeNode node,
@@ -32,8 +21,4 @@ internal class RowNodeFactoryImpl : IRowNodeFactory
         row.style.columnGap = horizontalArrangement is Arrangement.Spaced spaced ? spaced.Space.ToPx(global::Compose.Net.Density.Default) : 0;
         ((UnityReusableComposeNode)node).SyncScrollContentLayout();
     }
-}
-
-internal class HorizontalPagerContent : Row
-{
 }

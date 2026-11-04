@@ -1,3 +1,4 @@
+using SharpExtensions;
 using StableCollections;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -7,8 +8,15 @@ namespace Compose.Net.Unity;
 // Keep the brush description managed and allocation-free until a path needs baking.
 // Entry snapshots own the keys: mutable stable lists must still invalidate the cache.
 internal readonly record struct GradientDefinition(
-    IStableList<Color> Colors, IStableList<float>? Stops, float Alpha, bool Radial,
-    Vector2 Start, Vector2 End, float Radius, AddressMode AddressMode)
+    IStableList<Color> Colors,
+    IStableList<float>? Stops, 
+    float Alpha, 
+    bool Radial,
+    Vector2 Start, 
+    Vector2 End, 
+    float Radius, 
+    AddressMode AddressMode
+)
 {
     private float Stop(int index) => Stops != null ? Stops[Radial ? 0 : index]
         : (float)index / (Radial ? Colors.Size : Colors.Size - 1);
@@ -32,8 +40,14 @@ internal readonly record struct GradientDefinition(
 
     internal bool Matches(GradientDefinition previous, GradientColorKey[] colors, GradientAlphaKey[] alphas)
     {
-        if (Radial != previous.Radial || Start != previous.Start || End != previous.End ||
-            Radius != previous.Radius || AddressMode != previous.AddressMode || Colors.Size != colors.Length)
+        if (
+            Radial != previous.Radial || 
+            Start != previous.Start || 
+            End != previous.End ||
+            !Radius.AlmostEquals(previous.Radius) ||
+            AddressMode != previous.AddressMode || 
+            Colors.Size != colors.Length
+        )
             return false;
         for (var i = 0; i < Colors.Size; i++)
         {

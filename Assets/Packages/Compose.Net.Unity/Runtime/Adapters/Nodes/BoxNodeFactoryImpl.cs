@@ -4,24 +4,21 @@ namespace Compose.Net.Unity.Runtime.Adapters.Nodes;
 
 internal class BoxNodeFactoryImpl : IBoxNodeFactory
 {
-    public IReusableComposeNode CreateNode(string? type = null)
-    {
-        return type switch
-        {
-            NodeTypes.LazyColumn => new LazyListNode(false),
-            NodeTypes.LazyRow => new LazyListNode(true),
-            NodeTypes.LazyListItem => new LazyListItemNode(),
-            NodeTypes.HorizontalPager => new PagerLayoutNode(true),
-            NodeTypes.VerticalPager => new PagerLayoutNode(false),
-            NodeTypes.PagerItem => new PagerItemNode(),
-            NodeTypes.LazyVerticalGrid => new LazyGridNode(false),
-            NodeTypes.LazyHorizontalGrid => new LazyGridNode(true),
-            NodeTypes.LazyGridItem => new LazyGridItemNode(),
-            NodeTypes.AnimatedContent => new AnimatedContentLayoutNode(new AnimatedContent()),
-            NodeTypes.AnimatedContentItem => new AnimatedContentItemNode(new AnimatedContentItem()),
-            _ => new UnityReusableComposeNode(CreateBox(type))
-        };
-    }
+    public IReusableComposeNode CreateNode() => new UnityReusableComposeNode(new Box());
+
+    public IReusableComposeNode CreateLazyListNode(LazyListOrientation orientation) =>
+        new LazyListNode(orientation == LazyListOrientation.Horizontal);
+    public IReusableComposeNode CreateLazyListItemNode() => new LazyListItemNode();
+    public IReusableComposeNode CreateLazyGridNode(LazyGridOrientation orientation) =>
+        new LazyGridNode(orientation == LazyGridOrientation.Horizontal);
+    public IReusableComposeNode CreateLazyGridItemNode() => new LazyGridItemNode();
+    public IReusableComposeNode CreatePagerNode(PagerOrientation orientation) =>
+        new PagerLayoutNode(orientation == PagerOrientation.Horizontal);
+    public IReusableComposeNode CreatePagerItemNode() => new PagerItemNode();
+    public IReusableComposeNode CreateAnimatedContentNode() => new AnimatedContentLayoutNode(new AnimatedContent());
+    public IReusableComposeNode CreateAnimatedContentItemNode() => new AnimatedContentItemNode(new AnimatedContentItem());
+    public IReusableComposeNode CreateAnimatedVisibilityNode() => new UnityReusableComposeNode(new AnimatedVisibility());
+    public IReusableComposeNode CreateAnimatedVisibilityContentNode() => new UnityReusableComposeNode(new AnimatedVisibilityContent());
 
     public void Apply(IReusableComposeNode node, Alignment alignment, bool propagateMinConstraints = false)
     {
@@ -31,19 +28,6 @@ internal class BoxNodeFactoryImpl : IBoxNodeFactory
         box.RefreshConstraints();
     }
 
-    // Typed nodes only differ by class, so the UI Toolkit debugger shows a readable name.
-    private static Box CreateBox(string? type) => type switch
-    {
-        null => new Box(),
-        NodeTypes.AnimatedContent => new AnimatedContent(),
-        NodeTypes.AnimatedContentItem => new AnimatedContentItem(),
-        NodeTypes.AnimatedVisibility => new AnimatedVisibility(),
-        NodeTypes.AnimatedVisibilityContent => new AnimatedVisibilityContent(),
-        NodeTypes.HorizontalPager => new HorizontalPager(),
-        NodeTypes.VerticalPager => new VerticalPager(),
-        NodeTypes.PagerItem => new PagerItem(),
-        _ => new Box { name = type },
-    };
 }
 
 internal class AnimatedVisibility : Box

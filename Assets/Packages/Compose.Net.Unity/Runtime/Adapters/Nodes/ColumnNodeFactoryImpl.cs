@@ -5,18 +5,7 @@ namespace Compose.Net.Unity.Runtime.Adapters.Nodes;
 
 internal class ColumnNodeFactoryImpl : IColumnNodeFactory
 {
-    public IReusableComposeNode CreateNode(string? type = null)
-    {
-        return new UnityReusableComposeNode(CreateColumn(type));
-    }
-
-    // Typed nodes only differ by class, so the UI Toolkit debugger shows a readable name.
-    private static Column CreateColumn(string? type) => type switch
-    {
-        null => new Column(),
-        NodeTypes.VerticalPagerContent => new VerticalPagerContent(),
-        _ => new Column { name = type },
-    };
+    public IReusableComposeNode CreateNode() => new UnityReusableComposeNode(new Column());
 
     public void Apply(
         IReusableComposeNode node,
@@ -30,8 +19,4 @@ internal class ColumnNodeFactoryImpl : IColumnNodeFactory
         column.style.rowGap = verticalArrangement is Arrangement.Spaced spaced ? spaced.Space.ToPx(global::Compose.Net.Density.Default) : 0;
         ((UnityReusableComposeNode)node).SyncScrollContentLayout();
     }
-}
-
-internal class VerticalPagerContent : Column
-{
 }
