@@ -20,7 +20,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
         private IScrollStateAdapter Bridge => _options.State as IScrollStateAdapter ??
             throw new ArgumentException("Scroll state must implement IScrollStateAdapter.");
         private ScrollView? _view;
-        private bool _syncing, _measured, _nativeStopped;
+        private bool _syncing, _measured, _nativeStopped, _forceOffset;
         private IVisualElementScheduledItem? _measure, _idle;
         private IDragInteraction.Start? _drag;
         private int _pointer = -1;
@@ -43,6 +43,7 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
                 previousBridge.ValueChanged -= OnStateValue;
                 previousBridge.ScrollRequested -= StopNativeScroll;
             }
+            _forceOffset |= newState || _options.ReverseScrolling != next.ReverseScrolling;
             _options = next;
             if (_view == null) return;
             if (newState) { Bridge.ValueChanged += OnStateValue; Bridge.ScrollRequested += StopNativeScroll; }
@@ -159,9 +160,16 @@ internal record ScrollModifierImpl(IScrollState State, bool Enabled, FlingBehavi
             _syncing = true;
             try
             {
+                var previousValue = _options.State.Value;
+                var previousMax = _options.State.MaxValue;
                 Bridge.UpdateLayout(viewport, Math.Max(content, viewport + Math.Max(0, Scroller.highValue)));
+                // Logical state is clamped; the native offset may be outside that range
+                // during an elastic gesture. An unchanged layout must not snap it back.
+                if (!_measured || _forceOffset || Math.Abs(previousValue - _options.State.Value) > 0.001f ||
+                    Math.Abs(previousMax - _options.State.MaxValue) > 0.001f)
+                    SetOffset(_options.State.Value);
                 _measured = true;
-                SetOffset(_options.State.Value);
+                _forceOffset = false;
             }
             finally { _syncing = false; }
         }

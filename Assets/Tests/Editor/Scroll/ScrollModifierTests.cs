@@ -267,6 +267,20 @@ public sealed partial class ScrollModifierTests : UITestFixture
         Assert.That(Native.touchScrollBehavior, Is.EqualTo(ScrollView.TouchScrollBehavior.Elastic));
         Assert.That(Native.nestedInteractionKind, Is.EqualTo(ScrollView.NestedInteractionKind.ForwardScrolling));
     }
+    [UnityTest] public IEnumerator ElasticPullSurvivesRecomposition()
+    {
+        _reverse.Value = false; _overscroll = new OverscrollEffect(.2f); yield return Mount();
+        var origin = Native.contentViewport.worldBound.center;
+        var movement = _horizontal ? new Vector2(55, 0) : new Vector2(0, 55);
+        Touch(TouchPhase.Began, origin); Touch(TouchPhase.Moved, origin + movement);
+        Assert.That(Physical, Is.LessThan(-1), "Native elastic pull must extend beyond the boundary");
+        var pulled = Physical;
+        _revision.Value++;
+        yield return Settle();
+        Assert.That(Physical, Is.EqualTo(pulled).Within(1), "Unchanged layout must preserve native elastic offset");
+        Near(State.Value, 0);
+        Touch(TouchPhase.Ended, origin + movement);
+    }
     [UnityTest] public IEnumerator TouchDragUsesNativeCaptureAndPairsInteractions()
     {
         _reverse.Value = false; _fling = new FlingBehavior(0); yield return Mount();

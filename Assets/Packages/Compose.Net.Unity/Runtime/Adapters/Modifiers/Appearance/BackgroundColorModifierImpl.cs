@@ -1,4 +1,4 @@
-﻿// ReSharper disable CheckNamespace
+// ReSharper disable CheckNamespace
 
 using System;
 using Compose.Net;
@@ -24,7 +24,6 @@ internal record BackgroundColorShapeModifierImpl(
     private readonly EventCallback<GeometryChangedEvent> _geometry = e => RoundedCorners.Apply((VisualElement)e.currentTarget, Shape);
     protected override void OnAttached(VisualElement element)
     {
-        element.Clip().Increment();
         element.RegisterCallback(_geometry);
         RoundedCorners.Apply(element, Shape);
     }
@@ -32,7 +31,6 @@ internal record BackgroundColorShapeModifierImpl(
     protected override void OnDetached(VisualElement element)
     {
         element.UnregisterCallback(_geometry);
-        element.Clip().Decrement();
         var radii = RoundedCorners.Resolve(Shape, element.layout.size);
         var style = element.style;
         style.borderTopLeftRadius = style.borderTopLeftRadius.CompareAndSetNull(new Length(radii.x));
