@@ -1,0 +1,9 @@
+{
+  "name": "Compose.Net.Unity.MaterialDesign.Editor",
+  "references": [
+    "Compose.Net.Unity"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

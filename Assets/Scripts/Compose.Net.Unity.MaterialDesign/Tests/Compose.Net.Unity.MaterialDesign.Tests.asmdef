@@ -1,0 +1,24 @@
+{
+  "name": "Compose.Net.Unity.MaterialDesign.Tests",
+  "references": [
+    "Compose.Net.Unity",
+    "Compose.Net.Unity.MaterialDesign.Editor",
+    "Unity.UI.TestFramework.Runtime",
+    "Unity.UI.TestFramework.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Compose.Net.dll",
+    "Compose.Net.MaterialDemo.dll",
+    "Sharp Extensions.dll",
+    "StableCollections.dll",
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
