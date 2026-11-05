@@ -22,7 +22,7 @@ internal class BrushFactoryImpl : IBrushFactory
     public IBrush RadialGradient(
         IStableList<Color> colors,
         IStableList<float>? stops,
-        Optional<Offset> center,
+        Offset center,
         float radius,
         TileMode tileMode
     )

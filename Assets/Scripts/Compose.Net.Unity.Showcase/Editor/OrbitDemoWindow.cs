@@ -20,7 +20,6 @@ public sealed partial class OrbitDemoWindow : EditorWindow
     private readonly EditorAdapter _adapter = new();
     private readonly OrbitUnityHost _host = new();
     public OrbitState State => _state!;
-    [MenuItem("Tools/Compose.Net/ORBIT — Full App Demo")]
     public static void Open()
     {
         var window = GetWindow<OrbitDemoWindow>();

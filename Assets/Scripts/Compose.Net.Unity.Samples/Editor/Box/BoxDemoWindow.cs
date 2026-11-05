@@ -12,7 +12,6 @@ public sealed partial class BoxDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Box Demo")]
     public static void Open()
     {
         var window = GetWindow<BoxDemoWindow>();

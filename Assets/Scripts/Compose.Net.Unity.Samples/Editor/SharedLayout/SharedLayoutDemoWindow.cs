@@ -12,7 +12,6 @@ public sealed partial class SharedLayoutDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Shared Layout Demo")]
     public static void Open()
     {
         var window = GetWindow<SharedLayoutDemoWindow>();

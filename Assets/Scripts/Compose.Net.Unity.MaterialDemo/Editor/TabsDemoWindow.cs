@@ -11,7 +11,6 @@ public sealed partial class TabsDemoWindow : EditorWindow
 {
     private IComposer? _composer;
 
-    [MenuItem("Tools/Compose.Net/Tabs Lab")]
     public static void Open()
     {
         var window = GetWindow<TabsDemoWindow>();

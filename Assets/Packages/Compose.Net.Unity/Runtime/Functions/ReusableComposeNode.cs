@@ -22,7 +22,7 @@ public static partial class ComposeUnityFunctions
     ) where TElement : VisualElement
     {
         if (visualElementFactory == null) throw new ArgumentNullException(nameof(visualElementFactory));
-        ComposeFunctions.ReusableComposeNode(
+        ReusableComposeNodeFunctions.ReusableComposeNode(
             nodeFactory: () => new UnityReusableComposeNode(visualElementFactory()),
             modifier: modifier,
             initializer: initializer == null ? null : node => initializer((TElement)((UnityReusableComposeNode)node).VisualElement),
@@ -41,7 +41,7 @@ public static partial class ComposeUnityFunctions
     {
         if (visualElementFactory == null) throw new ArgumentNullException(nameof(visualElementFactory));
         var factory = CustomColumnFactory;
-        ComposeFunctions.ReusableComposeNode(
+        ReusableComposeNodeFunctions.ReusableComposeNode(
             nodeFactory: () => new UnityReusableComposeNode(visualElementFactory()),
             initializer: node => factory.Apply(node, horizontalAlignment ?? Alignment.Left, verticalArrangement ?? Arrangement.Top),
             modifier: modifier,
@@ -60,7 +60,7 @@ public static partial class ComposeUnityFunctions
     {
         if (visualElementFactory == null) throw new ArgumentNullException(nameof(visualElementFactory));
         var factory = CustomRowFactory;
-        ComposeFunctions.ReusableComposeNode(
+        ReusableComposeNodeFunctions.ReusableComposeNode(
             nodeFactory: () => new UnityReusableComposeNode(visualElementFactory()),
             initializer: node => factory.Apply(node, horizontalArrangement ?? Arrangement.Left, verticalAlignment ?? Alignment.Top),
             modifier: modifier,
@@ -79,7 +79,7 @@ public static partial class ComposeUnityFunctions
     {
         if (visualElementFactory == null) throw new ArgumentNullException(nameof(visualElementFactory));
         var factory = CustomBoxFactory;
-        ComposeFunctions.ReusableComposeNode(
+        ReusableComposeNodeFunctions.ReusableComposeNode(
             nodeFactory: () => new UnityReusableComposeNode(visualElementFactory()),
             initializer: node => factory.Apply(node, contentAlignment ?? Alignment.TopStart, propagateMinConstraints),
             modifier: modifier,
@@ -92,7 +92,7 @@ public static partial class ComposeUnityFunctions
     {
         if (visualElementFactory == null) throw new ArgumentNullException(nameof(visualElementFactory));
         var factory = CustomBoxFactory;
-        ComposeFunctions.ReusableComposeNode(
+        ReusableComposeNodeFunctions.ReusableComposeNode(
             nodeFactory: () => new UnityReusableComposeNode(visualElementFactory()),
             initializer: node => factory.Apply(node, Alignment.TopStart, false),
             modifier: modifier

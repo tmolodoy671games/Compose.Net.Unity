@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class InteractionDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Interaction Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

@@ -17,7 +17,6 @@ public sealed partial class MaterialDesignWindow : EditorWindow
 {
     private IComposer? _composer;
     private readonly EditorAdapter _adapter = new();
-    [MenuItem("Tools/Compose.Net/Material Design")]
     public static void Open()
     {
         var window = GetWindow<MaterialDesignWindow>();

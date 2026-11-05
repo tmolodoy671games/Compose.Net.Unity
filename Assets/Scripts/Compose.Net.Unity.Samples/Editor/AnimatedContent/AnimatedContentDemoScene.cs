@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class AnimatedContentDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Animated Content Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

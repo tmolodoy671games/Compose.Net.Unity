@@ -81,7 +81,7 @@ public sealed partial class OrbitWindowTests : EditorWindowUITestFixture<OrbitDe
         Assert.That(OrbitPixels.Changed(paused, OrbitPixels.Read(canvas)), Is.GreaterThan(100));
     }
 
-    [Composable] private void EmptyPreview() => ComposeFunctions.Box(ComposeFunctions.Modifier);
+    [Composable] private void EmptyPreview() => BoxFunctions.Box(ComposeFunctions.Modifier);
     private sealed class PreviewRoot(VisualElement element) : UnityReusableComposeNode(element), IReusableComposeNode
     { public new bool IsRoot => true; }
 }

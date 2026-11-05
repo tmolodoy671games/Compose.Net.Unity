@@ -19,7 +19,6 @@ public sealed partial class SoftDemoWindow : EditorWindow
     private SoftState? _state;
     private readonly EditorAdapter _adapter = new();
     public SoftState State => _state!;
-    [MenuItem("Tools/Compose.Net/SOFT — Moments Demo")]
     public static void Open()
     {
         var window = GetWindow<SoftDemoWindow>();

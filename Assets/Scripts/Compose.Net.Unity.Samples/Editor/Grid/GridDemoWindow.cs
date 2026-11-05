@@ -10,7 +10,6 @@ namespace Compose.Net.Unity.Samples.Editor
     {
         private ComposeView? _view;
 
-        [MenuItem("Tools/Compose.Net/Grid Demo")]
         public static void Open()
         {
             var window = GetWindow<GridDemoWindow>();
@@ -30,7 +29,7 @@ namespace Compose.Net.Unity.Samples.Editor
         }
 
         [Composable]
-        private static void Content() => GridDemo.Screen(ComposeFunctions.Remember(() => new GridDemoState()));
+        private static void Content() => GridDemo.Screen(RememberFunctions.Remember(() => new GridDemoState()));
 
         private void Update()
         {

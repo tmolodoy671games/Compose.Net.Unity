@@ -15,7 +15,7 @@ internal partial class UnityComposeLayouts : IComposeLayouts
     public void AnimatedVisibility(bool visible, [Composable] Action<AnimatedVisibilityScope> content,
         IEnterTransition? enter = null, IExitTransition? exit = null, IModifier? modifier = null)
     {
-        ComposeFunctions.AnimatedContent(visible, content: (scope, show) => { if (show) content(scope); },
+        AnimatedContentFunctions.AnimatedContent(visible, content: (scope, show) => { if (show) content(scope); },
             transitionSpec: _ => (enter ?? FadeIn() + ExpandVertically())
                 .TogetherWith(exit ?? FadeOut() + ShrinkVertically()).Using(null), modifier: modifier);
     }

@@ -10,7 +10,7 @@ using Rect = Compose.Net.Rect;
 
 namespace Compose.Net.Unity;
 
-internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope, IMaterialTextureDrawScope
+internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScope
 {
     private MeshGenerationContext _context;
     private readonly GradientDrawCache _painter;
@@ -20,9 +20,6 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     private readonly PathDrawerImpl _drawer;
     private readonly Action<Texture2D> _consumeTexture2D;
     private Size _size;
-
-    public void DrawMaterialTexture(SurfaceMaterial material, Shape shape, float opacity, float tileSize)
-        => UnityMaterialTextures.Draw(this, material, shape, opacity, tileSize);
 
     public UnityDrawScope(MeshGenerationContext context)
     {
@@ -395,8 +392,8 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 
     public void DrawCircle(
         Color color,
-        Optional<float> radius,
-        Optional<Offset> center,
+        float? radius,
+        Offset center,
         float alpha,
         DrawStyle? style
     )
@@ -407,14 +404,14 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 
     public void DrawCircle(
         IBrush brush,
-        Optional<float> radius,
-        Optional<Offset> center,
+        float? radius,
+        Offset center,
         float alpha,
         DrawStyle? style
     )
     {
-        var resolvedRadius = radius.GetOrDefault(Size.MinDimension / 2);
-        var resolvedCenter = center.GetOrDefault(Center);
+        var resolvedRadius = radius ?? Size.MinDimension / 2;
+        var resolvedCenter = center.IsSpecified ? center : Center;
         var contentRect = new Rect(
             Offset: resolvedCenter - new Offset(resolvedRadius, resolvedRadius),
             Size: new Size(resolvedRadius, resolvedRadius)
@@ -425,16 +422,16 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     }
 
     private void DrawCircleImpl(
-        Optional<float> radius,
-        Optional<Offset> center,
+        float? radius,
+        Offset center,
         DrawStyle? style
     )
     {
         var painter = _painter;
         painter.BeginPath();
         painter.Arc(
-            center.GetOrDefault(Center).ToVector2(),
-            radius.GetOrDefault(Size.MinDimension / 2),
+            (center.IsSpecified ? center : Center).ToVector2(),
+            radius ?? Size.MinDimension / 2,
             0f,
             360f
         );

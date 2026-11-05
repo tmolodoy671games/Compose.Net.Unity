@@ -1,0 +1,5 @@
+{
+  "name": "Compose.Net.Unity.Preview.Editor",
+  "references": ["Compose.Net.Unity"],
+  "includePlatforms": ["Editor"]
+}

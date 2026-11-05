@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class PointerInputDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Pointer Input Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

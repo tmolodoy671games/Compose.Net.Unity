@@ -12,7 +12,6 @@ public sealed partial class AnimatedContentDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Animated Content Demo")]
     public static void Open()
     {
         var window = GetWindow<AnimatedContentDemoWindow>();

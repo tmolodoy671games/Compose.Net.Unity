@@ -10,7 +10,6 @@ namespace Compose.Net.Unity.Samples.Editor
     {
         private ComposeView? _view;
 
-        [MenuItem("Tools/Compose.Net/Scroll Demo")]
         public static void Open()
         {
             var window = GetWindow<ScrollDemoWindow>();
@@ -30,7 +29,7 @@ namespace Compose.Net.Unity.Samples.Editor
         }
 
         [Composable]
-        private static void Content() => ScrollDemo.Screen(ComposeFunctions.Remember(() => new ScrollDemoState()));
+        private static void Content() => ScrollDemo.Screen(RememberFunctions.Remember(() => new ScrollDemoState()));
 
         private void Update()
         {

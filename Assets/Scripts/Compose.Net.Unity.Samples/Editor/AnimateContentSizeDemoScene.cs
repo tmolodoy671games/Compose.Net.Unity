@@ -12,7 +12,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 [AiGenerated]
 public static class AnimateContentSizeDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Animate Content Size Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

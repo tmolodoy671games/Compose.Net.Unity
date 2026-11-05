@@ -19,7 +19,6 @@ public static class SoftDemoScene
         if (!EditorSceneManager.SaveScene(scene)) throw new System.InvalidOperationException("Could not save " + path);
     }
 
-    [MenuItem("Tools/Compose.Net/Add SOFT Demo to Scene")]
     public static void AddToScene() => Selection.activeGameObject = EnsureInScene(SceneManager.GetActiveScene()).gameObject;
 
     public static SoftDemo EnsureInScene(Scene scene)

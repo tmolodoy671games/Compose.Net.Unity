@@ -12,7 +12,6 @@ public sealed partial class AnimateContentSizeDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Animate Content Size Demo")]
     public static void Open()
     {
         var window = GetWindow<AnimateContentSizeDemoWindow>();

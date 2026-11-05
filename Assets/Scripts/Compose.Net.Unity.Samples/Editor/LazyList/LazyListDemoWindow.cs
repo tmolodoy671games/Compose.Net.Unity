@@ -10,7 +10,6 @@ namespace Compose.Net.Unity.Samples.Editor
     {
         private ComposeView? _view;
 
-        [MenuItem("Tools/Compose.Net/Lazy List Demo")]
         public static void Open()
         {
             var window = GetWindow<LazyListDemoWindow>();
@@ -30,7 +29,7 @@ namespace Compose.Net.Unity.Samples.Editor
         }
 
         [Composable]
-        private static void Content() => LazyListDemo.Screen(ComposeFunctions.Remember(() => new LazyListDemoState()));
+        private static void Content() => LazyListDemo.Screen(RememberFunctions.Remember(() => new LazyListDemoState()));
 
         private void Update()
         {

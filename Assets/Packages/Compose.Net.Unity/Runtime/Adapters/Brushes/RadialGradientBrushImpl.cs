@@ -11,7 +11,7 @@ namespace Compose.Net.Unity.Runtime.Adapters.Brushes;
 internal record RadialGradientBrushImpl(
     IStableList<Color> Colors,
     IStableList<float>? Stops,
-    Optional<Offset> Center,
+    Offset Center,
     float Radius,
     TileMode TileMode
 ) : IBrush
@@ -36,7 +36,7 @@ internal record RadialGradientBrushImpl(
     private GradientDefinition Create(Rect contentRect, float alpha)
     {
         var containerSize = contentRect.Size.ToVector2();
-        var center = (Center.GetOrDefault(containerSize.ToOffset() / 2) + contentRect.Offset).ToVector2();
+        var center = ((Center.IsSpecified ? Center : containerSize.ToOffset() / 2) + contentRect.Offset).ToVector2();
 
         var defaultRadius = Mathf.Min(
             Mathf.Min(center.x.Absolute(), (center.x - containerSize.x).Absolute()),

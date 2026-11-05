@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class SharedLayoutDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Shared Layout Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

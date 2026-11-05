@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class BoxDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Box Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

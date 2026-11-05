@@ -10,7 +10,6 @@ namespace Compose.Net.Unity.Samples.Editor
     {
         private ComposeView? _view;
 
-        [MenuItem("Tools/Compose.Net/Clickable Demo")]
         public static void Open()
         {
             var window = GetWindow<ClickableDemoWindow>();
@@ -30,7 +29,7 @@ namespace Compose.Net.Unity.Samples.Editor
         }
 
         [Composable]
-        private static void Content() => ClickableDemo.Screen(ComposeFunctions.Remember(() => new ClickableDemoState()));
+        private static void Content() => ClickableDemo.Screen(RememberFunctions.Remember(() => new ClickableDemoState()));
 
         private void Update()
         {

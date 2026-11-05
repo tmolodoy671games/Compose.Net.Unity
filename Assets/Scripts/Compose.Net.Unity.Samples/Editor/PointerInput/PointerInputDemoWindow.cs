@@ -12,7 +12,6 @@ public sealed partial class PointerInputDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Pointer Input Demo")]
     public static void Open()
     {
         var window = GetWindow<PointerInputDemoWindow>();

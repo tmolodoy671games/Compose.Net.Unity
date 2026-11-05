@@ -11,7 +11,6 @@ namespace Compose.Net.Unity.Samples.Editor;
 
 public static class LazyListDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add Lazy List Demo to Scene")]
     public static void AddToScene()
     {
         var scene = SceneManager.GetActiveScene();

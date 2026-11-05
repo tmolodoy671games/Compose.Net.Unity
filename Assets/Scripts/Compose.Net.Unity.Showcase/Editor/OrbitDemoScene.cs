@@ -9,7 +9,6 @@ namespace Compose.Net.Unity.Showcase.Editor;
 
 public static class OrbitDemoScene
 {
-    [MenuItem("Tools/Compose.Net/Add ORBIT Demo to Scene")]
     public static void AddToScene() => Selection.activeGameObject = EnsureInScene(SceneManager.GetActiveScene()).gameObject;
 
     public static OrbitDemo EnsureInScene(Scene scene)

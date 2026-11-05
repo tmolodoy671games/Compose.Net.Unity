@@ -12,7 +12,6 @@ public sealed partial class InteractionDemoWindow : EditorWindow
 {
     private ComposeView _view;
 
-    [MenuItem("Tools/Compose.Net/Interaction Demo")]
     public static void Open()
     {
         var window = GetWindow<InteractionDemoWindow>();
