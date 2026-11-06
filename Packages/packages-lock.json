@@ -47,12 +47,13 @@
       },
       "url": "https://packages.unity.com"
     },
-    "com.unity.2d.pixel-perfect": {
-      "version": "6.0.0",
+    "com.unity.2d.physics": {
+      "version": "1.0.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {
-        "com.unity.modules.imgui": "1.0.0"
+        "com.unity.collections": "2.6.7",
+        "com.unity.modules.physicscore2d": "1.0.0"
       },
       "url": "https://packages.unity.com"
     },
@@ -137,13 +138,13 @@
       "dependencies": {}
     },
     "com.unity.collections": {
-      "version": "6.7.0",
+      "version": "7.0.0",
       "depth": 1,
       "source": "builtin",
       "dependencies": {}
     },
     "com.unity.dt.app-ui": {
-      "version": "2.2.4",
+      "version": "2.3.0",
       "depth": 1,
       "source": "registry",
       "dependencies": {
@@ -167,12 +168,12 @@
       "dependencies": {}
     },
     "com.unity.feature.2d": {
-      "version": "2.0.2",
+      "version": "3.0.0",
       "depth": 0,
       "source": "builtin",
       "dependencies": {
         "com.unity.2d.animation": "17.0.2",
-        "com.unity.2d.pixel-perfect": "6.0.0",
+        "com.unity.2d.physics": "1.0.0",
         "com.unity.2d.psdimporter": "16.0.1",
         "com.unity.2d.sprite": "1.0.0",
         "com.unity.2d.spriteshape": "17.0.1",
@@ -609,7 +610,8 @@
       "dependencies": {
         "com.unity.modules.audio": "1.0.0",
         "com.unity.modules.ui": "1.0.0",
-        "com.unity.modules.unitywebrequest": "1.0.0"
+        "com.unity.modules.unitywebrequest": "1.0.0",
+        "com.unity.modules.imageconversion": "1.0.0"
       }
     },
     "com.unity.modules.wind": {

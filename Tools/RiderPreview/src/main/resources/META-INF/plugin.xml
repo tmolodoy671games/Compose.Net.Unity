@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>net.compose.unity-preview</id>
+  <name>Compose.Net Unity Preview</name>
+  <version>0.2.0</version>
+  <vendor>Compose.Net</vendor>
+  <description>Open a Unity-rendered Compose.Net preview beside C# code.</description>
+  <idea-version since-build="262"/>
+  <depends>com.intellij.modules.rider</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Compose.Net Preview" anchor="right" factoryClass="net.compose.preview.PreviewToolWindowFactory"/>
+    <codeInsight.lineMarkerProvider language="C#" implementationClass="net.compose.preview.PreviewLineMarkerProvider"/>
+  </extensions>
+  <actions>
+    <action id="ComposeNet.OpenUnityPreview" class="net.compose.preview.OpenPreviewAction"
+            text="Open Compose.Net Preview" description="Open the Unity preview at the caret">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt P"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt P"/>
+    </action>
+  </actions>
+</idea-plugin>

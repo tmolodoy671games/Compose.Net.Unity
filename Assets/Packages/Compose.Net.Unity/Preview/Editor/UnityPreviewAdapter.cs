@@ -6,6 +6,7 @@ using UnityEditor;
 namespace Compose.Net.Unity.Preview;
 
 // Each preview owns its update loop. No MonoBehaviour coroutine or Play Mode is needed.
+[AiGenerated]
 internal sealed class UnityPreviewAdapter : IComposeAdapter, IDisposable
 {
     private readonly List<EditorCoroutine> _coroutines = new();
@@ -46,6 +47,7 @@ internal sealed class UnityPreviewAdapter : IComposeAdapter, IDisposable
         _coroutines.Clear();
     }
 
+    [AiGenerated]
     private sealed class EditorCoroutine : IDisposable
     {
         private readonly IEnumerator<TimeSpan?> _iterator;
