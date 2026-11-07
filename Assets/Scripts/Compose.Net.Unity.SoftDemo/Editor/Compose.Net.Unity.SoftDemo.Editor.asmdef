@@ -1,5 +1,0 @@
-{
-  "name": "Compose.Net.Unity.SoftDemo.Editor",
-  "references": ["Compose.Net.Unity", "Compose.Net.Unity.SoftDemo"],
-  "includePlatforms": ["Editor"]
-}

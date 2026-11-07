@@ -1,5 +1,0 @@
-{
-  "name": "Compose.Net.Unity.MaterialDemo",
-  "references": ["Compose.Net.Unity"],
-  "autoReferenced": true
-}

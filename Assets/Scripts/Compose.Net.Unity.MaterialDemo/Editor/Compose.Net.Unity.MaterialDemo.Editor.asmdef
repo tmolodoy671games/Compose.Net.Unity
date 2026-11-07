@@ -1,5 +1,0 @@
-{
-  "name": "Compose.Net.Unity.MaterialDemo.Editor",
-  "references": ["Compose.Net.Unity", "Compose.Net.Unity.MaterialDemo"],
-  "includePlatforms": ["Editor"]
-}

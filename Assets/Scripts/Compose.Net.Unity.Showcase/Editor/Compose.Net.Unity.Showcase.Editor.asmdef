@@ -1,5 +1,0 @@
-{
-  "name": "Compose.Net.Unity.Showcase.Editor",
-  "references": ["Compose.Net.Unity", "Compose.Net.Unity.Showcase"],
-  "includePlatforms": ["Editor"]
-}
