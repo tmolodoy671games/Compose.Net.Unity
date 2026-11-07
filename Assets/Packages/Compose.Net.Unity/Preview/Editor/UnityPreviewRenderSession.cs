@@ -72,7 +72,7 @@ internal sealed class UnityPreviewRenderSession : IDisposable
         catch { DisposeComposition(); throw; }
     }
 
-    public void Tick() { if (IsRunning) _adapter!.Tick(); }
+    public void Tick() => _adapter?.Tick();
     public bool Resize(int availableWidth, int availableHeight, int screenWidth = 0, int screenHeight = 0)
     {
         if (screenWidth > 0 && screenHeight > 0) _screenLimit = new Vector2(screenWidth, screenHeight);

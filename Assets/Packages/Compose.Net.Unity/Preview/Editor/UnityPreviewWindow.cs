@@ -228,8 +228,8 @@ public sealed class UnityPreviewWindow : EditorWindow
             _nextScreenCheck = EditorApplication.timeSinceStartup + .25;
             UpdateScreenBounds();
         }
-        if (!IsRunning) return;
-        try { _adapter!.Tick(); Repaint(); }
+        if (_adapter == null) return;
+        try { _adapter.Tick(); Repaint(); }
         catch (Exception exception) { Fail(exception); }
     }
     private void ApplyViewportSize()

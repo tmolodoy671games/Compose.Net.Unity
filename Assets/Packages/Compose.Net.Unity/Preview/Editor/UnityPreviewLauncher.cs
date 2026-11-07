@@ -179,6 +179,7 @@ internal static class UnityPreviewLauncher
         {
             try
             {
+                Session?.Tick();
                 if (Session != null && now >= _nextCapture && Session.Root.panel != null)
                 {
                     AtomicWrite(IOPath.Combine(_directory, "frame.png"), Session.Capture());
