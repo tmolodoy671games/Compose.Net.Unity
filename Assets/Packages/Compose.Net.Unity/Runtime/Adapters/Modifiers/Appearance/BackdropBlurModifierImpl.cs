@@ -43,7 +43,7 @@ internal record BackdropBlurModifierImpl(Dp Radius)
             if (_element == null || _radius <= 0f) return;
             var filter = new FilterFunction(FilterFunctionType.Blur);
             filter.AddParameter(new FilterParameter(_radius));
-            _element.style.AddFilter(filter);
+            _element.style.AddBackdropFilter(filter);
         }
 
         private void RemoveFilter()
@@ -51,7 +51,7 @@ internal record BackdropBlurModifierImpl(Dp Radius)
             if (_element == null || _radius <= 0f) return;
             var filter = new FilterFunction(FilterFunctionType.Blur);
             filter.AddParameter(new FilterParameter(_radius));
-            _element.style.RemoveFilter(filter);
+            _element.style.RemoveBackdropFilter(filter);
         }
     }
 }
