@@ -47,7 +47,7 @@ public sealed partial class SharedLayoutDemoTests
         Assert.That(_elementExpanded.Value, Is.EqualTo(!expanded));
         var overlayDetaches = detaches; // Shared content itself moves into the scope overlay once.
         var alpha = state.Value("PressAlpha");
-        var center = state.Ripple.GetType().GetProperty("PressCenter")!.GetValue(state.Ripple);
+        var center = state.PressProperty("Center");
         Assert.That(alpha, Is.GreaterThan(0));
         Near(state.Value("PressScale"), scale, .001f);
         for (var i = 0; i < 18; i++)
@@ -58,7 +58,7 @@ public sealed partial class SharedLayoutDemoTests
             RectNear(draw.worldBound, card.worldBound);
             Assert.That(state.Value("PressScale"), Is.GreaterThanOrEqualTo(scale));
             Assert.That(state.Value("PressAlpha"), Is.LessThan(alpha));
-            Assert.That(state.Ripple.GetType().GetProperty("PressCenter")!.GetValue(state.Ripple), Is.EqualTo(center));
+            Assert.That(state.PressProperty("Center"), Is.EqualTo(center));
             scale = state.Value("PressScale"); alpha = state.Value("PressAlpha");
         }
         Flush(12);
@@ -84,7 +84,16 @@ public sealed partial class SharedLayoutDemoTests
         internal sealed class ProbeState
         {
             internal IIndicationInstance Ripple = null!;
-            internal float Value(string property) => (float)Ripple.GetType().GetProperty(property)!.GetValue(Ripple)!;
+            internal object? PressProperty(string property)
+            {
+                var framesProperty = Ripple.GetType().GetProperty("Presses");
+                Assert.That(framesProperty, Is.Not.Null, "The default indication must expose its press frames");
+                var frames = (System.Array)framesProperty!.GetValue(Ripple)!;
+                if (frames.Length == 0) return null;
+                var frame = frames.GetValue(frames.Length - 1)!;
+                return frame.GetType().GetProperty(property)!.GetValue(frame);
+            }
+            internal float Value(string property) => (float)(PressProperty(property.Substring("Press".Length)) ?? 0f);
         }
     }
 }

@@ -258,18 +258,30 @@ public sealed partial class PagerTests : UITestFixture
             Assert.That(item.Active.Count, Is.LessThanOrEqualTo(7), item.Id);
         }
     }
-    [Test] public void SavedSampleSceneContainsConfiguredPagerDemo()
+    [Test] public void GeneratedDemoSerializesWithConfiguredRenderer()
     {
-        var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenPreviewScene("Assets/Scenes/SampleScene.unity");
+        var path = UnityEditor.AssetDatabase.GenerateUniqueAssetPath("Assets/PagerSceneValidation.prefab");
+        var original = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        var scene = UnityEditor.SceneManagement.EditorSceneManager.NewPreviewScene();
+        GameObject? restored = null;
         try
         {
-            var demos = scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<PagerDemo>(true)).ToArray();
+            var demo = Compose.Net.Unity.Samples.Editor.PagerDemoScene.EnsureInScene(scene);
+            Assert.That(UnityEditor.PrefabUtility.SaveAsPrefabAsset(demo, path), Is.Not.Null);
+            restored = UnityEditor.PrefabUtility.LoadPrefabContents(path);
+            var demos = restored.GetComponentsInChildren<PagerDemo>(true);
             Assert.That(demos.Length, Is.EqualTo(1));
             var renderer = demos[0].GetComponent<PanelRenderer>();
             Assert.That(renderer, Is.Not.Null); Assert.That(renderer.panelSettings, Is.Not.Null);
             Assert.That(renderer.visualTreeAsset, Is.Not.Null); Assert.That(demos[0].enabled, Is.True);
         }
-        finally { UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene); }
+        finally
+        {
+            if (restored != null) UnityEditor.PrefabUtility.UnloadPrefabContents(restored);
+            UnityEditor.SceneManagement.EditorSceneManager.ClosePreviewScene(scene);
+            if (original.IsValid()) UnityEngine.SceneManagement.SceneManager.SetActiveScene(original);
+            UnityEditor.AssetDatabase.DeleteAsset(path);
+        }
     }
     private void Touch(TouchPhase phase, Vector2 point, VisualElement? target = null)
     {

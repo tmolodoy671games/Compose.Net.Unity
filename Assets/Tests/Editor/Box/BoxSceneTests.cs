@@ -39,20 +39,36 @@ public sealed class BoxSceneTests
             Selection.activeObject=selection;
         }
     }
-    [Test] public void SampleSceneContainsActiveBoxDemoWithLinkedRendererAndParent()
+    [Test] public void GeneratedDemoSerializesWithLinkedRendererAndParent()
     {
-        var scene=File.ReadAllText("Assets/Scenes/SampleScene.unity");
-        Assert.That(scene,Does.Contain("m_Name: BoxDemo"));
-        Assert.That(scene,Does.Contain("Compose.Net.Unity.Samples.Behaviors.Content.BoxDemo"));
-        var blocks=Regex.Split(scene,@"(?=--- !u!)");
-        var go=blocks.Single(block=>block.Contains("m_Name: BoxDemo\n"));
-        Assert.That(go,Does.Contain("m_IsActive: 1"));
-        var id=Regex.Match(go,@"&([0-9]+)").Groups[1].Value;
-        Assert.That(blocks.Any(block=>block.Contains("PanelRenderer:")&&block.Contains("m_GameObject: {fileID: "+id+"}")&&block.Contains("m_SortingOrder: 40")),Is.True);
-        var transform=blocks.Single(block=>block.Contains("Transform:")&&block.Contains("m_GameObject: {fileID: "+id+"}"));
-        var parent=Regex.Match(transform,@"m_Father: \{fileID: ([0-9]+)\}").Groups[1].Value;
-        var child=Regex.Match(transform,@"&([0-9]+)").Groups[1].Value;
-        Assert.That(parent,Is.Not.EqualTo("0"));
-        Assert.That(blocks.Single(block=>block.StartsWith("--- !u!4 &"+parent+"\n")),Does.Contain("- {fileID: "+child+"}"));
+        var path = AssetDatabase.GenerateUniqueAssetPath("Assets/BoxSceneValidation.prefab");
+        var original = SceneManager.GetActiveScene();
+        var generated = EditorSceneManager.NewPreviewScene();
+        try
+        {
+            var parentObject = new GameObject("Samples");
+            SceneManager.MoveGameObjectToScene(parentObject, generated);
+            BoxDemoScene.EnsureInScene(generated);
+            Assert.That(PrefabUtility.SaveAsPrefabAsset(parentObject, path), Is.Not.Null);
+            var scene=File.ReadAllText(path);
+            Assert.That(scene,Does.Contain("m_Name: BoxDemo"));
+            Assert.That(scene,Does.Contain("Compose.Net.Unity.Samples.Behaviors.Content.BoxDemo"));
+            var blocks=Regex.Split(scene,@"(?=--- !u!)");
+            var go=blocks.Single(block=>block.Contains("m_Name: BoxDemo\n"));
+            Assert.That(go,Does.Contain("m_IsActive: 1"));
+            var id=Regex.Match(go,@"&([0-9]+)").Groups[1].Value;
+            Assert.That(blocks.Any(block=>block.Contains("PanelRenderer:")&&block.Contains("m_GameObject: {fileID: "+id+"}")&&block.Contains("m_SortingOrder: 40")),Is.True);
+            var transform=blocks.Single(block=>block.Contains("Transform:")&&block.Contains("m_GameObject: {fileID: "+id+"}"));
+            var parent=Regex.Match(transform,@"m_Father: \{fileID: ([0-9]+)\}").Groups[1].Value;
+            var child=Regex.Match(transform,@"&([0-9]+)").Groups[1].Value;
+            Assert.That(parent,Is.Not.EqualTo("0"));
+            Assert.That(blocks.Single(block=>block.StartsWith("--- !u!4 &"+parent+"\n")),Does.Contain("- {fileID: "+child+"}"));
+        }
+        finally
+        {
+            EditorSceneManager.ClosePreviewScene(generated);
+            if (original.IsValid()) SceneManager.SetActiveScene(original);
+            AssetDatabase.DeleteAsset(path);
+        }
     }
 }

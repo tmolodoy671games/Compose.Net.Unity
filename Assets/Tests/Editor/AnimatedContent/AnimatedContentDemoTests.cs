@@ -308,6 +308,19 @@ public sealed partial class AnimatedContentDemoTests : UITestFixture
             // Small wheel steps keep the control visible without jumping into native elastic overscroll.
             simulate.ScrollWheel(new Vector2(0, 5), new Vector2(600, 400));
             yield return null; Flush(16);
+            // Smooth wheel scrolling uses realtime, independent of the composition clock.
+            foreach (var view in rootVisualElement.Query<ScrollView>().ToList())
+            {
+                var type = typeof(ComposeUnityAdapter).Assembly.GetType("Compose.Net.Unity.SmoothWheelScroll")!;
+                var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                var table = type.GetField("Controllers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null)!;
+                var arguments = new object?[] { view, null };
+                if (!(bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, arguments)!) continue;
+                var controller = arguments[1]!;
+                var time = (double)type.GetField("_lastTime", flags)!.GetValue(controller)!;
+                type.GetMethod("TickAt", flags)!.Invoke(controller, new object[] { time + .2 });
+            }
+            Flush();
         }
         Assert.That(last.worldBound.yMin, Is.GreaterThanOrEqualTo(rootVisualElement.worldBound.yMin));
         Assert.That(last.worldBound.yMax, Is.LessThanOrEqualTo(rootVisualElement.worldBound.yMax));

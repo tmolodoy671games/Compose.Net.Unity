@@ -15,17 +15,24 @@ public static class PagerDemoScene
     {
         var scene = SceneManager.GetActiveScene();
         if (!scene.IsValid() || !scene.isLoaded) throw new InvalidOperationException("Open a scene first.");
-        var root = GameObject.Find("Samples")?.transform;
+        var go = EnsureInScene(scene);
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); Selection.activeGameObject = go;
+    }
+
+    public static GameObject EnsureInScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded) throw new InvalidOperationException("Open a scene first.");
+        var root = scene.GetRootGameObjects().FirstOrDefault(item => item.name == "Samples")?.transform;
         var existing = root?.Find("PagerDemo") ?? scene.GetRootGameObjects().FirstOrDefault(item => item.name == "PagerDemo")?.transform;
         var go = existing != null ? existing.gameObject : new GameObject("PagerDemo");
-        if (existing == null) { Undo.RegisterCreatedObjectUndo(go, "Add Pager demo"); go.transform.SetParent(root, false); }
+        if (existing == null) { Undo.RegisterCreatedObjectUndo(go, "Add Pager demo"); SceneManager.MoveGameObjectToScene(go, scene); go.transform.SetParent(root, false); }
         var settings = AssetDatabase.LoadAssetAtPath<PanelSettings>("Assets/Settings/Panel Settings.asset");
         var asset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/Packages/Compose.Net.Unity/Runtime/Layout/ComposeView Root.uxml");
         var renderer = go.GetComponent<PanelRenderer>();
         var document = go.GetComponent<UIDocument>();
         if (renderer != null || document == null)
         {
-            renderer ??= Undo.AddComponent<PanelRenderer>(go);
+            if (renderer == null) renderer = Undo.AddComponent<PanelRenderer>(go);
             renderer.panelSettings = settings; renderer.visualTreeAsset = asset; renderer.sortingOrder = 30;
         }
         else
@@ -34,6 +41,6 @@ public static class PagerDemoScene
         }
         if (go.GetComponent<PagerDemo>() == null) Undo.AddComponent<PagerDemo>(go);
         go.SetActive(true);
-        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); Selection.activeGameObject = go;
+        return go;
     }
 }

@@ -107,9 +107,7 @@ public sealed partial class AnimateContentSizeSampleTests : UITestFixture
         {
             public void DrawIndication(IDrawScope scope)
             {
-                Owner.Alpha = (float)Inner.GetType().GetProperty("PressAlpha")!.GetValue(Inner)!;
-                Owner.Scale = (float)Inner.GetType().GetProperty("PressScale")!.GetValue(Inner)!;
-                Owner.Center = (Offset)Inner.GetType().GetProperty("PressCenter")!.GetValue(Inner)!;
+                (Owner.Center, Owner.Alpha, Owner.Scale) = RecordedRipple.LatestPress(Inner);
                 Owner.Size = scope.Size;
                 Inner.DrawIndication(scope);
             }

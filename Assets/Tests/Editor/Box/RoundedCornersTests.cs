@@ -18,17 +18,19 @@ public sealed partial class BoxTests
     {
         private readonly Texture2D _texture;
         internal readonly int Width, Height;
+        private readonly float _scaleX, _scaleY;
         internal CornerPixels(VisualElement element)
         {
             var render = element.CaptureToRenderTexture();
             var previous = RenderTexture.active;
             Width = render.width; Height = render.height;
+            _scaleX = Width / element.layout.width; _scaleY = Height / element.layout.height;
             _texture = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
             try { RenderTexture.active = render; _texture.ReadPixels(new UnityEngine.Rect(0, 0, Width, Height), 0, 0); _texture.Apply(); }
             finally { RenderTexture.active = previous; render.Release(); UnityEngine.Object.DestroyImmediate(render); }
         }
         internal UnityEngine.Color[] Read() => _texture.GetPixels();
-        internal float Alpha(float x, float y) => _texture.GetPixel(Mathf.Clamp((int)x, 0, Width - 1), Mathf.Clamp(Height - 1 - (int)y, 0, Height - 1)).a;
+        internal float Alpha(float x, float y) => _texture.GetPixel(Mathf.Clamp((int)(x * _scaleX), 0, Width - 1), Mathf.Clamp(Height - 1 - (int)(y * _scaleY), 0, Height - 1)).a;
         public void Dispose() => UnityEngine.Object.DestroyImmediate(_texture);
     }
 
@@ -94,17 +96,28 @@ public sealed partial class BoxTests
         var shadow = new Compose.Net.Shadow(0.Dp(), 2.Dp(), Color.Black, new Offset(0, 0));
         _box = Modifier.Size(200.Dp(), 80.Dp()).Background(Color.White, shape).InnerShadow(shape, shadow);
         Mount(); yield return null; Flush();
-        var foreground = E("box").Children().SingleOrDefault(element => element.GetType().Name == "Shadow");
-        Assert.That(foreground, Is.Not.Null);
-        Near(foreground!.resolvedStyle.borderTopLeftRadius, 42);
-        _box = Modifier.Size(200.Dp(), 20.Dp()).Background(Color.White, shape).InnerShadow(shape, shadow);
-        Update(); yield return null; Flush();
-        Near(foreground.resolvedStyle.borderTopLeftRadius, 12);
-        _box = Modifier.Size(200.Dp(), 20.Dp()).Background(Color.White).InnerShadow(RoundedCornerShape(4.Dp()), shadow);
-        Update(); yield return null; Flush();
-        Near(foreground.resolvedStyle.borderTopLeftRadius, 6);
+        foreach (var height in new[] { 80f, 20f, 60f })
+        {
+            _box = Modifier.Size(200.Dp(), height.Dp()).Background(Color.White, shape).InnerShadow(shape, shadow);
+            Update(); yield return null; Flush();
+            using var oversized = new CornerPixels(E("box"));
+            var expectedShape = RoundedCornerShape((height / 2).Dp());
+            _box = Modifier.Size(200.Dp(), height.Dp()).Background(Color.White, expectedShape).InnerShadow(expectedShape, shadow);
+            Update(); yield return null; Flush();
+            using var capped = new CornerPixels(E("box"));
+            var actual = oversized.Read(); var expected = capped.Read();
+            Assert.That(actual.Length, Is.EqualTo(expected.Length));
+            for (var i = 0; i < actual.Length; i++)
+            {
+                Assert.That(actual[i].a, Is.EqualTo(expected[i].a).Within(.02f), "Clip after resize");
+                Assert.That(actual[i].r, Is.EqualTo(expected[i].r).Within(.02f), "Inset shadow after resize");
+            }
+            Assert.That(actual.Any(pixel => pixel.a > .9f && pixel.r < .5f), Is.True, "The inset shadow must be visible");
+        }
         _box = Modifier.Size(200.Dp(), 60.Dp()).Background(Color.White);
         Update(); yield return null; Flush();
-        Assert.That(foreground.parent, Is.Null, "Removing the modifier must release the shadow and geometry callback");
+        using var removed = new CornerPixels(E("box"));
+        Assert.That(removed.Read().Where(pixel => pixel.a > .9f).All(pixel => pixel.r > .98f), Is.True,
+            "Removing the modifier must remove its shadow drawing callback");
     }
 }

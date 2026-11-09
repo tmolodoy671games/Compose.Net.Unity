@@ -3,6 +3,7 @@
   "references": [
     "Compose.Net.Unity",
     "Compose.Net.Unity.Samples",
+    "Compose.Net.Unity.Pager.Editor",
     "Unity.UI.TestFramework.Runtime",
     "Unity.UI.TestFramework.Editor"
   ],

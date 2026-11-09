@@ -41,7 +41,12 @@ public sealed partial class AnimateContentSizeDemoTests
             while (!_recordingIndication!.VisiblePresses.Contains(tag) && EditorApplication.timeSinceStartup < deadline)
             {
                 EditorApplication.QueuePlayerLoopUpdate();
-                yield return null; Flush();
+                yield return null;
+                // UITestFixture drives panel frames without running MonoBehaviour.Update.
+                typeof(Compose.Net.Unity.Packages.Compose.Net.Unity.Runtime.Adapters.ComposeUnityAdapter)
+                    .GetMethod("TickFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .Invoke(Compose.Net.Unity.Packages.Compose.Net.Unity.Runtime.Adapters.ComposeUnityAdapter.Instance, null);
+                Flush();
             }
             Assert.That(_recordingIndication!.VisiblePresses, Does.Contain(tag),
                 "A successful click must also render the library's default press indication");
@@ -63,9 +68,7 @@ public sealed partial class AnimateContentSizeDemoTests
         {
             public void DrawIndication(IDrawScope scope)
             {
-                var type = Inner.GetType();
-                var alpha = (float)type.GetProperty("PressAlpha")!.GetValue(Inner)!;
-                var scale = (float)type.GetProperty("PressScale")!.GetValue(Inner)!;
+                var (_, alpha, scale) = RecordedRipple.LatestPress(Inner);
                 if (alpha > 0.05f && scale > 0.05f && scope.Size.Width > 0 && scope.Size.Height > 0)
                 {
                     var element = scope.Context().visualElement;
@@ -75,5 +78,22 @@ public sealed partial class AnimateContentSizeDemoTests
                 Inner.DrawIndication(scope);
             }
         }
+    }
+}
+
+// Ripple instances contain a frame per active press; an idle ripple has no frames.
+internal static class RecordedRipple
+{
+    internal static (Offset Center, float Alpha, float Scale) LatestPress(IIndicationInstance indication)
+    {
+        var property = indication.GetType().GetProperty("Presses");
+        Assert.That(property, Is.Not.Null, "The default indication must expose its press frames");
+        var presses = (Array)property!.GetValue(indication)!;
+        if (presses.Length == 0) return default;
+        var press = presses.GetValue(presses.Length - 1)!;
+        var type = press.GetType();
+        return ((Offset)type.GetProperty("Center")!.GetValue(press)!,
+            (float)type.GetProperty("Alpha")!.GetValue(press)!,
+            (float)type.GetProperty("Scale")!.GetValue(press)!);
     }
 }

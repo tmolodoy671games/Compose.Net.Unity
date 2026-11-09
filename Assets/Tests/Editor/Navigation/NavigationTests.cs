@@ -111,10 +111,14 @@ public sealed partial class NavigationTests : UITestFixture
         insert.Invoke(drawing, new object[] { 0, background }); insert.Invoke(drawing, new object[] { 1, second });
         type.GetProperty("OnTop")!.SetValue(drawing, (Action<MeshGenerationContext>)(_ => order.Add("indication")));
         var invoke = type.GetMethod("Invoke", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        invoke.Invoke(drawing, new object?[] { null });
+        element.generateVisualContent = (Action<MeshGenerationContext>)invoke.CreateDelegate(typeof(Action<MeshGenerationContext>), drawing);
+        element.style.position = Position.Absolute;
+        element.style.width = 100; element.style.height = 100;
+        rootVisualElement.Add(element); Flush();
+        order.Clear(); element.MarkDirtyRepaint(); simulate.FrameUpdateMs(0);
         Assert.That(order, Is.EqualTo(new[] { "background", "second-background", "text", "indication" }));
         order.Clear(); type.GetMethod("Remove")!.Invoke(drawing, new object[] { background });
-        invoke.Invoke(drawing, new object?[] { null });
+        element.MarkDirtyRepaint(); simulate.FrameUpdateMs(0);
         Assert.That(order, Is.EqualTo(new[] { "second-background", "text", "indication" }));
     }
     private sealed class RootNode(VisualElement element) : UnityReusableComposeNode(element), IReusableComposeNode { public new bool IsRoot => true; }
