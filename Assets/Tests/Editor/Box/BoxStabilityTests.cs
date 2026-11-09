@@ -9,6 +9,44 @@ namespace Compose.Net.Unity.Tests;
 
 public sealed partial class BoxTests
 {
+    [TestCase(false), TestCase(true)]
+    public void WeightedTabsInsideAutoSizedOverlayBoxFillAvailableWidth(bool insidePreviewScroll)
+    {
+        var host = rootVisualElement;
+        if (insidePreviewScroll)
+        {
+            var scroll = new ScrollView(ScrollViewMode.VerticalAndHorizontal);
+            rootVisualElement.Add(scroll);
+            host = new VisualElement();
+            host.style.width = 800;
+            host.style.height = 600;
+            scroll.Add(host);
+        }
+        _composer = IComposer.Create();
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false), new Root(host), WeightedTabs);
+        for (var frame = 0; frame < 16; frame++)
+        { _adapter.Invalidator.Tick(); simulate.FrameUpdateMs(16); }
+        Assert.That(E("tabs").layout.width, Is.EqualTo(800).Within(1));
+        Assert.That(E("tab-0").layout.width, Is.GreaterThan(200));
+        Assert.That(E("tab-0").layout.height, Is.LessThan(60));
+    }
+
+    [Composable]
+    private void WeightedTabs()
+    {
+        Column(modifier: Modifier.FillMaxWidth(), content: () =>
+            Box(modifier: Modifier.TestTag("tabs"), content: () =>
+            {
+                Row(content: () =>
+                {
+                    for (var i = 0; i < 3; i++)
+                        Row(modifier: Modifier.Weight(1).Padding(horizontal: 16.Dp(), vertical: 4.Dp()).TestTag("tab-" + i),
+                            content: () => Text("Overview"));
+                });
+                Box(Modifier.Width(80.Dp()).FillMaxHeight());
+            }));
+    }
+
     [Test]
     public void GloballyPositionedDefersAttachmentAndCallbackUpdatesUntilLayout()
     {

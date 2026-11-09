@@ -105,11 +105,20 @@ internal record WeightModifierImpl(float Weight) : ModifierNodeElement<WeightMod
             var width = row.style.width;
             if (width.keyword != StyleKeyword.Null && width.keyword != StyleKeyword.Auto) return;
             for (var ancestor = row.parent; ancestor != null; ancestor = ancestor.parent)
+            {
                 if (ancestor is ScrollView scroll && scroll.mode != ScrollViewMode.Vertical) return;
+                // A bounded subtree restores finite width even inside a horizontal
+                // scroller (for example the preview window's fixed-size viewport).
+                if (IsPixelBound(ancestor.style.width) || IsPixelBound(ancestor.style.maxWidth)) break;
+            }
             _originalWidth = width;
             _ownsWidth = true;
             row.style.width = FillWidth;
         }
+
+        private static bool IsPixelBound(StyleLength value) =>
+            value.keyword == StyleKeyword.Undefined && value.value.unit == LengthUnit.Pixel &&
+            float.IsFinite(value.value.value) && value.value.value >= 0;
 
         internal void Release()
         {
