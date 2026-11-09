@@ -8,6 +8,34 @@ namespace Compose.Net.Unity.Tests;
 
 public sealed partial class BoxTests
 {
+    [TestCase(1f), TestCase(.5f), TestCase(.8f)]
+    public void CompositionRootKeepsLogicalConstraintsInsideSmallerHost(float scale)
+    {
+        var host = new VisualElement();
+        host.style.width = 660; host.style.height = 500;
+        rootVisualElement.Add(host);
+        var canvas = new VisualElement();
+        canvas.style.position = Position.Absolute;
+        canvas.style.width = 1320; canvas.style.height = 1000;
+        canvas.style.scale = new Scale(new Vector3(scale, scale, 1));
+        canvas.style.transformOrigin = new UnityEngine.UIElements.TransformOrigin(0, 0);
+        host.Add(canvas);
+        _ = new Root(canvas);
+        var box = new Compose.Net.Unity.Box();
+        box.style.width = Length.Percent(100); box.style.height = Length.Percent(100);
+        canvas.Add(box);
+        var child = new VisualElement();
+        child.style.width = Length.Percent(100); child.style.height = Length.Percent(100);
+        box.Add(child); box.Track(child); Flush();
+
+        Near(child.layout.width, 1320); Near(child.layout.height, 1000);
+        Near(child.worldBound.width, 1320 * scale); Near(child.worldBound.height, 1000 * scale);
+        host.style.width = 400; host.style.height = 300; Flush();
+        Near(child.layout.width, 1320); Near(child.layout.height, 1000);
+        canvas.style.width = 1100; canvas.style.height = 800; Flush();
+        Near(child.layout.width, 1100); Near(child.layout.height, 800);
+    }
+
     [TestCase(0,0)][TestCase(1,0)][TestCase(2,0)][TestCase(0,1)][TestCase(1,1)][TestCase(2,1)][TestCase(0,2)][TestCase(1,2)][TestCase(2,2)]
     [BoxScope] public void AllNinePerChildAlignments(int x,int y)
     {

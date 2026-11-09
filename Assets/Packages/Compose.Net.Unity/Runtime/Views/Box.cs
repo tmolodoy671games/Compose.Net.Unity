@@ -246,7 +246,13 @@ public class Box : VisualElement, ILayout
         var unbounded = e is Box box && (horizontal ? box.UnboundedWidth : box.UnboundedHeight) ||
             scroll != null && (parent == scroll || e == scroll.contentContainer) &&
             (horizontal ? scroll.mode != ScrollViewMode.Vertical : scroll.mode != ScrollViewMode.Horizontal);
-        var available = unbounded || parent == null ? float.PositiveInfinity : Maximum(parent, horizontal);
+        // A fixed composition root defines its own logical canvas. Its native host may
+        // be smaller (a scaled preview or a clipped viewport), without constraining
+        // the composition again. Auto/percentage roots still inherit host constraints.
+        var authoredSize = horizontal ? e.style.width : e.style.height;
+        var fixedRoot = e.GetReusableComposeNode()?.IsRoot == true &&
+            authoredSize.keyword == StyleKeyword.Undefined && authoredSize.value.unit == LengthUnit.Pixel;
+        var available = unbounded || parent == null || fixedRoot ? float.PositiveInfinity : Maximum(parent, horizontal);
         // Animated shells change rendered bounds, not the constraints for natural target measurement.
         var animated = e.UserData().GetOrNull(AnimationKey) is AnimatedConstraints flags ? flags : 0;
         // A weighted child receives only its share of the main axis. Passing the whole row's
