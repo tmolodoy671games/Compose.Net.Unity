@@ -9,6 +9,74 @@ namespace Compose.Net.Unity.Tests;
 
 public sealed partial class BoxTests
 {
+    [Test]
+    public void GloballyPositionedDefersAttachmentAndCallbackUpdatesUntilLayout()
+    {
+        var widths = new List<float>();
+        _box = Modifier.Size(120.Dp(), 40.Dp()).OnGloballyPositioned(c => widths.Add(c.Size.Width));
+        _composer = IComposer.Create();
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false), new Root(rootVisualElement), Content);
+        Assert.That(widths, Is.Empty, "Attaching a modifier must not dispatch unmeasured coordinates");
+        Flush();
+        Assert.That(widths, Is.Not.Empty);
+        Assert.That(widths[widths.Count - 1], Is.EqualTo(120).Within(.6f));
+
+        var updated = new List<float>();
+        _box = Modifier.Size(200.Dp(), 40.Dp()).OnGloballyPositioned(c => updated.Add(c.Size.Width));
+        _revision.Value++;
+        _adapter.Invalidator.Tick();
+        Assert.That(updated, Is.Empty, "Updating the callback must not dispatch the previous layout during composition");
+        Flush();
+        Assert.That(updated, Is.Not.Empty);
+        Assert.That(updated[0], Is.EqualTo(200).Within(.6f));
+    }
+
+    [Test]
+    public void GloballyPositionedReportsMeasuredZeroSizeAndAncestorMovement()
+    {
+        var positions = new List<Offset>();
+        _box = Modifier.Size(120.Dp(), 40.Dp());
+        Add("child", 0, 0, Modifier.OnGloballyPositioned(c =>
+        {
+            Assert.That(c.Size.Width, Is.Zero);
+            Assert.That(c.Size.Height, Is.Zero);
+            positions.Add(c.PositionInRoot());
+        }));
+        Mount();
+        for (var frame = 0; frame < 8; frame++) simulate.FrameUpdateMs(16);
+        Assert.That(positions, Is.Not.Empty);
+        var first = positions[positions.Count - 1];
+        E("box").style.translate = new Translate(30, 20);
+        for (var frame = 0; frame < 8; frame++) simulate.FrameUpdateMs(16);
+        var last = positions[positions.Count - 1];
+        Assert.That(last.X - first.X, Is.EqualTo(30).Within(.6f));
+        Assert.That(last.Y - first.Y, Is.EqualTo(20).Within(.6f));
+    }
+
+    [Test]
+    public void GloballyPositionedReportsOnlyFiniteBoundsAndTracksResize()
+    {
+        var widths = new List<float>();
+        var positioned = Modifier.OnGloballyPositioned(coordinates =>
+        {
+            var bounds = coordinates.ToRelativeLayoutBounds();
+            Assert.That(float.IsFinite(bounds.TopLeft.X) && float.IsFinite(bounds.TopLeft.Y) &&
+                float.IsFinite(bounds.BottomRight.X) && float.IsFinite(bounds.BottomRight.Y), Is.True,
+                "Unmeasured bounds must not reach state or animation targets");
+            widths.Add(coordinates.Size.Width);
+        });
+        _box = Modifier.Size(120.Dp(), 40.Dp()).Then(positioned);
+        Mount();
+        for (var frame = 0; frame < 8; frame++) simulate.FrameUpdateMs(16);
+        Assert.That(widths, Is.Not.Empty);
+        Assert.That(widths[widths.Count - 1], Is.EqualTo(120).Within(.6f));
+
+        _box = Modifier.Size(200.Dp(), 40.Dp()).Then(positioned);
+        Update();
+        for (var frame = 0; frame < 8; frame++) simulate.FrameUpdateMs(16);
+        Assert.That(widths[widths.Count - 1], Is.EqualTo(200).Within(.6f));
+    }
+
     [TestCase(1f), TestCase(1.25f), TestCase(1.5f), TestCase(2f)]
     public void CenteredAnimatedTextSettlesAtEveryPanelScale(float scale)
     {
