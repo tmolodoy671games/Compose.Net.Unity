@@ -12,6 +12,12 @@
     "precompiledReferences": [],
     "autoReferenced": false,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.modules.vectorgraphics",
+            "expression": "1.0.0",
+            "define": "COMPOSE_UNITY_VECTOR_GRAPHICS"
+        }
+    ],
     "noEngineReferences": false
 }

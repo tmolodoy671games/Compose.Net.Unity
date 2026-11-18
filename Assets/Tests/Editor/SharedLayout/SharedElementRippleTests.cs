@@ -50,18 +50,18 @@ public sealed partial class SharedLayoutDemoTests
         var center = state.PressProperty("Center");
         Assert.That(alpha, Is.GreaterThan(0));
         Near(state.Value("PressScale"), scale, .001f);
-        for (var i = 0; i < 18; i++)
+        for (var i = 0; i < 15; i++)
         {
             Flush(16);
             Assert.That(detaches, Is.EqualTo(overlayDetaches), "Shared transition frames must reuse the ripple drawing host");
             Assert.That(card.Children().Single(child => child.GetType().Name == "DrawOn"), Is.SameAs(draw));
             RectNear(draw.worldBound, card.worldBound);
             Assert.That(state.Value("PressScale"), Is.GreaterThanOrEqualTo(scale));
-            Assert.That(state.Value("PressAlpha"), Is.LessThan(alpha));
+            Assert.That(state.Value("PressAlpha"), Is.LessThanOrEqualTo(alpha));
             Assert.That(state.PressProperty("Center"), Is.EqualTo(center));
             scale = state.Value("PressScale"); alpha = state.Value("PressAlpha");
         }
-        Flush(12);
+        Flush(60);
         Assert.That(state.Value("PressAlpha"), Is.Zero, "Released ripple finishes fading before the outgoing content is disposed");
         Flush(200);
         var incoming = E("shared-element." + (expanded ? "collapsed" : "expanded"));

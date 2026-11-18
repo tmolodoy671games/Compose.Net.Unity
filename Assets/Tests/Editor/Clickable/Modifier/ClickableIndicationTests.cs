@@ -113,7 +113,7 @@ public sealed partial class ClickableIndicationTests : UITestFixture
             {
                 ripple.DrawIndication(scope);
                 owner.Draws++;
-                owner.Hover = Read("HoverAlpha");
+                owner.Hover = Read("StateAlpha");
                 owner.Press = 0;
                 foreach (var frame in (Array)ripple.GetType().GetProperty("Presses")!.GetValue(ripple)!)
                 {

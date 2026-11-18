@@ -14,7 +14,7 @@ public enum AnimateSizeScenario
 public sealed class AnimateContentSizeDemoState
 {
     public readonly AnimateContentSizeDemoCase[] Cases =
-    {
+    [
         new("default", "01 / Default", "AnimateContentSize() · click the blue content", AnimateSizeScenario.Default),
         new("width", "02 / Width only", "Height stays fixed · linear, 1000 ms", AnimateSizeScenario.Width),
         new("height", "03 / Height only", "Width stays fixed · linear, 1000 ms", AnimateSizeScenario.Height),
@@ -30,7 +30,7 @@ public sealed class AnimateContentSizeDemoState
         new("list", "13 / Dynamic children", "One, two or three rows in a Column", AnimateSizeScenario.List),
         new("neighbors", "14 / Parent layout", "The following sibling moves with the bounds", AnimateSizeScenario.Neighbors),
         new("recompose", "15 / Recomposition", "Change a prefix or repeat the current target", AnimateSizeScenario.Recompose),
-    };
+    ];
     public readonly Action ExpandAll, CollapseAll;
     public AnimateContentSizeDemoState()
     {

@@ -20,6 +20,31 @@ git@github.com:tmolodoy671games/Unity-Compose.git?path=/Assets/Packages/Compose.
 
 The package appears as **Compose.Net.Unity** in Package Manager.
 
+## Compose vector images
+
+Build an `ImageVector` once and pass it to `Image` from a composable.
+
+```csharp
+static readonly ImageVector Check = new ImageVector.Builder(24.Dp(), 24.Dp(), 24, 24, name: "Check")
+    .Path(p => p.MoveTo(4, 12).LineTo(9, 17).LineTo(20, 6),
+        stroke: Color.White, strokeLineWidth: 2, strokeLineCap: StrokeCap.Round,
+        strokeLineJoin: StrokeJoin.Round)
+    .Build();
+
+[Composable]
+static void CheckIcon() => Image(Check, tint: LocalContentColor.Current);
+```
+
+Use `AddPath` with SVG or Android VectorDrawable path data, or `Path` with the
+C# drawing commands. Groups support transforms and clip paths. The default image
+size is in dp, and the viewport is the coordinate space for the artwork.
+`Image` supports `Fit`, `Crop` and `FillBounds`.
+
+This overload requires Compose.Net 0.0.23 and Unity 6.3 or later with the built-in
+Vector Graphics module (`com.unity.modules.vectorgraphics`) enabled. UI Toolkit
+draws the generated vector geometry at the element's layout size.
+
+
 ## File-scoped namespaces
 
 For MonoBehaviour and ScriptableObject imports with `namespace Example;`, see
