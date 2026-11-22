@@ -82,7 +82,7 @@ MonoBehaviour:
       - rid: 8220756602059751424
     m_RuntimeSettings:
       m_List: []
-  m_AssetVersion: 16
+  m_AssetVersion: 17
   m_ObsoleteDefaultVolumeProfile: {fileID: 0}
   m_RenderingLayerNames:
   - Default
@@ -507,7 +507,7 @@ MonoBehaviour:
       type: {class: RenderingCapabilitiesSettings, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.Runtime}
       data:
         m_Version: 0
-        m_UseGlobalConstantBuffer: 0
+        m_UsePersistentGlobalConstantBuffer: 0
     - rid: 8220756370373214211
       type: {class: URPExposureSettings, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.Runtime}
       data:

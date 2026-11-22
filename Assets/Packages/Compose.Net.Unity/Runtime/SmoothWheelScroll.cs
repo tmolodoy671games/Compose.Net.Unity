@@ -16,7 +16,8 @@ internal sealed class SmoothWheelScroll
     private readonly Func<bool> _enabled;
     private IVisualElementScheduledItem? _animation;
     private double _lastTime;
-    private float _target, _lastPosition, _speed;
+    private float _target, _lastPosition;
+    internal float Velocity { get; private set; }
     private bool _active;
     private readonly Action _begin;
     internal bool IsActive => _active;
@@ -26,14 +27,17 @@ internal sealed class SmoothWheelScroll
     private Scroller Scroller => Horizontal ? _view.horizontalScroller : _view.verticalScroller;
     private float Position => Horizontal ? _view.scrollOffset.x : _view.scrollOffset.y;
 
-    internal SmoothWheelScroll(ScrollView view, Func<bool> enabled, Action begin)
+    internal SmoothWheelScroll(ScrollView view, Func<bool> enabled, Action begin, bool useDefaultWheelInput = true)
     {
         _view = view; _enabled = enabled; _begin = begin;
         Controllers.Add(view, this);
         view.elasticAnimationIntervalMs = 0;
         // Bubble after descendants have had their chance, but before native wheel handling.
-        view.contentViewport.RegisterCallback<WheelEvent>(OnWheel);
-        view.RegisterCallback<WheelEvent>(e => { if (e.target == view) OnWheel(e); }, TrickleDown.TrickleDown);
+        if (useDefaultWheelInput)
+        {
+            view.contentViewport.RegisterCallback<WheelEvent>(OnWheel);
+            view.RegisterCallback<WheelEvent>(e => { if (e.target == view) OnWheel(e); }, TrickleDown.TrickleDown);
+        }
         view.RegisterCallback<PointerDownEvent>(e =>
         { if (e.pointerType != UnityEngine.UIElements.PointerType.mouse) Cancel(); }, TrickleDown.TrickleDown);
         view.RegisterCallback<DetachFromPanelEvent>(e => { if (e.target == view) Cancel(); });
@@ -65,7 +69,7 @@ internal sealed class SmoothWheelScroll
         e.StopPropagation();
     }
 
-    private float AddDelta(float delta)
+    internal float AddDelta(float delta)
     {
         if (!_enabled()) return delta;
         var max = Mathf.Max(0, Scroller.highValue);
@@ -86,7 +90,7 @@ internal sealed class SmoothWheelScroll
             _target = next;
             // Retarget from the current position, retaining all pending wheel distance.
             // A bounded 100 ms tail avoids a growing backlog after fast wheel bursts.
-            _speed = Mathf.Abs(_target - Position) / .1f;
+            Velocity = (_target - Position) / .1f;
             _view.touchScrollBehavior = ScrollView.TouchScrollBehavior.Clamped;
             _view.scrollDecelerationRate = 0;
             if (_animation == null) _animation = _view.schedule.Execute(Tick).Every(0);
@@ -126,7 +130,7 @@ internal sealed class SmoothWheelScroll
         var dt = (float)(now - _lastTime); _lastTime = now;
         if (dt <= 0) return;
         _target = Mathf.Clamp(_target, 0, Mathf.Max(0, Scroller.highValue));
-        var next = Mathf.MoveTowards(Position, _target, _speed * dt);
+        var next = Mathf.MoveTowards(Position, _target, Mathf.Abs(Velocity) * dt);
         _view.scrollOffset = Horizontal ? new Vector2(next, 0) : new Vector2(0, next);
         _lastPosition = Position;
         if (Mathf.Abs(next - _target) < .001f) Cancel();

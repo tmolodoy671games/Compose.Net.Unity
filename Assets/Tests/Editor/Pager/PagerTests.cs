@@ -187,15 +187,81 @@ public sealed partial class PagerTests : UITestFixture
         yield return Click("prepend"); Assert.That(State.PageCount, Is.EqualTo(8));
         var identity = _item.Remembered[0]; yield return Click("refresh"); Assert.That(_item.Remembered[0], Is.SameAs(identity));
     }
-    [UnityTest] public IEnumerator NativeWheelScrollsThenSnaps()
+    [TestCase("horizontal")][TestCase("vertical")][TestCase("reverse")][TestCase("reverse-vertical")]
+    public void WheelUsesOnlyThePagerAxisAndBubblesAtTheEdge(string id)
     {
-        simulate.ScrollWheel(View, new Vector2(0, 12)); Flush(); Assert.That(State.Value, Is.GreaterThan(0));
-        yield return Settle(); Assert.That(State.IsScrollInProgress, Is.False); Near(State.CurrentPageOffsetFraction, 0);
-        Assert.That(State.CurrentPage, Is.EqualTo(1)); Near(Start(Page(1)), 0);
+        Select(id); State.ScrollToPage(2); Flush();
+        var offset = State.Value;
+        var propagated = 0;
+        View.parent.RegisterCallback<WheelEvent>(_ => propagated++);
+        var axis = _item.Vertical ? Vector2.up : Vector2.right;
+        var cross = _item.Vertical ? Vector2.right : Vector2.up;
+        var tick = WheelEvent.scrollDeltaPerTick;
+        simulate.ScrollWheel(Page(2), cross * tick); Flush();
+        Near(State.Value, offset); Assert.That(propagated, Is.EqualTo(1));
+
+        simulate.ScrollWheel(Page(2), axis * tick); FinishWheelMotion(); Flush();
+        Near(State.Value, offset + (_item.Reverse.Value ? -64 : 64));
+        Assert.That(propagated, Is.EqualTo(1));
+        State.ScrollToPage(_item.Reverse.Value ? 0 : State.PageCount - 1); Flush();
+        simulate.ScrollWheel(View, axis * tick); Flush();
+        Assert.That(propagated, Is.EqualTo(2));
+    }
+
+    [UnityTest] public IEnumerator WheelSettlesAfterABurst()
+    {
+        Select("vertical"); State.ScrollToPage(1); Flush();
+        var pageDelta = Vector2.up * (WheelEvent.scrollDeltaPerTick * State.PageExtent / 64);
+        simulate.ScrollWheel(Page(1), pageDelta);
+        simulate.ScrollWheel(Page(1), pageDelta * 2);
+        FinishWheelMotion(); Flush(); yield return Settle();
+        Assert.That(State.SettledPage, Is.EqualTo(4)); Near(State.CurrentPageOffsetFraction, 0);
+        Assert.That(State.IsScrollInProgress, Is.False);
+    }
+
+    [UnityTest] public IEnumerator OneWheelTickCanFlingASubPageDistance()
+    {
+        Select("horizontal"); State.ScrollToPage(2); Flush();
+        simulate.ScrollWheel(Page(2), Vector2.right * WheelEvent.scrollDeltaPerTick);
+        FinishWheelMotion(); Flush(); yield return Settle();
+        Assert.That(State.SettledPage, Is.EqualTo(3)); Near(State.CurrentPageOffsetFraction, 0);
+    }
+
+    [UnityTest] public IEnumerator ProgrammaticJumpInterruptsPendingWheelMotion()
+    {
+        Select("horizontal"); State.ScrollToPage(2); Flush();
+        simulate.ScrollWheel(Page(2), Vector2.right * WheelEvent.scrollDeltaPerTick);
+        State.ScrollToPage(5, .25f);
+        FinishWheelMotion(); Flush(); yield return Settle();
+        Assert.That(State.SettledPage, Is.EqualTo(5)); Near(State.CurrentPageOffsetFraction, .25f);
+    }
+
+    private void FinishWheelMotion()
+    {
+        // Advance the same controller used by ScrollView without waiting for a wall-clock frame.
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var controller = View.GetType().GetField("_wheel", flags)!.GetValue(View)!;
+        controller.GetType().GetMethod("TickAt", flags)!.Invoke(controller, new object[] { Time.realtimeSinceStartupAsDouble + .2 });
+    }
+
+    [TestCase(MouseButton.LeftMouse)][TestCase(MouseButton.RightMouse)][TestCase(MouseButton.MiddleMouse)]
+    public void MouseDragDoesNotScrollPager(MouseButton button)
+    {
+        State.ScrollToPage(2); Flush();
+        var offset = State.Value;
+        var center = View.contentViewport.worldBound.center;
+        var delta = Vector2.right * (State.PageExtent * .35f);
+        simulate.MouseDown(center + delta, button);
+        simulate.MouseMove(center - delta); Flush();
+        Near(State.Value, offset);
+        simulate.MouseUp(center - delta, button);
+        simulate.FrameUpdateMs(300); Flush(1000);
+        Near(State.Value, offset);
+        Assert.That(State.IsScrollInProgress, Is.False);
     }
     [UnityTest] public IEnumerator DisabledWheelCannotScrollButControlsCan()
     {
-        Select("locked"); simulate.ScrollWheel(View, new Vector2(0, 20)); Flush(); yield return Settle(); Near(State.Value, 0);
+        Select("locked"); simulate.ScrollWheel(View, Vector2.right * WheelEvent.scrollDeltaPerTick); Flush(); yield return Settle(); Near(State.Value, 0);
         yield return Click("next"); Flush(1000); Assert.That(State.CurrentPage, Is.EqualTo(1));
     }
     [UnityTest] public IEnumerator HorizontalTouchDrag() => ExerciseTouch("horizontal");
@@ -233,16 +299,52 @@ public sealed partial class PagerTests : UITestFixture
         yield return Settle(); Assert.That(State.IsScrollInProgress, Is.False); Near(State.CurrentPageOffsetFraction, 0);
     }
     [TestCase("horizontal")][TestCase("vertical")][TestCase("reverse")][TestCase("reverse-vertical")]
-    public void KeyboardNavigationRespectsAxisReverseAndDisabledInput(string id)
+    public void DirectionalInputDoesNotPage(string id)
     {
         Select(id); State.ScrollToPage(3); Flush();
         var direction = _item.Vertical ? Vector2.down : Vector2.right;
         using (var evt = NavigationMoveEvent.GetPooled(direction)) { evt.target = View; View.SendEvent(evt); }
-        Flush(1000); Assert.That(State.CurrentPage, Is.EqualTo(_item.Reverse.Value ? 2 : 4));
+        Flush(1000); Assert.That(State.CurrentPage, Is.EqualTo(3));
         var page = State.CurrentPage; _item.Enabled.Value = false; Flush();
         using (var evt = NavigationMoveEvent.GetPooled(direction)) { evt.target = View; View.SendEvent(evt); }
         Flush(1000); Assert.That(State.CurrentPage, Is.EqualTo(page));
     }
+    [TestCase("horizontal")][TestCase("vertical")][TestCase("reverse")][TestCase("reverse-vertical")][TestCase("fixed")]
+    public void PageKeysScrollByViewportWithoutSnapping(string id)
+    {
+        Select(id); State.ScrollToPage(2, .25f); Flush();
+        var offset = State.Value;
+        var step = Main(View.contentViewport) * (_item.Reverse.Value ? -1 : 1);
+        var expected = Mathf.Clamp(offset + step, 0, State.MaxValue);
+        Key(KeyCode.PageDown); simulate.FrameUpdateMs(300); Flush(1000);
+        Near(State.Value, expected); Assert.That(State.IsScrollInProgress, Is.False);
+        Key(KeyCode.PageUp, EventModifiers.Control); Near(State.Value, expected);
+        var previous = Mathf.Clamp(expected - step, 0, State.MaxValue);
+        Key(KeyCode.PageUp); Near(State.Value, previous);
+        _item.Enabled.Value = false; Flush();
+        Key(KeyCode.PageDown); Near(State.Value, previous);
+    }
+
+    private void Key(KeyCode key, EventModifiers modifiers = EventModifiers.None)
+    {
+        using var evt = KeyDownEvent.GetPooled('\0', key, modifiers);
+        var target = Page(_item.Keys[State.CurrentPage]);
+        evt.target = target;
+        target.SendEvent(evt);
+        Flush();
+    }
+
+    [UnityTest] public IEnumerator TapDoesNotStartScrollingOrSnapAFractionalPage()
+    {
+        State.ScrollToPage(2, .25f); Flush();
+        var offset = State.Value;
+        var point = View.contentViewport.worldBound.center;
+        Touch(TouchPhase.Began, point);
+        Assert.That(State.IsScrollInProgress, Is.False);
+        Touch(TouchPhase.Ended, point); yield return Settle();
+        Near(State.Value, offset); Assert.That(State.IsScrollInProgress, Is.False);
+    }
+
     [Test] public void DisposalCancelsAnimationsAndRemovesAllPageCompositions()
     {
         var task = State.AnimateScrollToPage(5); Flush(100); _composer.Dispose(); Flush(1000);

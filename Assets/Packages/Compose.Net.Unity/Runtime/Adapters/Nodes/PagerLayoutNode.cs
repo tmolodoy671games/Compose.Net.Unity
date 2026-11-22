@@ -37,14 +37,17 @@ internal sealed class PagerItemNode : UnityReusableComposeNode, IPagerItemNode
     }
 }
 
-/// <summary>UI Toolkit handles wheel, touch slop/capture, nested scrolling and clipping.
+/// <summary>UI Toolkit handles touch slop/capture, nested scrolling and clipping.
 /// Only page selection and settling are added here; no parallel gesture recognizer.</summary>
 internal sealed class PagerView : ScrollView, IDisposable
 {
     private IMutablePagerState? _state;
     private PagerSettings? _settings;
     private readonly bool _horizontal;
-    private bool _syncing, _touching, _disposed;
+    private bool _syncing, _disposed;
+    private int? _touchPointer;
+    private readonly SmoothWheelScroll _wheel;
+    private bool _scrollingWithWheel;
     private IVisualElementScheduledItem? _settle;
     private float _velocity, _lastValue;
     private double _lastTime;
@@ -57,6 +60,11 @@ internal sealed class PagerView : ScrollView, IDisposable
         verticalScrollerVisibility = ScrollerVisibility.Hidden;
         touchScrollBehavior = TouchScrollBehavior.Clamped;
         scrollDecelerationRate = 0; // Pager owns the final snap, ScrollView owns the drag.
+        horizontalPageSize = 0;
+        verticalPageSize = 0;
+        // Handle the two wheel axes explicitly. ScrollView otherwise maps vertical input to X.
+        mouseWheelScrollSize = 0;
+        focusable = false;
         nestedInteractionKind = NestedInteractionKind.ForwardScrolling;
         style.overflow = Overflow.Hidden;
         style.minWidth = 0;
@@ -69,14 +77,24 @@ internal sealed class PagerView : ScrollView, IDisposable
         contentContainer.RegisterCallback<GeometryChangedEvent>(_ => SyncOffset());
         horizontalScroller.valueChanged += OnScroll;
         verticalScroller.valueChanged += OnScroll;
-        RegisterCallback<WheelEvent>(OnWheel, TrickleDown.TrickleDown);
+        _wheel = new SmoothWheelScroll(this, () => _settings?.UserScrollEnabled == true, BeginWheel, useDefaultWheelInput: false);
+        contentViewport.RegisterCallback<WheelEvent>(OnWheel);
+        RegisterCallback<WheelEvent>(evt => { if (evt.target == this) OnWheel(evt); }, TrickleDown.TrickleDown);
+        RegisterCallback<KeyDownEvent>(OnKeyDown);
         RegisterCallback<PointerDownEvent>(OnDown, TrickleDown.TrickleDown);
         RegisterCallback<PointerMoveEvent>(OnMove, TrickleDown.TrickleDown);
-        RegisterCallback<PointerUpEvent>(OnUp, TrickleDown.TrickleDown);
-        RegisterCallback<PointerCancelEvent>(_ => Release(), TrickleDown.TrickleDown);
-        RegisterCallback<PointerCaptureOutEvent>(_ => { if (_touching) Release(); });
-        RegisterCallback<NavigationMoveEvent>(OnNavigate, TrickleDown.TrickleDown);
-        RegisterCallback<DetachFromPanelEvent>(_ => { _settle?.Pause(); _touching = false; _state?.CancelScroll(); });
+        RegisterCallback<PointerUpEvent>(evt => Release(evt.pointerId), TrickleDown.TrickleDown);
+        RegisterCallback<PointerCancelEvent>(evt => Release(evt.pointerId), TrickleDown.TrickleDown);
+        RegisterCallback<PointerCaptureOutEvent>(evt => Release(evt.pointerId));
+        RegisterCallback<DetachFromPanelEvent>(evt =>
+        {
+            if (evt.target != this) return;
+            _settle?.Pause();
+            _wheel.Cancel();
+            _scrollingWithWheel = false;
+            _touchPointer = null;
+            _state?.CancelScroll();
+        });
     }
 
     internal void Configure(IMutablePagerState state, PagerSettings settings)
@@ -84,14 +102,28 @@ internal sealed class PagerView : ScrollView, IDisposable
         if (_disposed) return;
         if (!ReferenceEquals(_state, state))
         {
-            if (_state != null) _state.UnsubscribeToValueChange(StateChanged);
+            if (_state != null)
+            {
+                _state.UnsubscribeToValueChange(StateChanged);
+                _state.CancelScroll();
+                _settle?.Pause();
+                _wheel.Cancel();
+                _scrollingWithWheel = false;
+                _touchPointer = null;
+            }
             _state = state;
             state.SubscribeToValueChange(StateChanged);
         }
+        if (_settings?.UserScrollEnabled == true && !settings.UserScrollEnabled)
+        {
+            _settle?.Pause();
+            _wheel.Cancel();
+            _scrollingWithWheel = false;
+            _touchPointer = null;
+            state.CancelScroll();
+        }
         _settings = settings;
         pickingMode = UnityEngine.UIElements.PickingMode.Position;
-        focusable = settings.UserScrollEnabled;
-        if (!settings.UserScrollEnabled) { _settle?.Pause(); _touching = false; state.CancelScroll(); }
         Measure();
     }
 
@@ -106,14 +138,21 @@ internal sealed class PagerView : ScrollView, IDisposable
             _state.UpdateLayout(new Size(Math.Max(0, size.x), Math.Max(0, size.y)));
             contentContainer.style.width = _horizontal ? _state.ContentSize : size.x;
             contentContainer.style.height = _horizontal ? size.y : _state.ContentSize;
-            horizontalPageSize = _state.PageStride;
-            verticalPageSize = _state.PageStride;
         }
         finally { _syncing = false; }
         SyncOffset();
     }
 
-    private void StateChanged(float value) => SyncOffset();
+    private void StateChanged(float value)
+    {
+        if (_scrollingWithWheel && (_state?.IsScrollInProgress != true || !Mathf.Approximately(value, _lastValue)))
+        {
+            _wheel.Cancel();
+            _settle?.Pause();
+            _scrollingWithWheel = false;
+        }
+        SyncOffset();
+    }
     private void SyncOffset()
     {
         if (_state == null || _settings == null || _syncing || _disposed) return;
@@ -135,75 +174,107 @@ internal sealed class PagerView : ScrollView, IDisposable
         var offset = _horizontal ? horizontalScroller.value : verticalScroller.value;
         var value = _settings.ReverseLayout ? _state.MaxValue - offset : offset;
         if (!_settings.UserScrollEnabled) { SyncOffset(); return; }
+        // UI Toolkit can deliver a scroller change after SyncOffset has returned.
+        if (Mathf.Approximately(value, _state.Value)) return;
         var time = Time.realtimeSinceStartupAsDouble;
-        if (time > _lastTime && time - _lastTime < .15) _velocity = (float)((value - _lastValue) / (time - _lastTime));
+        if (_scrollingWithWheel) _velocity = _settings.ReverseLayout ? -_wheel.Velocity : _wheel.Velocity;
+        else if (time > _lastTime && time - _lastTime < .15) _velocity = (float)((value - _lastValue) / (time - _lastTime));
         _lastTime = time;
         _lastValue = value;
         _state.ScrollFromUser(value);
-        if (!_touching) ScheduleSettle();
+        if (_touchPointer == null) ScheduleSettle();
+    }
+
+    private void OnKeyDown(KeyDownEvent evt)
+    {
+        if (evt.ctrlKey || evt.keyCode is not (KeyCode.PageUp or KeyCode.PageDown) ||
+            _settings?.UserScrollEnabled != true || _state == null) return;
+
+        var size = _state.LayoutInfo.ViewportSize;
+        var delta = _horizontal ? size.Width : size.Height;
+        _settle?.Pause();
+        _wheel.Cancel();
+        _scrollingWithWheel = false;
+        if ((evt.keyCode == KeyCode.PageUp) != _settings.ReverseLayout) delta = -delta;
+        _state.ScrollFromUser(Mathf.Clamp(_state.Value + delta, 0, _state.MaxValue));
+        // A page key scrolls by a viewport, even if that leaves a fractional page offset.
+        _state.CancelScroll();
+        evt.StopPropagation();
     }
 
     private void OnWheel(WheelEvent evt)
     {
-        var ancestor = GetFirstAncestorOfType<ScrollView>();
-        var nearest = evt.target as VisualElement;
-        var inner = nearest as ScrollView ?? nearest?.GetFirstAncestorOfType<ScrollView>();
-        // A descendant scroll view gets first refusal on its own gestures.
-        if (inner != null && inner != this) return;
-        var crossAxisIntent = _horizontal ? Math.Abs(evt.delta.y) > Math.Abs(evt.delta.x) : Math.Abs(evt.delta.x) > Math.Abs(evt.delta.y);
-        var ancestorHandlesCrossAxis = ancestor != null && (_horizontal ? ancestor.mode != ScrollViewMode.Horizontal : ancestor.mode != ScrollViewMode.Vertical);
-        if (_settings?.UserScrollEnabled != true || crossAxisIntent && ancestorHandlesCrossAxis)
-        {
-            evt.StopImmediatePropagation();
-            if (parent != null)
-            {
-                // GetPooled(IMouseEvent) drops WheelEvent.delta; preserve the actual wheel data.
-                var source = new Event { type = EventType.ScrollWheel, delta = evt.delta, mousePosition = evt.mousePosition, modifiers = evt.modifiers };
-                using var forwarded = WheelEvent.GetPooled(source);
-                forwarded.target = parent; parent.SendEvent(forwarded);
-            }
-            return;
-        }
-        _velocity = 0;
-        // The native ScrollView consumes the event only if it can scroll, forwarding at the edge.
-        ScheduleSettle();
+        if (evt.isPropagationStopped || _settings?.UserScrollEnabled != true || _state == null) return;
+        var ticks = (_horizontal ? evt.delta.x : evt.delta.y) / WheelEvent.scrollDeltaPerTick;
+        if (ticks == 0) return;
+
+        // Android's fallback is 64 dp per detent. Unity reports deltas in units per tick.
+        var delta = ticks * _settings.Density.ToPx(64.Dp());
+        var remaining = _wheel.AddDelta(delta);
+        if (Mathf.Approximately(remaining, delta)) return;
+        evt.StopPropagation();
     }
+
+    private void BeginWheel()
+    {
+        _settle?.Pause();
+        _scrollingWithWheel = true;
+        _lastValue = _state!.Value;
+        _lastTime = 0;
+        _velocity = 0;
+        _state?.BeginUserScroll();
+    }
+
     private void OnDown(PointerDownEvent evt)
     {
         if (evt.pointerType == UnityEngine.UIElements.PointerType.mouse || !evt.isPrimary) return;
         // Let taps reach page content; blocking move prevents native drag without disabling children.
         if (_settings?.UserScrollEnabled != true) return;
         _settle?.Pause();
-        _touching = true;
+        _scrollingWithWheel = false;
+        _touchPointer = evt.pointerId;
         _velocity = 0;
         _lastTime = 0;
-        _state?.BeginUserScroll();
+        if (_state?.IsScrollInProgress == true) _state.BeginUserScroll();
     }
     private void OnMove(PointerMoveEvent evt)
     {
         if (evt.pointerType != UnityEngine.UIElements.PointerType.mouse && _settings?.UserScrollEnabled != true) evt.StopImmediatePropagation();
     }
-    private void OnUp(PointerUpEvent evt) { if (evt.pointerType != UnityEngine.UIElements.PointerType.mouse && evt.isPrimary) Release(); }
-    private void Release()
+    private void Release(int pointerId)
     {
-        _touching = false;
-        ScheduleSettle(1); // Let ScrollView release capture before applying the snap.
+        if (_touchPointer != pointerId) return;
+        _touchPointer = null;
+        if (_state?.IsScrollInProgress == true) ScheduleSettle(1);
     }
     private void ScheduleSettle(long delay = 120)
     {
         _settle?.Pause();
-        _settle = schedule.Execute(() => Observe(_state?.EndUserScroll(_velocity) ?? Task.CompletedTask)).StartingIn(delay);
+        _settle = schedule.Execute(Settle).StartingIn(delay);
     }
-    private void OnNavigate(NavigationMoveEvent evt)
+
+    private void Settle()
     {
-        var direction = _horizontal
-            ? evt.direction == NavigationMoveEvent.Direction.Right ? 1 : evt.direction == NavigationMoveEvent.Direction.Left ? -1 : 0
-            : evt.direction == NavigationMoveEvent.Direction.Down ? 1 : evt.direction == NavigationMoveEvent.Direction.Up ? -1 : 0;
-        if (direction == 0 || _state == null) return;
-        evt.StopImmediatePropagation();
-        if (_settings?.UserScrollEnabled != true) return;
-        if (_settings.ReverseLayout) direction = -direction;
-        Observe(_state.AnimateScrollToPage(_state.CurrentPage + direction, animationSpec: _settings.FlingBehavior.SnapAnimationSpec));
+        if (_state?.IsScrollInProgress != true || _settings == null) return;
+        if (!_scrollingWithWheel)
+        {
+            Observe(_state.EndUserScroll(_velocity));
+            return;
+        }
+        // A wheel burst can travel through many pages before the final snap begins.
+        // Settle from the last visible position, including when the direction changed.
+        _scrollingWithWheel = false;
+        var fraction = _state.CurrentPageOffsetFraction;
+        var target = _state.CurrentPage;
+        var policy = _settings.FlingBehavior;
+        if (Mathf.Abs(fraction) > .001f && _velocity != 0 && policy.PagerSnapDistance.MaxPages > 0)
+        {
+            var page = target + fraction;
+            var from = _velocity > 0 ? Mathf.FloorToInt(page) : Mathf.CeilToInt(page);
+            var advance = Mathf.Abs(_velocity) > 400 || Mathf.Abs(page - from) >= policy.SnapPositionalThreshold;
+            target = advance ? from + Math.Sign(_velocity) : from;
+        }
+        Observe(_state.AnimateScrollToPage(target, animationSpec: policy.SnapAnimationSpec));
     }
     private static async void Observe(Task task)
     {
@@ -215,6 +286,7 @@ internal sealed class PagerView : ScrollView, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _wheel.Cancel();
         _settle?.Pause();
         if (_state != null) { _state.UnsubscribeToValueChange(StateChanged); _state.CancelScroll(); }
         _state = null;

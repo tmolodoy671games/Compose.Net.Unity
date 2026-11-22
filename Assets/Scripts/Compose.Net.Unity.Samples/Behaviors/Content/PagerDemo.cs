@@ -18,7 +18,7 @@ public partial class PagerDemo : ComposeUI
             .VerticalScroll(RememberScrollState()).Padding(16.Dp()).TestTag("pager-demo"), content: () =>
         {
             Text("Pager", fontSize: 32.Sp(), color: Color.White);
-            Text("Swipe on touch · scroll wheel · arrow keys after focus · use the controls below each example", fontSize: 14.Sp(), color: Color.LightGray);
+            Text("Swipe, scroll along the pager axis, or use Page Up and Page Down with focus inside a page", fontSize: 14.Sp(), color: Color.LightGray);
             for (var row = 0; row < 7; row++)
             {
                 var first = row * 3;
@@ -157,7 +157,7 @@ public sealed class PagerDemoState
 {
     public readonly PagerDemoCase[] Cases =
     {
-        new("horizontal", "Horizontal / Fill", "Equal pages; native touch, wheel and keyboard input."),
+        new("horizontal", "Horizontal / Fill", "Equal pages with touch swiping."),
         new("vertical", "Vertical / Fill", "The same state and API on the vertical axis.") { Vertical = true },
         new("fixed", "Fixed page size", "100 dp stays 100 dp, independently of padding.") { Size = new PageSize.Fixed(100.Dp()), Padding = new PaddingValues(12.Dp()), Spacing = 8 },
         new("padding", "Asymmetric padding", "Before / after padding applies to the entire strip.") { Padding = new PaddingValues(Top: 8.Dp(), Bottom: 12.Dp(), Left: 24.Dp(), Right: 40.Dp()) },
