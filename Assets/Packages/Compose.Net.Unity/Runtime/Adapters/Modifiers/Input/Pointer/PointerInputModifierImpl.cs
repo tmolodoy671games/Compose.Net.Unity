@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record PointerInputModifierImpl<T>(T Key, Func<IPointerInputScope, Task> Body)
-    : ModifierNodeElement<PointerInputModifierImpl<T>.PointerNode>
+    : UnityModifierNodeElement<PointerInputModifierImpl<T>.PointerNode>, IModifierInputLayer
 {
     public override PointerNode Create() => new(Key, Body);
     public override void Update(PointerNode node) => node.Update(Key, Body);

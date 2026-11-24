@@ -10,7 +10,7 @@ namespace Compose.Net.Unity;
 
 internal record DraggableModifierImpl(IDraggableState State, Orientation Orientation, bool Enabled,
     IMutableInteractionSource? InteractionSource, bool StartDragImmediately, Action<Offset>? OnDragStarted,
-    Action<float>? OnDragStopped, bool ReverseDirection) : ModifierNodeElement<GestureModifierNode>
+    Action<float>? OnDragStopped, bool ReverseDirection) : UnityModifierNodeElement<GestureModifierNode>, IModifierInputLayer
 {
     public override GestureModifierNode Create() => new(this, null);
     public override void Update(GestureModifierNode node) => node.Update(this, null);
@@ -19,7 +19,7 @@ internal record DraggableModifierImpl(IDraggableState State, Orientation Orienta
 
 internal record ScrollableModifierImpl(IScrollableState State, Orientation Orientation, bool Enabled,
     bool ReverseDirection, FlingBehavior? FlingBehavior, IMutableInteractionSource? InteractionSource)
-    : ModifierNodeElement<GestureModifierNode>
+    : UnityModifierNodeElement<GestureModifierNode>, IModifierInputLayer
 {
     public override GestureModifierNode Create() => new(null, this);
     public override void Update(GestureModifierNode node) => node.Update(null, this);

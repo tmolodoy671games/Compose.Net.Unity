@@ -15,7 +15,7 @@ internal record PaddingModifierImpl(
     Dp Left,
     Dp Right,
     Optional<PaddingType> Type = default
-) : ModifierNodeElement<PaddingModifierImpl.PaddingNode>
+) : UnityModifierNodeElement<PaddingModifierImpl.PaddingNode>
 {
     public override IModifier Fill(IStableList<IModifier> modifiers)
         => Type.HasValue ? this : this with { Type = GetPaddingType(this, modifiers) };
@@ -110,7 +110,7 @@ internal record PaddingModifierImpl(
         {
             var current = modifiers[i];
             if (ReferenceEquals(current, modifier)) return type;
-            if (current is IAppearanceModifier) type = PaddingType.Padding;
+            if (ModifierLayers.Original(current) is IAppearanceModifier) type = PaddingType.Padding;
         }
         return PaddingType.Margin;
     }

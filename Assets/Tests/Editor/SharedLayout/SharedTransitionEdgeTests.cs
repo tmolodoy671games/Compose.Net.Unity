@@ -54,7 +54,7 @@ public sealed partial class SharedLayoutDemoTests
     [Test] public void OverlayPreservesAuthoredTransformsWhenElevating()
     {
         MountEdgeOverlay(transformed:true);var child=E("edge.child");var bounds=child.worldBound;
-        _edgeOverlay.Value=true;Flush();RectNear(child.worldBound,bounds);
+        _edgeOverlay.Value=true;Flush();Assert.That(Layer(child), Is.Not.Null);RectNear(child.worldBound,bounds);
         _edgeOverlay.Value=false;Flush();RectNear(child.worldBound,bounds);
     }
     [Test] public void OverlayPreservesTransformChangesOnRestore()

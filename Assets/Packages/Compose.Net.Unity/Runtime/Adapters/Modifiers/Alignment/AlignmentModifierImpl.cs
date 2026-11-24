@@ -6,14 +6,14 @@ namespace Compose.Net.Unity;
 
 // Align and MatchParentSize are one parent-data value in Compose: the first in a chain wins.
 internal record AlignModifierImpl(Alignment Align, bool MatchParent = false, bool Active = true)
-    : ModifierNodeElement<AlignModifierImpl.AlignNode>
+    : UnityModifierNodeElement<AlignModifierImpl.AlignNode>
 {
     public override IModifier Fill(IStableList<IModifier> modifiers)
     {
         foreach (var modifier in modifiers)
         {
             if (ReferenceEquals(modifier, this)) break;
-            if (modifier is AlignModifierImpl) return this with { Active = false };
+            if (ModifierLayers.Original(modifier) is AlignModifierImpl) return this with { Active = false };
         }
         // Resolve to a distinct description so repeated source instances still have distinct positions.
         return this with { Active = true };

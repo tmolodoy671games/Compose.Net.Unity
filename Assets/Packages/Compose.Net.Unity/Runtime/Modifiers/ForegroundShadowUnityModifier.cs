@@ -9,7 +9,7 @@ public interface IForegroundShadowModifier : IAppearanceModifier
 {
 }
 
-public abstract record ForegroundShadowUnityModifier<TNode> : ModifierNodeElement<TNode>, IForegroundShadowModifier
+public abstract record ForegroundShadowUnityModifier<TNode> : UnityModifierNodeElement<TNode>, IForegroundShadowModifier
     where TNode : ForegroundShadowUnityModifier<TNode>.ForegroundShadowNodeBase
 {
     public override object GetTarget(IReusableComposeNode node) => node;

@@ -103,9 +103,10 @@ public sealed partial class LazyListTests : UITestFixture
         _remembered[id] = token;
         var local = ItemLocal.Current;
         var size = _variable ? baseSize + Math.Abs(id % 3) * 20 : baseSize;
-        var modifier = Modifier.Size((_horizontal ? size : 100).Dp(), (_horizontal ? 90 : size).Dp())
-            .Background(header ? Color.Orange : Color.DodgerBlue).TestTag("item-" + id).Clickable(() => _clicks++);
+        var modifier = Modifier;
         if (_fillParent) modifier = _horizontal ? modifier.FillParentMaxWidth(.5f) : modifier.FillParentMaxHeight(.5f);
+        modifier = modifier.Size((_horizontal ? size : 100).Dp(), (_horizontal ? 90 : size).Dp())
+            .Background(header ? Color.Orange : Color.DodgerBlue).TestTag("item-" + id).Clickable(() => _clicks++);
         Box(content: () => Text(local + " " + id), modifier: modifier);
     }
     private sealed class Lifetime(LazyListTests owner) : IRememberObserver

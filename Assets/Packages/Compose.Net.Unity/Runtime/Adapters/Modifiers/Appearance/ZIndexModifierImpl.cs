@@ -1,44 +1,60 @@
-// ReSharper disable CheckNamespace
-
+using System.Runtime.CompilerServices;
 using Compose.Net;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
 
-internal record ZIndexModifierImpl(float ZIndex)
-    : ModifierNodeElement<ZIndexModifierImpl.ZIndexNode>, IAppearanceModifier
+internal record ZIndexModifierImpl(float ZIndex) : UnityModifierNodeElement<ZIndexModifierImpl.ZIndexNode>, IAppearanceModifier
 {
     public override ZIndexNode Create() => new(ZIndex);
     public override void Update(ZIndexNode node) => node.Update(ZIndex);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
 
-    internal sealed class ZIndexNode(float zIndex) : IModifier.Node
+    internal sealed class ZIndexNode(float value) : IModifier.Node
     {
-        private float _zIndex = zIndex;
-        private StyleInt _original;
-        private VisualElement? _element;
+        private static readonly ConditionalWeakTable<VisualElement, Total> Totals = new();
+        private Total? _total;
 
         public override void OnAttach()
         {
-            _element = (VisualElement)Target;
-            _original = _element.style.zIndex;
-            _element.style.zIndex = Mathf.RoundToInt(_zIndex);
+            var element = (VisualElement)Target;
+            _total = Totals.GetValue(element, static view => new Total(view.style.zIndex));
+            _total.Count++;
+            Add(value);
         }
 
         internal void Update(float next)
         {
-            if (_zIndex == next) return;
-            _zIndex = next;
-            if (_element != null)
-                _element.style.zIndex = Mathf.RoundToInt(next);
+            Add((double)next - value);
+            value = next;
         }
 
         public override void OnDetach()
         {
-            if (_element != null)
-                _element.style.zIndex = _original;
-            _element = null;
+            if (_total == null) return;
+            var element = (VisualElement)Target;
+            if (--_total.Count == 0)
+            {
+                element.style.zIndex = _total.Original;
+                Totals.Remove(element);
+            }
+            else Add(-value);
+            _total = null;
+        }
+
+        private void Add(double delta)
+        {
+            if (_total == null) return;
+            _total.Value += delta;
+            ((VisualElement)Target).style.zIndex = Mathf.RoundToInt((float)_total.Value);
+        }
+
+        private sealed class Total(StyleInt original)
+        {
+            internal readonly StyleInt Original = original;
+            internal int Count;
+            internal double Value = original.value;
         }
     }
 }

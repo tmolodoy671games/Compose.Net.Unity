@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record VerticalAlignModifierImpl(Alignment.Vertical Align)
-    : ModifierNodeElement<VerticalAlignModifierImpl.VerticalAlignNode>
+    : UnityModifierNodeElement<VerticalAlignModifierImpl.VerticalAlignNode>
 {
     public override VerticalAlignNode Create() => new(Align);
     public override void Update(VerticalAlignNode node) => node.Update(Align);

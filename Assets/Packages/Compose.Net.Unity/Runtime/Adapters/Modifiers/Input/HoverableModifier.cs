@@ -4,7 +4,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record HoverableModiferImpl(IMutableInteractionSource InteractionSource, bool Enabled)
-    : ModifierNodeElement<HoverableModiferImpl.HoverableNode>
+    : UnityModifierNodeElement<HoverableModiferImpl.HoverableNode>, IModifierInputLayer
 {
     public override HoverableNode Create() => new(InteractionSource, Enabled);
     public override void Update(HoverableNode node) => node.Update(InteractionSource, Enabled);

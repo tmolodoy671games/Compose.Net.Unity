@@ -13,7 +13,7 @@ internal class AppearanceModifiersFactoryImpl : IAppearanceModifiersFactory
 
     public IModifier Clip(Shape shape)
     {
-        return new ClipModifierImpl(shape);
+        return new ChainDependentModifier(new ClipModifierImpl(shape));
     }
 
     public IModifier Background(Color color, Shape shape)

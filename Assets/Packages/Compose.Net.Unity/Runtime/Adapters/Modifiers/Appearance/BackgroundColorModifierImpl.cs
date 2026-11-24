@@ -42,7 +42,7 @@ internal record BackgroundColorShapeModifierImpl(
 }
 
 internal record BackgroundColorModifierImpl(Color BackgroundColor)
-    : ModifierNodeElement<BackgroundColorModifierImpl.ColorNode>, IAppearanceModifier
+    : UnityModifierNodeElement<BackgroundColorModifierImpl.ColorNode>, IAppearanceModifier
 {
     public override ColorNode Create() => new(BackgroundColor);
     public override void Update(ColorNode node) => node.Update(BackgroundColor);

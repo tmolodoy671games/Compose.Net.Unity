@@ -12,7 +12,7 @@ public interface IDrawBehindModifier : IAppearanceModifier
 }
 
 public abstract record DrawBehindUnityModifier(int DrawIndex = -1)
-    : ModifierNodeElement<DrawBehindUnityModifier.DrawBehindNode>, IDrawBehindModifier
+    : UnityModifierNodeElement<DrawBehindUnityModifier.DrawBehindNode>, IDrawBehindModifier
 {
     protected abstract Action<MeshGenerationContext> GenerateVisualContent { get; }
 
@@ -22,7 +22,9 @@ public abstract record DrawBehindUnityModifier(int DrawIndex = -1)
 
     public override object GetTarget(IReusableComposeNode node) => node;
 
-    public sealed override IModifier Fill(IStableList<IModifier> modifiers)
+    public sealed override IModifier Fill(IStableList<IModifier> modifiers) => FillAtDepth(modifiers, 0);
+
+    protected sealed override IModifier FillAtDepth(IStableList<IModifier> modifiers, int depth)
     {
         var index = 0;
         for (var i = 0; i < modifiers.Size; i++)
@@ -30,7 +32,7 @@ public abstract record DrawBehindUnityModifier(int DrawIndex = -1)
             var modifier = modifiers[i];
             if (ReferenceEquals(modifier, this))
                 break;
-            if (modifier is IDrawBehindModifier)
+            if (ModifierLayers.AtDepth(modifier, depth) && ModifierLayers.Original(modifier) is IDrawBehindModifier)
                 index++;
         }
 

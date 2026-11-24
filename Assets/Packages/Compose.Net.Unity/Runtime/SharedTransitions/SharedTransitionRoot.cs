@@ -14,7 +14,7 @@ namespace Compose.Net.Unity;
 public partial class UnityReusableComposeNode : ISharedTransitionRootNode
 {
     internal SharedVisual? SharedVisual;
-    internal VisualElement LayoutElement => SharedVisual?.Slot ?? VisualElement;
+    internal VisualElement LayoutElement => SharedVisual?.Slot ?? ModifierLayoutElement;
     public ISharedTransitionRoot CreateSharedTransitionRoot(SharedTransitionScope scope) => new SharedTransitionRoot(VisualElement);
 }
 
@@ -58,7 +58,7 @@ internal sealed class SharedVisual : ISharedContentHost
     private readonly SharedTransitionRoot _root;
     private readonly UnityReusableComposeNode _node;
     private readonly SharedContent _content;
-    private readonly VisualElement _element;
+    private VisualElement _element = null!;
     private readonly VisualElement _placement = new() { pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
     private readonly VisualElement _resize = new() { name = "shared-transition-resize", pickingMode = UnityEngine.UIElements.PickingMode.Ignore, usageHints = UsageHints.DynamicTransform };
     private readonly VisualElement _motion = new() { name = "shared-transition-motion", pickingMode = UnityEngine.UIElements.PickingMode.Ignore };
@@ -78,7 +78,7 @@ internal sealed class SharedVisual : ISharedContentHost
     private Vector2 _offsetInAncestor;
     private bool _disposed, _hidden, _restorePending, _slotMeasured;
     private StyleEnum<Visibility> _visibility;
-    private readonly IVisualElementScheduledItem _measure;
+    private IVisualElementScheduledItem _measure = null!;
     private SharedVisual? Parent
     {
         get
@@ -106,7 +106,7 @@ internal sealed class SharedVisual : ISharedContentHost
     {
         if (node.SharedVisual != null)
             throw new InvalidOperationException("Use a separate layout for each shared or overlay modifier.");
-        _root = root; _node = node; _element = node.VisualElement; _content = content;
+        _root = root; _node = node; _content = content;
         node.SharedVisual = this;
         Layer.style.position = Position.Absolute;
         _motion.style.position = Position.Absolute;
@@ -122,19 +122,42 @@ internal sealed class SharedVisual : ISharedContentHost
         foreach (var wrapper in new[] { Layer, _placement, _motion, _resize })
             Box.SetAnimatedConstraints(wrapper, Box.AnimatedConstraints.Width | Box.AnimatedConstraints.Height, true);
         TransitionNode = new UnityReusableComposeNode(_motion);
+        AttachLayoutElement();
+    }
+
+    internal void AttachLayoutElement()
+    {
+        _element = _node.ModifierLayoutElement;
         _element.RegisterCallback<GeometryChangedEvent>(OnGeometry);
         _element.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
         // Ancestor scrolling/placement doesn't emit a GeometryChangedEvent on this element.
         _measure = _element.schedule.Execute(Measure).Every(16);
+        if (Frame.Active || Frame.Hidden) Render(Frame);
     }
+
+    internal void DetachLayoutElement()
+    {
+        _measure.Pause();
+        _element.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
+        _element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+        End(force: true);
+        if (_hidden) _element.style.visibility = _visibility;
+        _hidden = false;
+    }
+    private static SharedVisual? ForLayoutElement(VisualElement element)
+    {
+        var shared = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual;
+        return shared?._element == element ? shared : null;
+    }
+
     internal static StyleLength AuthoredSize(VisualElement element, bool width)
     {
-        var saved = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual?._saved;
+        var saved = ForLayoutElement(element)?._saved;
         return saved != null ? width ? saved.Width : saved.Height : width ? element.style.width : element.style.height;
     }
     internal static void SetAuthoredSize(VisualElement element, bool width, StyleLength value)
     {
-        var shared = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual;
+        var shared = ForLayoutElement(element);
         if (shared?._saved != null)
         {
             // An authored target can equal today's animated size. Track the write explicitly;
@@ -149,12 +172,12 @@ internal sealed class SharedVisual : ISharedContentHost
     }
     internal static StyleLength AuthoredBound(VisualElement element, Box.BoundProperty property)
     {
-        var saved = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual?._saved;
+        var saved = ForLayoutElement(element)?._saved;
         return saved?.GetBound(property) ?? Box.AuthoredBound(element, property);
     }
     internal static void SetAuthoredBound(VisualElement element, Box.BoundProperty property, StyleLength value)
     {
-        var shared = (element.GetReusableComposeNode() as UnityReusableComposeNode)?.SharedVisual;
+        var shared = ForLayoutElement(element);
         if (shared?._saved != null)
         {
             shared._saved.SetBound(property, value);
@@ -398,9 +421,8 @@ internal sealed class SharedVisual : ISharedContentHost
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true; _measure.Pause(); _element.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
-        _element.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
-        End(force: true); if (_hidden) _element.style.visibility = _visibility;
+        _disposed = true;
+        DetachLayoutElement();
         _clipPath?.Dispose(); _clipPath = _resolvedClip = null;
         _node.SharedVisual = null; _root.Items.Remove(this);
     }

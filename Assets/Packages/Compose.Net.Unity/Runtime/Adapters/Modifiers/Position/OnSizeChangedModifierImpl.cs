@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace Compose.Net.Unity;
 
 internal record OnSizeChangedImpl(Action<Size> OnSizeChanged)
-    : ModifierNodeElement<OnSizeChangedImpl.SizeChangedNode>
+    : UnityModifierNodeElement<OnSizeChangedImpl.SizeChangedNode>
 {
     public override SizeChangedNode Create() => new(OnSizeChanged);
     public override void Update(SizeChangedNode node) => node.Update(OnSizeChanged);
