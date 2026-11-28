@@ -37,7 +37,7 @@ internal sealed class LazyGridItemNode : UnityReusableComposeNode, ILazyGridItem
     internal LazyGridNode? Owner;
     internal int Index = -1;
     internal object? Key, ContentType;
-    internal LazyGridItemNode() : base(new Box { name = "LazyGridItem" })
+    internal LazyGridItemNode() : base(new Box { name = "LazyGridItem", PropagateMinConstraints = true })
     {
         VisualElement.style.flexShrink = 0;
         VisualElement.RegisterCallback<GeometryChangedEvent>(_ => Owner?.View.QueueLayout());
@@ -243,6 +243,9 @@ internal sealed class LazyGridView : VisualElement, IDisposable
     internal void Attach(LazyGridItemNode node)
     {
         if (_lines == null || node.Index < 0 || node.Index >= Count) return;
+        var item = (Box)node.VisualElement;
+        item.UnboundedWidth = _horizontal;
+        item.UnboundedHeight = !_horizontal;
         var line = _lines.LineOf(node.Index);
         if (!_slots.TryGetValue(line, out var slot))
         {

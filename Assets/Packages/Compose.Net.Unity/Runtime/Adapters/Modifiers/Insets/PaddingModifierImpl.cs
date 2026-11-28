@@ -97,6 +97,7 @@ internal record PaddingModifierImpl(
                 if (padding) style.paddingRight = NullIfNeed(style.paddingRight.value.value + sign * _right.ToPx(density));
                 else style.marginRight = NullIfNeed(style.marginRight.value.value + sign * _right.ToPx(density));
             }
+            Box.InvalidateIntrinsics(_element);
         }
 
         private static StyleLength NullIfNeed(float value)
@@ -110,7 +111,9 @@ internal record PaddingModifierImpl(
         {
             var current = modifiers[i];
             if (ReferenceEquals(current, modifier)) return type;
-            if (ModifierLayers.Original(current) is IAppearanceModifier) type = PaddingType.Padding;
+            var original = ModifierLayers.Original(current);
+            if (original is IContentMeasureModifier) type = PaddingType.Margin;
+            else if (original is IAppearanceModifier) type = PaddingType.Padding;
         }
         return PaddingType.Margin;
     }

@@ -392,7 +392,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 
     public void DrawCircle(
         Color color,
-        float? radius,
+        Optional<float> radius,
         Offset center,
         float alpha,
         DrawStyle? style
@@ -404,13 +404,13 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
 
     public void DrawCircle(
         IBrush brush,
-        float? radius,
+        Optional<float> radius,
         Offset center,
         float alpha,
         DrawStyle? style
     )
     {
-        var resolvedRadius = radius ?? Size.MinDimension / 2;
+        var resolvedRadius = radius.GetOrDefault(Size.MinDimension / 2);
         var resolvedCenter = center.IsSpecified ? center : Center;
         var contentRect = new Rect(
             Offset: resolvedCenter - new Offset(resolvedRadius, resolvedRadius),
@@ -422,7 +422,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
     }
 
     private void DrawCircleImpl(
-        float? radius,
+        Optional<float> radius,
         Offset center,
         DrawStyle? style
     )
@@ -431,7 +431,7 @@ internal class UnityDrawScope : IDrawScope<MeshGenerationContext>, IDrawMeshScop
         painter.BeginPath();
         painter.Arc(
             (center.IsSpecified ? center : Center).ToVector2(),
-            radius ?? Size.MinDimension / 2,
+            radius.GetOrDefault(Size.MinDimension / 2),
             0f,
             360f
         );

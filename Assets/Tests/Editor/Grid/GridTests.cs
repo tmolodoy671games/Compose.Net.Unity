@@ -1,4 +1,5 @@
 using System;
+using SharpExtensions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ public sealed partial class GridTests : UITestFixture
     private IMutableState<int> _count = null!, _revision = null!, _prefix = null!, _size = null!, _cross = null!;
     private GridCells _cells = null!;
     private GridDemoState? _gallery;
-    private bool _nested;
+    private bool _nested, _fractionalFill;
     private IScrollState? _outer;
     private Arrangement? _mainArrangement, _crossArrangement;
     private bool _variable, _padded, _spaced, _spans, _sticky, _center;
@@ -52,7 +53,7 @@ public sealed partial class GridTests : UITestFixture
         _count = MutableStateOf(10000); _revision = MutableStateOf(0); _prefix = MutableStateOf(0);
         _size = MutableStateOf(60); _cross = MutableStateOf(300); _cells = GridCells.Fixed(3);
         _variable = _padded = _spaced = _spans = _sticky = _center = false;
-        _nested=false; _outer=null; _gallery = null; _mainArrangement = _crossArrangement = null;
+        _nested = _fractionalFill = false; _outer=null; _gallery = null; _mainArrangement = _crossArrangement = null;
         _clicks = _active = _composed = 0; _remembered.Clear();
     }
     [TearDown] public void Teardown()
@@ -115,6 +116,8 @@ public sealed partial class GridTests : UITestFixture
         DisposableEffect(id, () => { _active++; _composed++; return OnDispose(() => _active--); });
         var length = _variable ? size + Math.Abs(id) % 3 * 20 : size;
         var modifier = _horizontal ? Modifier.Width(length.Dp()).FillMaxHeight() : Modifier.Height(length.Dp()).FillMaxWidth();
+        if (_fractionalFill)
+            modifier = Modifier.FillMaxSize(.5f).Size(length.Dp());
         Box(content: () => Text("Cell " + id, color: Color.White), modifier: modifier.Background(new Color(.1f, .3f, .5f))
             .TestTag("item-" + id).Clickable(() => _clicks++));
     }
@@ -127,6 +130,15 @@ public sealed partial class GridTests : UITestFixture
     }
     private IEnumerator Settle(int frames = 8)
     { for (var i = 0; i < frames; i++) { Flush(); yield return null; } Flush(); }
+
+    [UnityTest] public IEnumerator FillKeepsTheFixedTrackAndWrapsTheScrollAxis()
+    {
+        _fractionalFill = true;
+        yield return Mount();
+        var item = E("item-0").layout.size;
+        Near(Cross(item), 100);
+        Near(Axis(item), 60);
+    }
 
     [UnityTest] public IEnumerator NativeLayoutHasThreeTracksAndBoundedCompositions()
     {
@@ -401,7 +413,7 @@ public sealed partial class GridTests : UITestFixture
         public IEnterTransitionsFactory EnterTransitionsFactory=>Native.EnterTransitionsFactory;
         public IExitTransitionsFactory ExitTransitionsFactory=>Native.ExitTransitionsFactory;
         public IBrushFactory BrushFactory=>Native.BrushFactory;
-        public IDisposable StartTimeCoroutine(IEnumerable<TimeSpan?> coroutine)=>Native.StartTimeCoroutine(coroutine);
+        public IDisposable StartTimeCoroutine(IEnumerable<Optional<TimeSpan>> coroutine)=>Native.StartTimeCoroutine(coroutine);
         public int Framerate()=>60;
     }
     private sealed class TestClock : IFrameClock

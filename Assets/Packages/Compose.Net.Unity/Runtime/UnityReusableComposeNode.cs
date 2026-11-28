@@ -66,6 +66,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
         var childVisualElement = ((UnityReusableComposeNode)child).LayoutElement;
         (ContentContainer as ILayout)?.Untrack(childVisualElement);
         ContentContainer.Remove(childVisualElement);
+        Box.InvalidateIntrinsics(ContentContainer);
         SyncDrawOnTop();
     }
 
@@ -81,6 +82,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
             ContentContainer.RemoveAt(index);
         else
             ContentContainer.Remove(childVisualElement);
+        Box.InvalidateIntrinsics(ContentContainer);
         SyncDrawOnTop();
     }
 
@@ -90,6 +92,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
             index++;
         ContentContainer.Insert(index, ((UnityReusableComposeNode)child).LayoutElement);
         (ContentContainer as ILayout)?.Track(((UnityReusableComposeNode)child).LayoutElement);
+        Box.InvalidateIntrinsics(ContentContainer);
         SyncDrawOnTop();
     }
 
@@ -104,6 +107,7 @@ public partial class UnityReusableComposeNode : IReusableComposeNode
             (childVisualElement.parent as ILayout)?.Untrack(childVisualElement);
             childVisualElement.RemoveFromHierarchy();
             parent.Insert(index, childVisualElement);
+            Box.InvalidateIntrinsics(parent);
         }
 
         // Compose.Net inserts every child through Reinsert, so this is where a layout

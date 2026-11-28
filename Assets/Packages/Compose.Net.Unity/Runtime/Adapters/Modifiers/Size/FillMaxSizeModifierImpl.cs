@@ -1,5 +1,6 @@
 ﻿// ReSharper disable CheckNamespace
 using Compose.Net;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Compose.Net.Unity;
@@ -7,6 +8,9 @@ namespace Compose.Net.Unity;
 internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFraction)
     : UnityModifierNodeElement<FillMaxSizeModifierImpl.FillNode>, IAppearanceModifier
 {
+    // Compose.Net uses -1 for the omitted axis in FillMaxWidth and FillMaxHeight.
+    internal const float Omitted = -1f;
+
     public override FillNode Create() => new(WidthFraction, HeightFraction);
     public override void Update(FillNode node) => node.Update(WidthFraction, HeightFraction);
     public override object GetTarget(IReusableComposeNode node) => node.VisualElement();
@@ -23,22 +27,24 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
             _element = (VisualElement)Target;
             _originalWidth = SharedVisual.AuthoredSize(_element, true);
             _originalHeight = SharedVisual.AuthoredSize(_element, false);
-            if (_width > 0) SharedVisual.SetAuthoredSize(_element, true, new Length(_width * 100, LengthUnit.Percent));
-            if (_height > 0) SharedVisual.SetAuthoredSize(_element, false, new Length(_height * 100, LengthUnit.Percent));
+            if (_width != Omitted) SharedVisual.SetAuthoredSize(_element, true, Percent(_width));
+            if (_height != Omitted) SharedVisual.SetAuthoredSize(_element, false, Percent(_height));
             Box.Refresh(_element);
         }
+
+        private static Length Percent(float fraction) => Length.Percent(Mathf.Clamp01(fraction) * 100);
 
         internal void Update(float nextWidth, float nextHeight)
         {
             if (_element != null)
             {
                 if (_width != nextWidth)
-                    SharedVisual.SetAuthoredSize(_element, true, nextWidth > 0
-                        ? new Length(nextWidth * 100, LengthUnit.Percent)
+                    SharedVisual.SetAuthoredSize(_element, true, nextWidth != Omitted
+                        ? Percent(nextWidth)
                         : _originalWidth);
                 if (_height != nextHeight)
-                    SharedVisual.SetAuthoredSize(_element, false, nextHeight > 0
-                        ? new Length(nextHeight * 100, LengthUnit.Percent)
+                    SharedVisual.SetAuthoredSize(_element, false, nextHeight != Omitted
+                        ? Percent(nextHeight)
                         : _originalHeight);
             }
             _width = nextWidth;
@@ -50,8 +56,8 @@ internal record FillMaxSizeModifierImpl(float WidthFraction, float HeightFractio
         {
             if (_element != null)
             {
-                SharedVisual.SetAuthoredSize(_element, true, _originalWidth);
-                SharedVisual.SetAuthoredSize(_element, false, _originalHeight);
+                if (_width != Omitted) SharedVisual.SetAuthoredSize(_element, true, _originalWidth);
+                if (_height != Omitted) SharedVisual.SetAuthoredSize(_element, false, _originalHeight);
             }
             if (_element != null) Box.Refresh(_element);
             _element = null;

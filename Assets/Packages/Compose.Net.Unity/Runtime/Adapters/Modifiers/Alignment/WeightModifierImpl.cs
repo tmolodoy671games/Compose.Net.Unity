@@ -30,6 +30,7 @@ internal record WeightModifierImpl(float Weight) : UnityModifierNodeElement<Weig
             _element.RegisterCallback<GeometryChangedEvent>(OnGeometry);
             ApplyBasis();
             _element.style.flexGrow = _weight;
+            Box.InvalidateIntrinsics(_element);
         }
 
         internal void Update(float next)
@@ -37,7 +38,10 @@ internal record WeightModifierImpl(float Weight) : UnityModifierNodeElement<Weig
             _weight = next;
             ApplyBasis();
             if (_element != null)
+            {
                 _element.style.flexGrow = next;
+                Box.InvalidateIntrinsics(_element);
+            }
         }
 
         private void OnAttachToPanel(AttachToPanelEvent evt) => ApplyBasis();
@@ -70,6 +74,7 @@ internal record WeightModifierImpl(float Weight) : UnityModifierNodeElement<Weig
                 _element.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
                 _element.style.flexGrow = _original;
                 _element.style.flexBasis = _originalBasis;
+                Box.InvalidateIntrinsics(_element);
             }
             _rowWidth?.Release();
             _rowWidth = null;

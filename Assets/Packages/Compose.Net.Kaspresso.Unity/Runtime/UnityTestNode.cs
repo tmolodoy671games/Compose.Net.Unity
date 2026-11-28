@@ -15,7 +15,7 @@ namespace Compose.Net.Kaspresso.Unity
             Element = element;
         }
         public string TestTag => Element.name;
-        public string Text => Element is TextField field ? field.text : (Element as TextElement)?.text;
+        public string Text => Element is TextField textField ? textField.text : (Element as TextElement)?.text;
         public bool IsEnabled => Element.enabledInHierarchy;
         public IReadOnlyList<ITestNode> Children
         {

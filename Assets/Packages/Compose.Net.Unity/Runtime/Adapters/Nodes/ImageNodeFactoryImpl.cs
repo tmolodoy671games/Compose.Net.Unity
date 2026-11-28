@@ -25,6 +25,7 @@ internal class ImageNodeFactoryImpl : IImageVectorNodeFactory
 #endif
         bitmap.SetImage(node);
         element.scaleMode = scaleMode.ToUnityScaleMode();
+        Box.InvalidateIntrinsics(element);
     }
 
     public void Apply(IReusableComposeNode node, IPainter painter, ScaleMode scaleMode)
@@ -33,6 +34,7 @@ internal class ImageNodeFactoryImpl : IImageVectorNodeFactory
         node.VisualElement<ComposeImageElement>().ClearVector();
 #endif
         painter.SetImage(node);
+        Box.InvalidateIntrinsics(node.VisualElement());
     }
 
     public void Apply(IReusableComposeNode node, ImageVector imageVector, ScaleMode scaleMode, Size intrinsicSize,
@@ -42,6 +44,7 @@ internal class ImageNodeFactoryImpl : IImageVectorNodeFactory
         var element = node.VisualElement<ComposeImageElement>();
         element.SetVector(imageVector, intrinsicSize, tint);
         element.scaleMode = scaleMode.ToUnityScaleMode();
+        Box.InvalidateIntrinsics(element);
 #else
         throw new NotSupportedException("Compose ImageVector rendering requires Unity 6.3 or newer with the Vector Graphics module enabled.");
 #endif

@@ -20,5 +20,6 @@ internal class RowNodeFactoryImpl : IRowNodeFactory
         row.style.justifyContent = (horizontalArrangement ?? Arrangement.Left).ToJustify();
         row.style.columnGap = horizontalArrangement is Arrangement.Spaced spaced ? spaced.Space.ToPx(global::Compose.Net.Density.Default) : 0;
         ((UnityReusableComposeNode)node).SyncScrollContentLayout();
+        Box.InvalidateIntrinsics(row);
     }
 }

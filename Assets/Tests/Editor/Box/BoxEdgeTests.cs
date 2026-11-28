@@ -61,6 +61,132 @@ public sealed partial class BoxTests
         _items[0]=new Item("a",Modifier.FillMaxSize(.75f));Update();Size("a",180,120);
         _items[0]=new Item("a",Modifier.Size(40.Dp(),30.Dp()));Update();Size("a",40,30);Size("box",40,30);
     }
+    [Test]
+    public void FillUsesThePanelViewportWhenTheHostHasAutoSize()
+    {
+        var host = new VisualElement();
+        host.style.flexGrow = 1;
+        rootVisualElement.Add(host);
+        _box = Modifier.FillMaxSize(.5f);
+        _composer = IComposer.Create();
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false), new Root(host), Content);
+        Flush();
+        Assert.That(host.contentRect.size, Is.EqualTo(new Vector2(800, 600)));
+        Size("box", 400, 300);
+    }
+
+    [TestCase(0f, 0, 0)]
+    [TestCase(.5f, 51, 39)]
+    [TestCase(1.5f, 101, 77)]
+    public void FillClampsAndRoundsBothAxes(float fraction, int width, int height)
+    {
+        _box = Modifier.Size(101.Dp(), 77.Dp());
+        _items.Add(new Item("child", Modifier.FillMaxSize(fraction).Size(23.Dp(), 17.Dp())));
+        Mount();
+        Assert.That(E("child").layout.width, Is.EqualTo(width).Within(.01f));
+        Assert.That(E("child").layout.height, Is.EqualTo(height).Within(.01f));
+    }
+
+    [Test]
+    public void ZeroFillAffectsOnlyTheRequestedAxisAfterRecomposition()
+    {
+        _box = Modifier.Size(140.Dp(), 70.Dp());
+        _items.Add(new Item("child", Modifier.FillMaxWidth(0).Size(30.Dp(), 20.Dp())));
+        Mount();
+        Size("child", 0, 20);
+        _items[0] = new Item("child", Modifier.FillMaxHeight(0).Size(30.Dp(), 20.Dp()));
+        Update();
+        Size("child", 30, 0);
+    }
+
+    [Test]
+    public void FillUsesConstraintsAtItsPositionInTheChain()
+    {
+        _box = Modifier.Size(200.Dp(), 80.Dp());
+        _items.Add(new Item("before", Modifier.WidthIn(max: 80.Dp()).FillMaxWidth(.5f)));
+        _items.Add(new Item("after", Modifier.FillMaxWidth(.5f).WidthIn(max: 80.Dp())));
+        _items.Add(new Item("padded", Modifier.Padding(horizontal: 10.Dp()).FillMaxWidth(.5f)));
+        Mount();
+        Size("before", 40, 0);
+        Size("after", 100, 0);
+        Size("padded", 90, 0);
+    }
+
+    [Test]
+    public void BackgroundOutsidePaddingIncludesTheFractionallyFilledChild()
+    {
+        _box = Modifier.Size(200.Dp(), 80.Dp());
+        _items.Add(new Item("child", Modifier.Background(Compose.Net.Color.White)
+            .Padding(horizontal: 10.Dp()).FillMaxWidth(.5f).Height(15.Dp())));
+        Mount();
+        Size("child", 90, 15);
+        Near(E("child").parent.layout.width, 110);
+        At("child", 10, 0);
+    }
+
+    [TestCase(0f)]
+    [TestCase(.5f)]
+    public void FillOnUnboundedWidthPreservesNaturalSize(float fraction)
+    {
+        _box = Modifier.Size(100.Dp(), 60.Dp()).WrapContentWidth(unbounded: true).FillMaxSize(fraction);
+        Add("leaf", 30, 15);
+        Mount();
+        Size("box", 30, 60);
+    }
+
+    private int _linearWidth, _leadingWidth;
+
+    [Composable]
+    private void LinearFillContent()
+    {
+        var revision = _revision.Value;
+        Row(modifier: Modifier.Size(_linearWidth.Dp(), 80.Dp()), content: () =>
+        {
+            var childrenRevision = _revision.Value;
+            Box(Modifier.Width(_leadingWidth.Dp()).TestTag("leading"));
+            Column(modifier: Modifier.FillMaxSize(.5f).TestTag("column"), content: () =>
+            {
+                Box(Modifier.Height(10.Dp()));
+                Box(Modifier.FillMaxSize().TestTag("remaining"));
+            });
+        });
+    }
+
+    [Test]
+    public void LinearFillUsesRemainingMainAxisOnEachLevel()
+    {
+        _linearWidth = 110;
+        _leadingWidth = 30;
+        _composer = IComposer.Create();
+        Bootstrap(_composer, _adapter, false, new ComposeConfig(Logging: false), new Root(rootVisualElement), LinearFillContent);
+        Flush();
+        Size("column", 40, 40);
+        Size("remaining", 40, 30);
+        _leadingWidth = 60;
+        Update();
+        Size("leading", 60, 0);
+        Size("column", 25, 40);
+        _linearWidth = 160;
+        Update();
+        Size("remaining", 50, 30);
+    }
+
+    [Test]
+    public void FractionalFillCanReturnFromAnUnboundedAxis()
+    {
+        var outer = Modifier.Size(120.Dp(), 60.Dp());
+        _box = outer.WrapContentWidth(unbounded: true).FillMaxSize(.5f);
+        Add("leaf", 24, 10);
+        Mount();
+        Size("box", 24, 60);
+        _box = outer.WrapContentWidth().FillMaxSize(.5f);
+        Update();
+        Size("box", 60, 60);
+        _box = outer.WrapContentWidth(unbounded: true).FillMaxSize(0);
+        Update();
+        Size("box", 24, 60);
+    }
+
     [Test,BoxScope] public void PropagatedMinimumWinsOverFractionalFill()
     {
         _box=Modifier.Size(200.Dp(),100.Dp());_propagate=true;_items.Add(new Item("a",Modifier.FillMaxSize(.5f)));Mount();Size("a",200,100);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Compose.Net;
 using Compose.Net.Unity.Runtime.Adapters;
 using Compose.Net.Unity.Runtime.Adapters.Brushes;
@@ -25,8 +26,8 @@ public class ComposeUnityAdapter : IComposeAdapter
     {
     }
 
-    public IDisposable StartTimeCoroutine(IEnumerable<TimeSpan?> coroutine) =>
-        ComposeInvalidatorHolder.StartCoroutineAsDisposable(coroutine);
+    public IDisposable StartTimeCoroutine(IEnumerable<Optional<TimeSpan>> coroutine) =>
+        ComposeInvalidatorHolder.StartCoroutineAsDisposable(coroutine.Select(step => step.HasValue ? (TimeSpan?)step.Value : null));
 
     public int Framerate()
     {

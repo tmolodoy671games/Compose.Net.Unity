@@ -153,7 +153,8 @@ internal sealed class SharedVisual : ISharedContentHost
     internal static StyleLength AuthoredSize(VisualElement element, bool width)
     {
         var saved = ForLayoutElement(element)?._saved;
-        return saved != null ? width ? saved.Width : saved.Height : width ? element.style.width : element.style.height;
+        return saved != null ? width ? saved.Width : saved.Height
+            : Box.AuthoredDimension(element, width, width ? element.style.width : element.style.height);
     }
     internal static void SetAuthoredSize(VisualElement element, bool width, StyleLength value)
     {
@@ -167,8 +168,12 @@ internal sealed class SharedVisual : ISharedContentHost
             Box.Refresh(shared.Slot!);
             shared.Measure();
         }
-        else if (width) element.style.width = value;
-        else element.style.height = value;
+        else
+        {
+            Box.AuthorDimension(element, width, value);
+            if (width) element.style.width = value;
+            else element.style.height = value;
+        }
     }
     internal static StyleLength AuthoredBound(VisualElement element, Box.BoundProperty property)
     {
@@ -254,11 +259,11 @@ internal sealed class SharedVisual : ISharedContentHost
         {
             _layoutAncestor = Parent;
             _naturalParentSize = _element.parent?.contentRect.size ?? _natural;
-            if (_layoutAncestor?._content.LayoutBounds is { } ancestorBounds)
+            if (_layoutAncestor?._content.LayoutBounds is { HasValue: true, Value: var ancestorBounds })
                 _offsetInAncestor = position - new Vector2(ancestorBounds.Offset.X, ancestorBounds.Offset.Y);
         }
         else if (_layoutAncestor is { Slot: not null } ancestor &&
-                 ancestor._content.LayoutBounds is { } ancestorBounds)
+                 ancestor._content.LayoutBounds is { HasValue: true, Value: var ancestorBounds })
         {
             // Reparenting/remeasuring a shared ancestor changes its live layout.
             // Keep the child's natural local destination, and follow only the

@@ -2,13 +2,13 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>T.Molodoy.Compose.Net</id>
-    <version>0.0.23</version>
+    <version>0.0.24</version>
     <authors>T. Molodoy</authors>
     <license type="expression">MIT</license>
     <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
     <readme>README.md</readme>
     <description>.NET implementation of Compose.</description>
-    <repository type="git" url="https://github.com/tmolodoy671games/Compose.Net" />
+    <repository type="git" url="https://github.com/tmolodoy671games/Compose.Net" commit="ae5753e65c0297420802ed62795ce6977fa4ff1f" />
     <dependencies>
       <group targetFramework=".NETStandard2.1">
         <dependency id="T.Molodoy.SharpExtensions" version="0.0.48" exclude="Build,Analyzers" />

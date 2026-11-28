@@ -133,8 +133,8 @@ internal static class ModifierLayers
     {
         SizeModifierImpl size => (size.Width.IsSpecified ? NativeProperties.Width : 0)
             | (size.Height.IsSpecified ? NativeProperties.Height : 0),
-        FillMaxSizeModifierImpl fill => (fill.WidthFraction > 0 ? NativeProperties.Width : 0)
-            | (fill.HeightFraction > 0 ? NativeProperties.Height : 0),
+        FillMaxSizeModifierImpl fill => (fill.WidthFraction != FillMaxSizeModifierImpl.Omitted ? NativeProperties.Width | NativeProperties.MinWidth | NativeProperties.MaxWidth : 0)
+            | (fill.HeightFraction != FillMaxSizeModifierImpl.Omitted ? NativeProperties.Height | NativeProperties.MinHeight | NativeProperties.MaxHeight : 0),
         SizeInModifierImpl size => (size.MinWidth.IsSpecified ? NativeProperties.MinWidth : 0)
             | (size.MaxWidth.IsSpecified ? NativeProperties.MaxWidth : 0)
             | (size.MinHeight.IsSpecified ? NativeProperties.MinHeight : 0)
@@ -173,6 +173,9 @@ internal static class ModifierLayers
             var hasEffect = false;
             var previousOffset = false;
             var properties = NativeProperties.None;
+            var hasInnerModifier = false;
+            var paddingType = PaddingType.Margin;
+            var hasNativePadding = false;
             for (var i = 0; i < chain.Size; i++)
             {
                 var item = Original(chain[i]);
@@ -180,14 +183,30 @@ internal static class ModifierLayers
                 var offset = item is OffsetModifierImpl or ObservedOffsetModifierImpl;
                 var transform = offset || item is ScaleModifierImpl or RotateModifierImpl or AlphaModifierImpl;
                 var writes = PropertiesOf(item);
-                if ((hasEffect && transform && !(offset && previousOffset)) || (writes & properties) != 0)
+                var measuresContent = item is IContentMeasureModifier;
+                if ((item is FillMaxSizeModifierImpl && hasNativePadding) ||
+                    (measuresContent && hasInnerModifier) ||
+                    (hasEffect && transform && !(offset && previousOffset)) || (writes & properties) != 0)
                 {
                     _outerDepth++;
-                    hasEffect = false;
+                    hasEffect = hasNativePadding = false;
                     properties = NativeProperties.None;
                 }
                 properties |= writes;
                 _groups[i] = _outerDepth;
+                if (measuresContent)
+                {
+                    // A measure modifier owns a Box around the rest of the chain, even on a leaf.
+                    _outerDepth++;
+                    hasInnerModifier = hasEffect = previousOffset = hasNativePadding = false;
+                    paddingType = PaddingType.Margin;
+                    properties = NativeProperties.None;
+                    continue;
+                }
+                // Padding drawn inside an outer background reduces the maximum before an inner fill.
+                if (item is PaddingModifierImpl && paddingType == PaddingType.Padding) hasNativePadding = true;
+                if (item is IAppearanceModifier) paddingType = PaddingType.Padding;
+                hasInnerModifier |= item is IUnityLayerParticipant && !IsParentData(item);
                 // Sizing and parent data can share a transform's element. Earlier drawing
                 // and pointer handlers must keep their own coordinate space.
                 hasEffect |= transform || item is IModifierInputLayer or OnPlacedModifierImpl
@@ -199,4 +218,5 @@ internal static class ModifierLayers
 }
 
 internal interface IUnityLayerParticipant { }
+internal interface IContentMeasureModifier : IAppearanceModifier { }
 internal interface IModifierInputLayer { }

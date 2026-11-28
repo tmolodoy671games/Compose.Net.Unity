@@ -18,5 +18,6 @@ internal class ColumnNodeFactoryImpl : IColumnNodeFactory
         column.style.justifyContent = verticalArrangement.ToJustify();
         column.style.rowGap = verticalArrangement is Arrangement.Spaced spaced ? spaced.Space.ToPx(global::Compose.Net.Density.Default) : 0;
         ((UnityReusableComposeNode)node).SyncScrollContentLayout();
+        Box.InvalidateIntrinsics(column);
     }
 }

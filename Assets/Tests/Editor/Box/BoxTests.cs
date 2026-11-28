@@ -1,4 +1,5 @@
 using System;
+using SharpExtensions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -210,7 +211,7 @@ public sealed partial class BoxTests : UITestFixture
         public IEnterTransitionsFactory EnterTransitionsFactory=>Native.EnterTransitionsFactory;
         public IExitTransitionsFactory ExitTransitionsFactory=>Native.ExitTransitionsFactory;
         public IBrushFactory BrushFactory=>Native.BrushFactory;
-        public IDisposable StartTimeCoroutine(IEnumerable<TimeSpan?> coroutine)=>Native.StartTimeCoroutine(coroutine);
+        public IDisposable StartTimeCoroutine(IEnumerable<Optional<TimeSpan>> coroutine)=>Native.StartTimeCoroutine(coroutine);
         public int Framerate()=>60;
     }
 }

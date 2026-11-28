@@ -1,4 +1,5 @@
 using System;
+using SharpExtensions;
 using System.Collections.Generic;
 using Compose.Net.Unity.Packages.Compose.Net.Unity.Runtime.Adapters;
 using UnityEditor;
@@ -23,7 +24,7 @@ internal sealed class UnityPreviewAdapter : IComposeAdapter, IDisposable
     public IBrushFactory BrushFactory => Native.BrushFactory;
     public int Framerate() => 60;
 
-    public IDisposable StartTimeCoroutine(IEnumerable<TimeSpan?> coroutine)
+    public IDisposable StartTimeCoroutine(IEnumerable<Optional<TimeSpan>> coroutine)
     {
         if (_disposed) throw new ObjectDisposedException(nameof(UnityPreviewAdapter));
         var task = new EditorCoroutine(coroutine.GetEnumerator());
@@ -50,17 +51,17 @@ internal sealed class UnityPreviewAdapter : IComposeAdapter, IDisposable
     [AiGenerated]
     private sealed class EditorCoroutine : IDisposable
     {
-        private readonly IEnumerator<TimeSpan?> _iterator;
+        private readonly IEnumerator<Optional<TimeSpan>> _iterator;
         private double _next;
         public bool IsDisposed { get; private set; }
-        public EditorCoroutine(IEnumerator<TimeSpan?> iterator) => _iterator = iterator;
+        public EditorCoroutine(IEnumerator<Optional<TimeSpan>> iterator) => _iterator = iterator;
         public void Tick(double now)
         {
             if (IsDisposed || now < _next) return;
             try
             {
                 if (!_iterator.MoveNext()) { Dispose(); return; }
-                _next = now + Math.Max(0, _iterator.Current?.TotalSeconds ?? 0);
+                _next = now + Math.Max(0, _iterator.Current.GetOrDefault(TimeSpan.Zero).TotalSeconds);
             }
             catch { Dispose(); throw; }
         }
